@@ -1,6 +1,8 @@
 Guest House Booking Project
 
 check user role accessing admin panel
+major tasks completed on user side, now work on admin panel
+try working on crud op in admin side 5/11
 
 # Phase 1
 - Complete all database schemas. ✅

@@ -1,13 +1,17 @@
 import React, { useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import '../styles/bookingform.css'
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 
 const BookingForm = () => {
+  const location = useLocation();
+  const selectedGuestHouse = location.state?.guestHouse;
+
   const [formData, setFormData] = useState({
     checkInDate: '',
     checkOutDate: '',
-    guestHouse: '',
+    guestHouse: selectedGuestHouse || '',
     room: '',
     bed: '',
     fullName: '',
@@ -48,7 +52,14 @@ const BookingForm = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    console.log('Booking Data:', formData);
+    const bookingDataWithGuestHouse = {
+      ...formData,
+      selectedGuestHouse: selectedGuestHouse ? {
+        name: selectedGuestHouse.name,
+        location: selectedGuestHouse.location,
+      } : null
+    };
+    console.log('Booking Data:', bookingDataWithGuestHouse);
     alert('Booking submitted successfully!');
   };
 
@@ -60,6 +71,17 @@ const BookingForm = () => {
         {/* Navbar */}
         <Navbar />
 
+        {/* Selected Guest House Info */}
+        {selectedGuestHouse && (
+          <div className="selected-guesthouse-info">
+            <h3>You Selected:</h3>
+            <div className="guesthouse-details">
+              <h4>{selectedGuestHouse.name}</h4>
+              <p>Location: {selectedGuestHouse.location.city}, {selectedGuestHouse.location.state}</p>
+              {selectedGuestHouse.description && <p className="description">{selectedGuestHouse.description}</p>}
+            </div>
+          </div>
+        )}
 
         {/* Booking Form */}
         <form className="booking-form" onSubmit={handleSubmit}>
