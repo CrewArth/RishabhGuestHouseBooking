@@ -1,0 +1,220 @@
+/* ==================== ROOT VARIABLES ==================== */
+:root {
+  --primary-color: #4f46e5;
+  --primary-dark: #4338ca;
+  --text-dark: #1f2937;
+  --text-light: #6b7280;
+  --border-color: #e5e7eb;
+  --background-color: #f9fafb;
+  --white: #ffffff;
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  --radius-md: 8px;
+  --radius-lg: 12px;
+}
+
+/* ==================== GLOBAL STYLES ==================== */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  background-color: var(--background-color);
+  color: var(--text-dark);
+}
+
+/* ==================== SIGNUP CONTAINER ==================== */
+.signup-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 20px;
+  background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+}
+
+.signup-wrapper {
+  background-color: var(--white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: 48px 40px;
+  width: 100%;
+  max-width: 500px;
+}
+
+/* ==================== HEADER STYLES ==================== */
+.signup-header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.signup-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-dark);
+  margin-bottom: 8px;
+  letter-spacing: -0.5px;
+}
+
+.signup-subtitle {
+  font-size: 14px;
+  color: var(--text-light);
+  font-weight: 500;
+}
+
+/* ==================== FORM STYLES ==================== */
+.signup-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-dark);
+  display: block;
+}
+
+.form-input {
+  padding: 12px 14px;
+  border: 1.5px solid var(--border-color);
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  color: var(--text-dark);
+  background-color: var(--white);
+  font-family: inherit;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.form-input::placeholder {
+  color: #d1d5db;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
+
+.form-input:hover {
+  border-color: #d1d5db;
+}
+
+.password-wrapper {
+  position: relative;
+}
+
+.password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: #2563eb;
+}
+
+/* ==================== BUTTON STYLES ==================== */
+.submit-button {
+  padding: 12px 24px;
+  background-color: var(--primary-color);
+  color: var(--white);
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+  margin-top: 8px;
+}
+
+.submit-button:hover {
+  background-color: var(--primary-dark);
+  box-shadow: var(--shadow-md);
+}
+
+.submit-button:active {
+  transform: scale(0.98);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ==================== FOOTER STYLES ==================== */
+.signup-footer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border-color);
+}
+
+.footer-text {
+  font-size: 14px;
+  color: var(--text-light);
+}
+
+.login-button {
+  padding: 10px 20px;
+  background-color: transparent;
+  color: var(--primary-color);
+  border: 1.5px solid var(--primary-color);
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.login-button:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+  border-color: var(--primary-dark);
+  color: var(--primary-light);
+}
+
+.login-button:active {
+  transform: scale(0.98);
+}
+
+/* ==================== RESPONSIVE DESIGN ==================== */
+@media (max-width: 480px) {
+  .signup-wrapper {
+    padding: 32px 24px;
+  }
+
+  .signup-title {
+    font-size: 24px;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .form-input {
+    padding: 11px 12px;
+    font-size: 16px;
+  }
+}
+

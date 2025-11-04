@@ -1,0 +1,116 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  --bg-start: #081226; /* deep navy */
+  --bg-end: #012031;   /* teal-blue */
+  --accent: #5eead4;   /* mint accent */
+  --muted: #9fb3c8;    /* muted text */
+  --soft-white: #f7fbff;
+}
+
+/* Footer container */
+.footer-container {
+  width: 100%;
+  background: linear-gradient(120deg, var(--bg-start) 0%, var(--bg-end) 100%);
+  color: var(--soft-white);
+  padding: 1rem 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2rem;
+  flex-wrap: wrap;
+  position: sticky;
+  left: 0;
+  bottom: 0;
+  z-index: 50;
+  box-shadow: 0 -6px 30px rgba(2,8,23,0.35) inset;
+}
+
+/* Company logo + name */
+.footer-container .company {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+}
+
+.footer-container .company img,
+.footer-container .company svg {
+  width: 42px;
+  height: 42px;
+  object-fit: contain;
+}
+
+.footer-container .company p {
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--soft-white);
+}
+
+/* Links: About Us, Contact, etc */
+.footer-container .contactus ul {
+  list-style: none;
+  display: flex;
+  gap: 1.25rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.footer-container .contactus li {
+  color: var(--muted);
+  font-size: 0.95rem;
+  cursor: pointer;
+  position: relative;
+  padding: 6px 4px;
+  transition: color 180ms ease;
+}
+
+.footer-container .contactus li:hover {
+  color: var(--accent);
+}
+
+/* Underline hover effect */
+.footer-container .contactus li::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -4px;
+  height: 2px;
+  width: 0;
+  background: var(--accent);
+  transition: width 220ms ease;
+}
+
+.footer-container .contactus li:hover::after {
+  width: 100%;
+}
+
+/* Responsive behavior */
+@media (max-width: 768px) {
+  .footer-container {
+    flex-direction: column;
+    text-align: center;
+    gap: 1rem;
+  }
+
+  .footer-container .contactus ul {
+    justify-content: center;
+  }
+}
+
+/* Fade-in on load */
+.footer-container {
+  opacity: 0;
+  transform: translateY(10px);
+  animation: fadeInUp 500ms ease forwards;
+}
+
+@keyframes fadeInUp {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

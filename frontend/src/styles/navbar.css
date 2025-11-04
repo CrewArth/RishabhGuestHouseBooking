@@ -1,0 +1,158 @@
+.navbar-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: white;
+  width: 100%;
+  height: 64px;
+  padding: 0 24px;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+  box-sizing: border-box;
+}
+
+/* Left section: logo + text */
+.navbar-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.navbar-logo {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.navbar-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.navbar-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  color: #1e293b;
+  margin: 0;
+  letter-spacing: -0.5px;
+}
+
+/* Right section: button */
+.navbar-authentication {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.authButton {
+  appearance: none;
+  background-color: #3b82f6;
+  border: none;
+  border-radius: 8px;
+  color: #ffffff;
+  cursor: pointer;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding: 0.5rem 1rem;
+  line-height: 1.5;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.authButton:hover {
+  background-color: #2563eb;
+  transform: translateY(-1px);
+}
+
+.authButton:active {
+  transform: translateY(0);
+}
+
+.welcome-text {
+  color: #475569;
+  font-size: 0.875rem;
+  font-weight: 500;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+/* 📱 Responsive */
+@media (max-width: 768px) {
+  .navbar-container {
+    padding: 0 16px;
+  }
+
+  .navbar-title {
+    font-size: 1.125rem;
+  }
+
+  .welcome-text {
+    display: none;
+  }
+
+  .navbar-logo {
+    width: 32px;
+    height: 32px;
+  }
+}
+
+/* Add subtle animation for page load */
+@keyframes slideDown {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.navbar-container {
+  animation: slideDown 0.3s ease-out;
+}
+
+/* Navigation links (center section or right side depending on your layout) */
+.navbar-links {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-right: 16px; /* Adjust if needed to balance spacing */
+}
+/* Navbar links (My Bookings, Profile) */
+.navbar-links {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.nav-link {
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 500;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  color: #1f2937; /* Darker Gray for readability */
+  transition: color 0.2s ease;
+}
+
+.nav-link:hover {
+  color: #2563eb; /* Subtle blue on hover */
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .navbar-links {
+    gap: 12px;
+  }
+  .nav-link {
+    font-size: 0.8rem;
+  }
+}
