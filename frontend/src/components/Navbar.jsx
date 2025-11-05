@@ -80,43 +80,47 @@ const Navbar = () => {
         <p className="navbar-title">Rishabh Guest House</p>
       </div>  
 
-      <div className="navbar-links">
-  {isLoggedIn ? (
-    <>
-      <Link
-        to="/my-bookings"
-        className="nav-links"
-        style={{
-          color: "#1f2937",
-          fontSize: "0.9rem",
-          fontWeight: "500",
-          textDecoration: "none",
-          transition: "color 0.2s ease",
-        }}
-        onMouseEnter={(e) => (e.target.style.color = "#2563eb")}
-        onMouseLeave={(e) => (e.target.style.color = "#1f2937")}
-      >
-        My Bookings
-      </Link>
-      <Link
-        to="/profile"
-        className="nav-links"
-        style={{
-          color: "#1f2937",
-          fontSize: "0.9rem",
-          fontWeight: "500",
-          textDecoration: "none",
-          transition: "color 0.2s ease",
-        }}
-        onMouseEnter={(e) => (e.target.style.color = "#2563eb")}
-        onMouseLeave={(e) => (e.target.style.color = "#1f2937")}
-      >
-        Profile
-      </Link>
-    </>
-  ) : null}
-</div>
 
+
+      <div className="navbar-links">
+        {isLoggedIn && (
+          <>
+            {/* Show My Bookings only if user is not admin */}
+            {JSON.parse(localStorage.getItem("user"))?.role !== "admin" && (
+              <Link
+                to="/my-bookings"
+                className="nav-links"
+                style={{
+                  color: "#1f2937",
+                  fontSize: "0.9rem",
+                  fontWeight: "500",
+                  textDecoration: "none",
+                  transition: "color 0.2s ease",
+                }}
+                onMouseEnter={(e) => (e.target.style.color = "#2563eb")}
+                onMouseLeave={(e) => (e.target.style.color = "#1f2937")}
+              >
+                My Bookings
+              </Link>
+            )}
+            <Link
+              to="/profile"
+              className="nav-links"
+              style={{
+                color: "#1f2937",
+                fontSize: "0.9rem",
+                fontWeight: "500",
+                textDecoration: "none",
+                transition: "color 0.2s ease",
+              }}
+              onMouseEnter={(e) => (e.target.style.color = "#2563eb")}
+              onMouseLeave={(e) => (e.target.style.color = "#1f2937")}
+            >
+              Profile
+            </Link>
+          </>
+        )}
+      </div>
 
       <div className="navbar-authentication">
         {isLoggedIn && <span className="welcome-text">Welcome {username}!</span>}

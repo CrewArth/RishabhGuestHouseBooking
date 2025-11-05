@@ -2,7 +2,7 @@ import React  from 'react';
 import { FaHome } from 'react-icons/fa';
 import '../styles/hero.css'
 import { useNavigate } from 'react-router-dom';
-
+import herobg from '../../assets/hero-bg.png'
 
 const HeroSection = () => {
 
@@ -28,7 +28,11 @@ const HeroSection = () => {
           <button className="hero-button" onClick={navigateSignin}>Book Now</button>
         </div>
         <div className="hero-icon">
-          <FaHome />
+          {/* <FaHome /> */}
+
+            
+                  <img src={herobg} alt="Rishabh Software Logo" id='nav-logo' width="500px"/>
+             
         </div>
       </div>
     </div>

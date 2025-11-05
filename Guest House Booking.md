@@ -4,6 +4,9 @@ check user role accessing admin panel
 major tasks completed on user side, now work on admin panel
 try working on crud op in admin side 5/11
 
+things to do:
+1 make responsive navbar
+
 # Phase 1
 - Complete all database schemas. ✅
 - Set up the Node.js + Express server. ✅

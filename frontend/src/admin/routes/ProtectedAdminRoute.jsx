@@ -4,8 +4,16 @@ export default function ProtectedAdminRoute({children}){
     const token = localStorage.getItem("token");
     const user = JSON.parse(localStorage.getItem("user"));
 
-    if(!token || !user || user.role !== "admin"){
-        return <Navigate to = "/signin"/>;
+    
+    if(user.role === "admin"){
+        return children;
+    }else{
+        return <Navigate to="/" /> 
     }
-    return children;
+
+    // if(!token && user.role !== "admin"){
+    //     return <Navigate to = "/signin"/>;
+    // }
+    // return children;
+
 }
