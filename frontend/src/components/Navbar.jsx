@@ -64,7 +64,7 @@ const Navbar = () => {
       setIsLoggedIn(false);
       setUsername("");
       navigate("/");
-      // return;
+      return;
     }
 
     // Not logged in -> go to sign in page
@@ -80,11 +80,11 @@ const Navbar = () => {
         <p className="navbar-title">Rishabh Guest House</p>
       </div>  
 
-
-
       <div className="navbar-links">
         {isLoggedIn && (
           <>
+
+
             {/* Show My Bookings only if user is not admin */}
             {JSON.parse(localStorage.getItem("user"))?.role !== "admin" && (
               <Link

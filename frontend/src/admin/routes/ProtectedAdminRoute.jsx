@@ -11,9 +11,4 @@ export default function ProtectedAdminRoute({children}){
         return <Navigate to="/" /> 
     }
 
-    // if(!token && user.role !== "admin"){
-    //     return <Navigate to = "/signin"/>;
-    // }
-    // return children;
-
 }

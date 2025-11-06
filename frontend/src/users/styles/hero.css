@@ -8,7 +8,7 @@
   align-items: center;
   justify-content: center;
   padding: 2rem;
-  margin-top: -64px; /* If you have a fixed navbar, this will help center the content properly */
+  margin-top: -125px; /* If you have a fixed navbar, this will help center the content properly */
   padding-top: 64px; /* This compensates for the negative margin */
 }
 

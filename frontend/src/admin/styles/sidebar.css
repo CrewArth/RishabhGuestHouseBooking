@@ -16,12 +16,12 @@
     color: var(--sidebar-text);
     display: flex;
     flex-direction: column;
-    position: relative;
+    position: static;
     left: 0;
     top: 3;
     z-index: -10;
     border-right: 1px solid #e2e8f0;
-    padding-top: var(--navbar-height);
+    /* padding-top: var(--navbar-height); */
 }
 
 .sidebar-header {
@@ -56,6 +56,7 @@
     position: relative;
     margin: 0.25rem 0.75rem;
     border-radius: 6px;
+    
 }
 
 .nav-item:hover {
@@ -101,3 +102,25 @@
     position: relative;
     z-index: 5;
 }
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  color: #4b5563; /* Default (gray-600) */
+  text-decoration: none;
+  transition: background 0.2s, color 0.2s;
+}
+
+.nav-link:hover {
+  background: #f3f4f6;
+  color: #1f2937;
+}
+
+.nav-link.active {
+  background: #e0f2fe;
+  color: #0284c7; /* Blue */
+  font-weight: 600;
+}
+

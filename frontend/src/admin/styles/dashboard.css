@@ -1,0 +1,25 @@
+.dashboard-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.layout-container {
+  display: flex;
+  flex: 1;
+}
+
+.sidebar {
+  width: 250px;
+  background: #f9fafb; /* Tailwind: gray-50 */
+  border-right: 1px solid #e5e7eb; /* Tailwind: gray-200 */
+  position: relative;
+  z-index: 10;
+}
+
+.main-content {
+  flex: 1;
+  padding: 2rem;
+  background: #fff;
+  overflow-y: auto;
+}

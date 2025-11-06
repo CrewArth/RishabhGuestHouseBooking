@@ -40,12 +40,12 @@ const Profile = () => {
             // Check if we have a valid response with user data
             if (response.data && response.data.user) {
                 const updatedData = response.data.user;
-                
+
                 // Update localStorage and state
                 localStorage.setItem("user", JSON.stringify(updatedData));
                 setUser(updatedData);
                 setIsEditing(false);
-                
+
                 // Show success message and navigate
                 alert("Profile updated successfully");
                 navigate('/dashboard');
@@ -62,10 +62,10 @@ const Profile = () => {
 
     return (
         <div className="profile-page-container">
-            <div>
-                <Navbar/>
+            <div className='navbar'>
+                <Navbar />
             </div>
-            <button onClick={() => navigate(-1)} className="btn btn-back">← Back</button>
+            {/* <button onClick={() => navigate(-1)} className="btn btn-back">← Back</button> */}
             <div className="profile-card">
                 <h1 className="profile-title">My Profile</h1>
 

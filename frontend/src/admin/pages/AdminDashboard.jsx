@@ -1,18 +1,20 @@
 import Navbar from '../../components/Navbar';
-import HeroSection from '../../users/components/HeroSection';
 import Sidebar from '../components/Sidebar';
-import MainContent from '../components/MainContent';
+import { Outlet } from 'react-router-dom';
+import "../styles/dashboard.css"
+
+
 
 export default function AdminDashboard() {
-  const user = JSON.parse(localStorage.getItem('user'));
   return (
-    <div className="admin-dashboard">
-
-
+    <div className="dashboard-layout">
       <Navbar />
-      <Sidebar/>
-      <MainContent />
-      
+      <div className="layout-container">
+        <Sidebar />
+        <div className="main-content">
+          <Outlet />
+        </div>
+      </div>
     </div>
   );
 }

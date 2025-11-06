@@ -7,7 +7,7 @@ function ProtectedRoute({children}){
     const token = localStorage.getItem('token'); 
     
     //If no Token -> Redirect to Signin
-    if(!token){
+    if(!token){ 
         return <Navigate to="/signin" replace />;
     }else{
         return children;

@@ -12,17 +12,26 @@ body {
 
 .booking-container {
   min-height: 100vh;
-  padding: 3rem 1rem;
   display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-top: 2%;
+  flex-direction: column;
+  background-color: #f9fafb;
 }
 
 .booking-form-wrapper {
   width: 100%;
   max-width: 900px;
   margin: 0 auto;
+  padding: 20px;
+  position: relative;
+}
+
+/* Navbar positioning */
+.navbar {
+  width: 100%;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background-color: #fff;
 }
 
 /* Header Section */
@@ -45,9 +54,48 @@ body {
   color: #6b7280; /* gray-500 */
 }
 
+/* Selected Guest House Info */
+.selected-guesthouse-info {
+  background: #ffffff;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin: 1rem 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.selected-guesthouse-info h3 {
+  color: #1f2937;
+  font-size: 1.25rem;
+  margin-bottom: 1rem;
+  font-weight: 600;
+}
+
+.guesthouse-details {
+  padding-left: 1rem;
+  border-left: 4px solid #3b82f6;
+}
+
+.guesthouse-details h4 {
+  color: #2563eb;
+  font-size: 1.1rem;
+  margin: 0 0 0.5rem 0;
+}
+
+.guesthouse-details p {
+  color: #4b5563;
+  margin: 0.25rem 0;
+}
+
+.guesthouse-details .description {
+  font-style: italic;
+  color: #6b7280;
+  margin-top: 0.75rem;
+}
+
 /* Form Container */
 .booking-form {
   background: #ffffff;
+  margin-top: 1rem;
   padding: 2rem;
   border-radius: 0.5rem;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);

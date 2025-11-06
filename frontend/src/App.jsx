@@ -1,79 +1,85 @@
-import { useState } from 'react'
-import {BrowserRouter, Routes, Route} from 'react-router-dom'
-import SignupPage from './users/pages/Signup'
-import LoginPage from './users/pages/Login'
-import Homepage from './users/pages/Homepage'
-import ProtectedRoute from './users/routes/ProtectedRoute'
-import Dashboard from './users/pages/Dashboard'
-import ProtectedAdminRoute from './admin/routes/ProtectedAdminRoute'
-import AdminDashboard from './admin/pages/AdminDashboard'
-import BookingForm from './users/pages/BookingForm'
-import MyBookings from './users/pages/MyBookings'
-import Profile from './users/pages/Profile'
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import SignupPage from './users/pages/Signup';
+import LoginPage from './users/pages/Login';
+import Homepage from './users/pages/Homepage';
+import ProtectedRoute from './users/routes/ProtectedRoute';
+import Dashboard from './users/pages/Dashboard';
+import ProtectedAdminRoute from './admin/routes/ProtectedAdminRoute';
+import AdminDashboard from './admin/pages/AdminDashboard';
+import BookingForm from './users/pages/BookingForm';
+import MyBookings from './users/pages/MyBookings';
+import Profile from './users/pages/Profile';
+import AddGuestHouse from './admin/pages/AddGuestHouse';
+import AddRooms from './admin/pages/AddRooms';
+import AddBeds from './admin/pages/AddBeds';
+import AuditLogs from './admin/pages/AuditLogs';
+import Overview from './admin/pages/Overview';
+import Bookings from './admin/pages/Bookings';
+
 
 function App() {
   return (
-<>
     <BrowserRouter>
       <Routes>
-        {/* Public routes */}
+
+        {/* ------------------ PUBLIC ROUTES ------------------ */}
         <Route path="/" element={<Homepage />} />
         <Route path="/signin" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
 
-        {/* Protected route */}
-        <Route
-          path="/dashboard"
+        {/* ------------------ USER PROTECTED ROUTES ------------------ */}
+        <Route 
+          path="/dashboard" 
           element={
             <ProtectedRoute>
               <Dashboard />
             </ProtectedRoute>
           }
         />
-
-        {/* Booking Form Route */}
-        <Route
-          path="/booking"
+        <Route 
+          path="/booking" 
           element={
             <ProtectedRoute>
               <BookingForm />
             </ProtectedRoute>
           }
         />
-
-        {/* User's Booking History*/}
-        <Route
-          path="/my-bookings"
+        <Route 
+          path="/my-bookings" 
           element={
             <ProtectedRoute>
               <MyBookings />
             </ProtectedRoute>
           }
         />
-
-        {/* User's Profile */}
-        <Route
-          path="/profile"
+        <Route 
+          path="/profile" 
           element={
             <ProtectedRoute>
               <Profile />
             </ProtectedRoute>
           }
-        />        
+        />
 
-        <Route
-          path='/admin/dashboard'
+        {/* ------------------ ADMIN PANEL ROUTES ------------------ */}
+        <Route 
           element={
             <ProtectedAdminRoute>
-              <AdminDashboard />
+              <AdminDashboard /> {/* Layout wrapper */}
             </ProtectedAdminRoute>
           }
-        ></Route>
+        >
+          <Route path="/admin/dashboard" element={<Overview />} />
+          <Route path="/admin/guesthouse" element={<AddGuestHouse />} />
+          <Route path="/admin/rooms" element={<AddRooms />} />
+          <Route path="/admin/beds" element={<AddBeds />} />
+          <Route path="/admin/audits" element={<AuditLogs />} />
+          <Route path="/admin/bookings" element={<Bookings />}/>
+        </Route>
+
       </Routes>
     </BrowserRouter>
-
-</> 
-  )
+  );
 }
 
-export default App
+export default App;

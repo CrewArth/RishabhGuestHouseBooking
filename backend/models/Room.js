@@ -1,11 +1,14 @@
 import mongoose from 'mongoose';
 
 const roomSchema = new mongoose.Schema({
-    guestHouseId: { type: mongoose.Schema.Types.ObjectId, ref: "GuestHouse", required: true },
+    guestHouseId: { type: Number, ref: "GuestHouse", required: true },
     roomNumber: { type: Number },
     roomType: { type: String, enum: ["single", "double", "family"], required: true },
     isAvailable: { type: Boolean, default: true },
     roomCapacity: {type: Number, required: true}
-}, { timestamps: true })
+}, { timestamps: true });
+
+// Uniqueness: a room number must be unique within a guest house
+roomSchema.index({ guestHouseId: 1, roomNumber: 1 }, { unique: true });
 
 export default mongoose.model("Room", roomSchema);

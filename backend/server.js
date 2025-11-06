@@ -8,6 +8,8 @@ import jwt from 'jsonwebtoken';
 import authRoutes from './routes/auth.js'
 import adminRoutes from './routes/createadmin.js'
 import userRoutes from './routes/userRoute.js'
+import guestHouseRoutes from './routes/guestHouseRoutes.js'
+import roomRoutes from './routes/roomRoutes.js';
 
 // Load .env file
 dotenv.config();
@@ -16,7 +18,6 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 app.use('/api/auth', authRoutes);
-
 
 
 // Connect with database
@@ -32,6 +33,12 @@ app.use('/api/admin', adminRoutes);
 
 // User Route for Update
 app.use('/api', userRoutes);
+
+// Guest House Routes (Admin only)
+app.use('/api/guesthouse', guestHouseRoutes);
+
+// Room Management API (Admin)
+app.use('/api/rooms', roomRoutes);
 
 // Start Server
 app.listen(process.env.PORT_NUMBER || 5000, () => {

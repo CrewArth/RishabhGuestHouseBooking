@@ -64,27 +64,26 @@ const BookingForm = () => {
   };
 
   return (
-    <div> 
-    <div className="booking-container">
-      <div className="booking-form-wrapper">
-
+    <div>
+      <div className="booking-container">
         {/* Navbar */}
         <Navbar />
-
-        {/* Selected Guest House Info */}
-        {selectedGuestHouse && (
-          <div className="selected-guesthouse-info">
-            <h3>You Selected:</h3>
-            <div className="guesthouse-details">
-              <h4>{selectedGuestHouse.name}</h4>
-              <p>Location: {selectedGuestHouse.location.city}, {selectedGuestHouse.location.state}</p>
-              {selectedGuestHouse.description && <p className="description">{selectedGuestHouse.description}</p>}
+        
+        <div className="booking-form-wrapper">
+          {/* Selected Guest House Info */}
+          {selectedGuestHouse && (
+            <div className="selected-guesthouse-info">
+              <h3>You Selected:</h3>
+              <div className="guesthouse-details">
+                <h4>{selectedGuestHouse.name}</h4>
+                <p>Location: {selectedGuestHouse.location.city}, {selectedGuestHouse.location.state}</p>
+                {selectedGuestHouse.description && <p className="description">{selectedGuestHouse.description}</p>}
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Booking Form */}
-        <form className="booking-form" onSubmit={handleSubmit}>
+          {/* Booking Form */}
+          <form className="booking-form" onSubmit={handleSubmit}>
 
           {/* Booking Details Section */}
           <div className="form-section">
@@ -254,13 +253,10 @@ const BookingForm = () => {
           </div>
         </form>
 
+        </div>
       </div>
-      
+      <Footer />
     </div>
-
-  <Footer />
-    </div>
-
   );
 };
 
