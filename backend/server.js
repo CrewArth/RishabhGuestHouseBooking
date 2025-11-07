@@ -9,6 +9,7 @@ import guestHouseRoutes from './routes/guestHouseRoutes.js'
 import roomRoutes from './routes/roomRoutes.js';
 import bedRoutes from './routes/bedRoutes.js';
 import auditLogRoutes  from './routes/auditLogRoutes.js';
+import adminSummary from './routes/adminRoutes.js';
 
 // Load .env file
 dotenv.config();
@@ -45,6 +46,9 @@ app.use('/api/beds', bedRoutes);
 
 // For Audit Logs
 app.use('/api/audit-logs', auditLogRoutes);
+
+// For Admin Dashboard
+app.use('/api/admin', adminSummary);
 
 // Start Server
 app.listen(process.env.PORT_NUMBER || 5000, () => {

@@ -1,18 +1,66 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react';
+import '../styles/adminDashboard.css';
+import axios from 'axios';
 
-const Overview = () => {
+const AdminDashboard = () => {
+  const [stats, setStats] = useState({
+    totalBookings: 0,
+    totalUsers: 0,
+    totalGuestHouses: 0,
+    rejectedBookings: 0,
+    pendingBookings: 0,
+    approvedBookings: 0,
+  });
+
+  const fetchStats = async () => {
+    try {
+      const res = await axios.get('http://localhost:5000/api/admin/summary');
+      setStats(res.data);
+    } catch (err) {
+      console.error("Error fetching admin stats: ", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchStats();
+  }, []);
+
   return (
-    <>
-    <div>Overview</div>
-    <div className='dashboard-container'>
-        <div className='dashboard-block'>
-            
+    <div className="admin-dashboard">
+      <h1>Admin Dashboard</h1>
+      <div className="card-grid">
+        <div className="dashboard-card">
+          <h2>{stats.totalBookings}</h2>
+          <p>Total Bookings</p>
         </div>
+
+        <div className="dashboard-card">
+          <h2>{stats.totalUsers}</h2>
+          <p>Total Users</p>
+        </div>
+
+        <div className="dashboard-card">
+          <h2>{stats.totalGuestHouses}</h2>
+          <p>Total Guest Houses</p>
+        </div>
+
+        <div className="dashboard-card danger">
+          <h2>{stats.rejectedBookings}</h2>
+          <p>Rejected Bookings</p>
+        </div>
+
+        <div className="dashboard-card warning">
+          <h2>{stats.pendingBookings}</h2>
+          <p>Pending Bookings</p>
+        </div>
+
+        <div className="dashboard-card success">
+          <h2>{stats.approvedBookings}</h2>
+          <p>Approved Bookings</p>
+        </div>
+      </div>
     </div>
-    </>
+  );
+};
 
-    
-  )
-}
-
-export default Overview
+export default AdminDashboard;
