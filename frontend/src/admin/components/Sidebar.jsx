@@ -8,7 +8,9 @@ const Sidebar = () => {
     { icon: Building2, label: 'Guest House', to: '/admin/guesthouses' },
     { icon: DoorOpen, label: 'Room Management', to: '/admin/rooms' },
     { icon: Bed, label: 'Bed Management', to: '/admin/beds' },
-    { icon: BookOpen, label: 'Booking Management', to: '/admin/bookings' }, 
+    { icon: BookOpen, label: 'Booking Management', to: '/admin/bookings' },
+    { icon: FileText, label: 'List Users', to: '/admin/users' },
+
     { icon: FileText, label: 'Audit Logs', to: '/admin/audits' },
   ];
 
@@ -18,7 +20,7 @@ const Sidebar = () => {
         <ul className="nav-list">
           {menuItems.map((item, index) => (
             <li key={index} className="nav-item">
-              <NavLink 
+              <NavLink
                 to={item.to}
                 className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}
               >

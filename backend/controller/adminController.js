@@ -19,3 +19,15 @@ export const getAdminSummary = async (req, res) => {
         res.status(500).json({error: 'Server error while fetching dashboard stats'});
     }
 }
+
+// GET /api/admin/users
+export const listUsers = async (req, res) => {
+  try {
+    // Only select needed fields
+    const users = await User.find({}, 'firstName lastName email isActive').lean();
+    return res.json({ users });
+  } catch (err) {
+    console.error('listUsers error:', err);
+    return res.status(500).json({ error: 'Server error while fetching users' });
+  }
+};

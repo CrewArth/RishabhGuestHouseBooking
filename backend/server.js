@@ -32,9 +32,6 @@ app.get('/',  (req, res) => {
 // Admin routes
 app.use('/api/admin', adminRoutes);
 
-// User Route for Update
-app.use('/api', userRoutes);
-
 // Guest House Routes (Admin only)
 app.use('/api/guesthouses', guestHouseRoutes);
 
@@ -49,6 +46,10 @@ app.use('/api/audit-logs', auditLogRoutes);
 
 // For Admin Dashboard
 app.use('/api/admin', adminSummary);
+
+// User Route for Update and Delete
+app.use('/api/users', userRoutes);
+
 
 // Start Server
 app.listen(process.env.PORT_NUMBER || 5000, () => {

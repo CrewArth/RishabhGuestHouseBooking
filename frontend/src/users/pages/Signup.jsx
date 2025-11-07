@@ -35,7 +35,7 @@ export default function SignupPage() {
     try {
       const res = await axios.post("http://localhost:5000/api/auth/signup", data);
       localStorage.setItem("token", res.data.token);
-      navigate("/dashboard");
+      navigate("/signin");
     } catch (err) {
       console.error(err);
       alert(err.response?.data?.message || "Registration failed");

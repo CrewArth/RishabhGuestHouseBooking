@@ -15,7 +15,8 @@ import AuditLogs from './admin/pages/AuditLogs';
 import Overview from './admin/pages/Overview';
 import Bookings from './admin/pages/Bookings';
 import GuestHouseManagement from './admin/pages/GuestHouseManagement.jsx';
-import BedManagement from './admin/pages/BedManagement.jsx';
+import UsersList from './admin/pages/UsersList';
+
 
 function App() {
   return (
@@ -69,6 +70,7 @@ function App() {
             </ProtectedAdminRoute>
           }
         >
+          <Route path="/admin/users" element={<UsersList />} />
           <Route path="/admin/dashboard" element={<Overview />} />
           <Route path="/admin/guesthouses" element={<GuestHouseManagement />} />
           <Route path="/admin/rooms" element={<AddRooms />} />
