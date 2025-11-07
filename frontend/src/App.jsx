@@ -9,13 +9,13 @@ import AdminDashboard from './admin/pages/AdminDashboard';
 import BookingForm from './users/pages/BookingForm';
 import MyBookings from './users/pages/MyBookings';
 import Profile from './users/pages/Profile';
-import AddGuestHouse from './admin/pages/AddGuestHouse';
-import AddRooms from './admin/pages/AddRooms';
-import AddBeds from './admin/pages/AddBeds';
+import AddRooms from './admin/pages/RoomManagement.jsx';
+import AddBeds from './admin/pages/BedManagement.jsx';
 import AuditLogs from './admin/pages/AuditLogs';
 import Overview from './admin/pages/Overview';
 import Bookings from './admin/pages/Bookings';
-
+import GuestHouseManagement from './admin/pages/GuestHouseManagement.jsx';
+import BedManagement from './admin/pages/BedManagement.jsx';
 
 function App() {
   return (
@@ -70,12 +70,12 @@ function App() {
           }
         >
           <Route path="/admin/dashboard" element={<Overview />} />
-          <Route path="/admin/guesthouse" element={<AddGuestHouse />} />
+          <Route path="/admin/guesthouses" element={<GuestHouseManagement />} />
           <Route path="/admin/rooms" element={<AddRooms />} />
           <Route path="/admin/beds" element={<AddBeds />} />
           <Route path="/admin/audits" element={<AuditLogs />} />
           <Route path="/admin/bookings" element={<Bookings />}/>
-        </Route>
+        </Route>  
 
       </Routes>
     </BrowserRouter>

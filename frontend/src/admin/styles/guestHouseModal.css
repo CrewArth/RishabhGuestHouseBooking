@@ -1,0 +1,113 @@
+/* Backdrop covers full screen */
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.45); /* semi-transparent dark overlay */
+  display: flex;
+  justify-content: center;
+  align-items: center; /* centers modal vertically & horizontally */
+  z-index: 1000; /* ensure it's above everything */
+}
+
+/* Modal container */
+.modal-container {
+  background: #ffffff;
+  padding: 1.75rem;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 480px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  animation: fadeInUp 0.3s ease-out;
+}
+
+/* Title */
+.modal-container h2 {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: #1f2937; /* gray-800 from Tailwind */
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+/* Form layout */
+.gh-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Label and input styles */
+.gh-form label {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #374151;
+}
+
+.gh-form input,
+.gh-form textarea {
+  padding: 0.6rem 0.8rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  outline: none;
+  width: 100%;
+  resize: vertical;
+  transition: all 0.2s ease-in-out;
+}
+
+.gh-form input:focus,
+.gh-form textarea:focus {
+  border-color: #3b82f6; /* Tailwind blue-500 */
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+}
+
+/* Buttons at bottom of form */
+.gh-form-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+.btn {
+  padding: 0.6rem 1rem;
+  font-size: 0.88rem;
+  cursor: pointer;
+  border-radius: 6px;
+  font-weight: 600;
+  border: none;
+  transition: 0.2s all ease;
+}
+
+.btn.cancel {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.btn.cancel:hover {
+  background: #e5e7eb;
+}
+
+.btn.submit {
+  background: #3b82f6;
+  color: white;
+}
+
+.btn.submit:hover {
+  background: #2563eb;
+}
+
+/* Modal animation */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

@@ -7,6 +7,11 @@ try working on crud op in admin side 5/11
 things to do:
 1 make responsive navbar
 
+proper exit to dashboard from booking form
+guest hosue should be visible when clicked one
+
+Audit Logs has some errors.
+
 # Phase 1
 - Complete all database schemas. ✅
 - Set up the Node.js + Express server. ✅

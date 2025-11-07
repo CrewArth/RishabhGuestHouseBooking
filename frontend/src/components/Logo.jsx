@@ -6,7 +6,7 @@ const Logo = () => {
   return (
     <div className='navbar-logo'>
       <a href="/">
-        <img src={logo} alt="Rishabh Software Logo" id='nav-logo'/>
+        <img src={logo} alt="Rishabh Software Logo" id='nav-logo' draggable='false'/>
       </a>
     </div>
   )

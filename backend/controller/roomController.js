@@ -1,7 +1,7 @@
 import Room from '../models/Room.js';
 import GuestHouse from '../models/GuestHouse.js';
 import { createRoomSchema, updateRoomSchema, listRoomsQuerySchema } from '../validators/room.schema.js';
-
+import { logAction } from '../utils/auditLogger.js';
 
 // Helper: consistent error payload
 const sendError = (res, status, message, details) =>
@@ -20,7 +20,7 @@ export const createRoom = async (req, res) => {
     const gh = await GuestHouse.findOne({ guestHouseId });
     if (!gh) return sendError(res, 404, `Guest House ${guestHouseId} not found`);
 
-    
+
     // Create room (unique index will enforce duplicates)
     const room = await Room.create({
       guestHouseId,
@@ -28,6 +28,16 @@ export const createRoom = async (req, res) => {
       roomType,
       roomCapacity,
       isAvailable
+    });
+    await logAction({
+      action: 'ROOM_CREATED',
+      entityType: 'Room',
+      entityId: room._id,
+      performedBy: 'Admin',
+      details: {
+        guestHouseId: room.guestHouseId,
+        roomNumber: room.roomNumber
+      }
     });
 
     return res.status(201).json({ success: true, message: 'Room created', room });
@@ -107,6 +117,17 @@ export const updateRoom = async (req, res) => {
       { new: true, runValidators: true }
     );
 
+    await logAction({
+  action: 'ROOM_UPDATED',
+  entityType: 'Room',
+  entityId: room._id,
+  performedBy: 'Admin',
+  details: {
+    guestHouseId: room.guestHouseId,
+    roomNumber: room.roomNumber
+  }
+});
+
     if (!room) return sendError(res, 404, 'Room not found');
     return res.json({ success: true, message: 'Room updated', room });
   } catch (err) {
@@ -130,6 +151,17 @@ export const setAvailability = async (req, res) => {
       { $set: { isAvailable } },
       { new: true }
     );
+
+    await logAction({
+  action: 'ROOM_AVAILABILITY_TOGGLED',
+  entityType: 'Room',
+  entityId: room._id,
+  performedBy: 'Admin',
+  details: {
+    guestHouseId: room.guestHouseId,
+    roomNumber: room.roomNumber
+  }
+});
     if (!room) return sendError(res, 404, 'Room not found');
     return res.json({ success: true, message: 'Availability updated', room });
   } catch (err) {
@@ -146,10 +178,38 @@ export const softDeleteRoom = async (req, res) => {
       { $set: { isActive: false } },
       { new: true }
     );
+
+    await logAction({
+  action: 'ROOM_DELETED',
+  entityType: 'Room',
+  entityId: room._id,
+  performedBy: 'Admin',
+  details: {
+    guestHouseId: room.guestHouseId,
+    roomNumber: room.roomNumber
+  }
+});
     if (!room) return sendError(res, 404, 'Room not found');
     return res.json({ success: true, message: 'Room archived', room });
   } catch (err) {
     console.error('softDeleteRoom error:', err);
     return sendError(res, 500, 'Server error');
+  }
+};
+
+// Fetch rooms by guestHouseId
+export const getRoomsByGuestHouse = async (req, res) => {
+  try {
+    const guestHouseId = parseInt(req.query.guestHouseId, 10);
+
+    if (!guestHouseId) {
+      return res.status(400).json({ error: "guestHouseId is required" });
+    }
+
+    const rooms = await Room.find({ guestHouseId });
+    res.json({ success: true, rooms });
+  } catch (error) {
+    console.error("Error fetching rooms:", error);
+    res.status(500).json({ error: "Server error while fetching rooms" });
   }
 };

@@ -20,7 +20,7 @@ const HeroSection = () => {
   return (
     <div className="hero-container">
       <div className="hero-content">
-        <div className="hero-text">
+        <div className="hero-text select-none">
           <h1 className="hero-title">Your Home Away from Home</h1>
           <p className="hero-subtitle">Rishabh Guest House feels your Home</p>
           <button className="hero-button" onClick={navigateSignin}>Book Now</button>
@@ -29,7 +29,7 @@ const HeroSection = () => {
           {/* <FaHome /> */}
 
             
-                  <img src={herobg} alt="Rishabh Software Logo" id='nav-logo' width="500px" />
+                  <img src={herobg} alt="Rishabh Software Logo" id='nav-logo' width="500px" draggable='false'/>
              
         </div>
       </div>
