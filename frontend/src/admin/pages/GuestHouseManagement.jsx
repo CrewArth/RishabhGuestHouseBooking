@@ -63,19 +63,37 @@ const GuestHouseManagement = () => {
     }
   };
 
-  const handleDeleteGuestHouse = async (guestHouseId) => {
+const handleDeleteGuestHouse = async (guestHouseId) => {
   if (!window.confirm("Are you sure you want to delete this guest house and all related data?")) {
     return;
   }
+
+  // 1) Optimistic UI: stash old list & remove immediately
+  const prev = guestHouses;
+  setGuestHouses((list) => list.filter(g => g.guestHouseId !== guestHouseId));
+
   try {
-    await axios.delete(`http://localhost:5000/api/guesthouses/${guestHouseId}`);
-    fetchGuestHouses(); // refresh UI
-    alert("Guest House and related data deleted successfully.");
+    const res = await axios.delete(`http://localhost:5000/api/guesthouses/${guestHouseId}`);
+    // Some backends return 204 or no body; that's fine.
+    // If you expect JSON: ensure backend sends { success: true }.
+
+    // Optional: toast/alert only on true success
+    // alert("Guest House and related data deleted successfully.");
   } catch (err) {
-    console.error("Error deleting guest house:", err);
-    alert("Failed to delete. Check console for details.");
+    console.error("Error deleting guest house:", {
+      status: err?.response?.status,
+      data: err?.response?.data,
+      message: err?.message
+    });
+    // 2) Revert UI on failure
+    setGuestHouses(prev);
+    alert(err?.response?.data?.error || "Failed to delete. Check console for details.");
+  } finally {
+    // 3) Re-validate from server so UI is correct even if optimistic state mismatched
+    fetchGuestHouses();
   }
 };
+
 
 
 

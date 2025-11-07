@@ -114,14 +114,19 @@ export const deleteGuestHouse = async (req, res) => {
     // 5. Delete the guest house itself
     await GuestHouse.deleteOne({ guestHouseId });
 
-    // 6. Log Deletion (optional)
-    await AuditLog.create({
-      action: "GUESTHOUSE_DELETED",
-      entityType: "GuestHouse",
-      entityId: guestHouseId,
-      details: { deletedRooms: rooms.length },
-      performedBy: req.user?._id || "System", // depends on auth
-    });
+    // 6. Log Deletion (optional, wrapped safely)
+    try {
+      await logAction({
+        action: "GUESTHOUSE_DELETED",
+        entityType: "GuestHouse",
+        entityId: guestHouse._id || guestHouse.guestHouseId,
+        performedBy: req.user?._id || "System",
+        details: { deletedRooms: rooms.length }
+      });
+    } catch (logError) {
+      console.warn("Audit log error (continued without breaking):", logError.message);
+    }
+
 
     return res.json({
       success: true,
