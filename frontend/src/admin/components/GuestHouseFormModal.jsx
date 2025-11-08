@@ -7,8 +7,9 @@ const GuestHouseFormModal = ({ isOpen, onClose, onSubmit, initialData }) => {
     guestHouseName: '',
     city: '',
     state: '',
-    image: '',
     description: '',
+    image: null,               // For file input
+    previewImage: '',          // To show preview if needed
   });
 
   useEffect(() => {
@@ -17,33 +18,43 @@ const GuestHouseFormModal = ({ isOpen, onClose, onSubmit, initialData }) => {
         guestHouseName: initialData.guestHouseName || '',
         city: initialData.location?.city || '',
         state: initialData.location?.state || '',
-        image: initialData.image || '',
         description: initialData.description || '',
+        image: null,
+        previewImage: initialData.image || '',
       });
     }
   }, [initialData]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setFormData((prev) => ({ ...prev, image: file }));
+      setFormData((prev) => ({ ...prev, previewImage: URL.createObjectURL(file) }));
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const payload = {
-      guestHouseName: formData.guestHouseName,
-      location: {
-        city: formData.city,
-        state: formData.state,
-      },
-      image: formData.image,
-      description: formData.description,
-    };
+    // Use FormData for mixed data + file
+    const payload = new FormData();
+    payload.append("guestHouseName", formData.guestHouseName);
+    payload.append("location", JSON.stringify({
+      city: formData.city,
+      state: formData.state,
+    }));
+    payload.append("description", formData.description);
+
+    if (formData.image) {
+      payload.append("image", formData.image); // Image file to upload
+    }
 
     await onSubmit(payload);
-
-    // Close modal if successful
     onClose();
   };
 
@@ -52,9 +63,9 @@ const GuestHouseFormModal = ({ isOpen, onClose, onSubmit, initialData }) => {
   return (
     <div className="modal-backdrop">
       <div className="modal-container">
-        <h2>{initialData ? 'Edit Guest House' : 'Add New Guest House'}</h2>
-        
-        <form onSubmit={handleSubmit} className="gh-form">
+        <h2>{initialData ? "Edit Guest House" : "Add New Guest House"}</h2>
+
+        <form onSubmit={handleSubmit} className="gh-form" encType="multipart/form-data">
           <label>
             Guest House Name
             <input
@@ -89,14 +100,26 @@ const GuestHouseFormModal = ({ isOpen, onClose, onSubmit, initialData }) => {
           </label>
 
           <label>
-            Image URL (optional)
+            Image Upload (optional)
             <input
-              type="text"
-              name="image"
-              value={formData.image}
-              onChange={handleChange}
+              type="file"
+              accept="image/*"
+              onChange={handleImageChange}
             />
           </label>
+
+          {formData.previewImage && (
+            <div className="image-preview">
+              <img src={formData.previewImage} alt="Preview" />
+              <button
+                type="button"
+                className="btn small"
+                onClick={() => setFormData(prev => ({ ...prev, image: null, previewImage: '' }))}
+              >
+                Remove Image
+              </button>
+            </div>
+          )}
 
           <label>
             Description (optional)
@@ -109,9 +132,11 @@ const GuestHouseFormModal = ({ isOpen, onClose, onSubmit, initialData }) => {
           </label>
 
           <div className="gh-form-buttons">
-            <button type="button" className="btn cancel" onClick={onClose}>Cancel</button>
+            <button type="button" className="btn cancel" onClick={onClose}>
+              Cancel
+            </button>
             <button type="submit" className="btn submit">
-              {initialData ? 'Update' : 'Create'}
+              {initialData ? "Update" : "Create"}
             </button>
           </div>
         </form>

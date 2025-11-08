@@ -5,45 +5,33 @@ import logAction from '../models/AuditLog.js';
 
 export const createGuestHouse = async (req, res) => {
   try {
-    const { guestHouseName, location, image, description } = req.body;
+    const { guestHouseName, description } = req.body;
 
-    if (!guestHouseName || !location.city || !location?.state) {
+    // Parse location string back to JSON
+    const location = JSON.parse(req.body.location);
+
+    if (!guestHouseName || !location?.city || !location?.state) {
       return res.status(400).json({ message: "Required Fields Missing" });
     }
 
-    const existing = await GuestHouse.findOne({ guestHouseName });
-
-    if (existing) {
-      return res.status(400).json({ message: "Guest House Name Already Exists" })
-    }
+    const imageUrl = req.file ? req.file.location : null;
 
     const guestHouse = await GuestHouse.create({
       guestHouseName,
       location,
-      image,
-      description
-    })
-
-    // After successfully creating a new guest house
-    await logAction({
-      action: 'GUESTHOUSE_CREATED',
-      entityType: 'GuestHouse',
-      entityId: guestHouse._id || guestHouse.guestHouseId,
-      performedBy: 'Admin',
-      details: {
-        guestHouseName: guestHouse.guestHouseName,
-        location: guestHouse.location,
-      }
+      description,
+      image: imageUrl,
     });
 
-    return res.status(201).json({
-      message: "Guest House Created Sucessfully", guestHouse
-    })
+    res.status(201).json({
+      message: "Guest House Created Successfully",
+      guestHouse,
+    });
   } catch (error) {
     console.error("Error creating GuestHouse ", error);
-    res.status(500).json({ message: "Error creating guest house" });
+    res.status(500).json({ message: error?.message || "Error creating guest house" });
   }
-}
+};
 
 // Get all the Guest Houses
 export const getGuestHouses = async (req, res) => {
@@ -137,3 +125,11 @@ export const deleteGuestHouse = async (req, res) => {
     res.status(500).json({ error: "Server error while deleting Guest House" });
   }
 };
+
+// Delete Image when Guest House gets deleted
+// const params = {
+//   Bucket: process.env.AWS_S3_BUCKET,
+//   Key: guestHouse.image.split('.amazonaws.com/')[1] // Extract file key
+// };
+
+// await s3.deleteObject(params).promise();

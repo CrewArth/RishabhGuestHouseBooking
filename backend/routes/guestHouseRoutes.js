@@ -1,10 +1,11 @@
 import express from 'express';
-import {createGuestHouse, getGuestHouses, toggleMaintenanceMode, deleteGuestHouse } from '../controller/guestHouseController.js';
+import { createGuestHouse, getGuestHouses, toggleMaintenanceMode, deleteGuestHouse } from '../controller/guestHouseController.js';
+import upload from '../middlewares/imageUpload.js';
 
 const router = express.Router();
 
 //Route to create guest house
-router.post('/', createGuestHouse);
+router.post('/', upload.single('image'), createGuestHouse);
 
 // Route to get all guest house
 router.get('/', getGuestHouses);
