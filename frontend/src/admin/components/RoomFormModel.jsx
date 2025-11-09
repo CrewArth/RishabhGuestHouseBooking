@@ -20,14 +20,13 @@ const RoomFormModal = ({ isOpen, onClose, onSubmit, initialData }) => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setRoomData(prev => ({ ...prev, [name]: value }));
+    setRoomData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-
     onSubmit(roomData); // parent handles backend call
-    onClose();          // close modal
+    onClose(); // close modal
   };
 
   if (!isOpen) return null;
@@ -35,37 +34,41 @@ const RoomFormModal = ({ isOpen, onClose, onSubmit, initialData }) => {
   return (
     <div className="modal-backdrop">
       <div className="modal-container">
-        <h2>{initialData ? 'Edit Room' : 'Add New Room'}</h2>
+        <h2 className="modal-title">
+          {initialData ? 'Edit Room' : 'Add New Room'}
+        </h2>
 
         <form onSubmit={handleSubmit} className="room-form">
-          <label>
-            Room Number
+          <div className="form-group">
+            <label>Room Number</label>
             <input
               type="number"
               name="roomNumber"
               value={roomData.roomNumber}
               onChange={handleChange}
               required
+              min="1"
+              placeholder="Enter room number"
             />
-          </label>
+          </div>
 
-          <label>
-            Room Type
+          <div className="form-group">
+            <label>Room Type</label>
             <select
               name="roomType"
               value={roomData.roomType}
               onChange={handleChange}
               required
             >
-              <option value="">Select Type</option>
+              <option value="">Select Room Type</option>
               <option value="single">Single</option>
               <option value="double">Double</option>
               <option value="family">Family</option>
             </select>
-          </label>
+          </div>
 
-          <label>
-            Room Capacity
+          <div className="form-group">
+            <label>Room Capacity</label>
             <input
               type="number"
               name="roomCapacity"
@@ -73,12 +76,17 @@ const RoomFormModal = ({ isOpen, onClose, onSubmit, initialData }) => {
               onChange={handleChange}
               required
               min="1"
+              placeholder="Enter capacity (number of people)"
             />
-          </label>
+          </div>
 
           <div className="room-form-buttons">
-            <button type="button" className="btn cancel" onClick={onClose}>Cancel</button>
-            <button type="submit" className="btn submit">{initialData ? 'Update' : 'Create'}</button>
+            <button type="button" className="btn cancel" onClick={onClose}>
+              Cancel
+            </button>
+            <button type="submit" className="btn submit">
+              {initialData ? 'Update Room' : 'Create Room'}
+            </button>
           </div>
         </form>
       </div>

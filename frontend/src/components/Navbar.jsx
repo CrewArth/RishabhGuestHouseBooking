@@ -2,63 +2,35 @@ import React, { useEffect, useState } from "react";
 import "../styles/navbar.css";
 import Logo from "./Logo";
 import { useNavigate, Link } from "react-router-dom";
-
+import { FaBars } from "react-icons/fa";  // For mobile hamburger icon
 
 const Navbar = () => {
   const navigate = useNavigate();
-
-  // Initialize state conservatively; real value will be set in useEffect
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [username, setUsername] = useState("");
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // Determine auth status on mount and when storage changes
   useEffect(() => {
-    const updateAuthFromStorage = () => {
-      const storedUser = localStorage.getItem("user");
-      const token = localStorage.getItem("token");
+    const storedUser = localStorage.getItem("user");
+    const token = localStorage.getItem("token");
 
-      if (storedUser) {
-        try {
-          const user = JSON.parse(storedUser);
-          setUsername(user.firstName)
-        } catch (e) {
-          setUsername("");
-        }
-        setIsLoggedIn(true);
-        return;
-      }
+    if (storedUser) {
+      const user = JSON.parse(storedUser);
+      setUsername(user.firstName);
+      setIsLoggedIn(true);
+      return;
+    }
 
-      if (token) {
-        // Try decoding JWT payload to extract a username (if backend includes it)
-        try {
-          const payload = token.split(".")[1];
-          const decoded = JSON.parse(atob(payload));
-          setUsername(decoded.firstName || decoded.name || decoded.email || "");
-        } catch (e) {
-          setUsername("");
-        }
-        setIsLoggedIn(true);
-        return;
-      }
-
-      setIsLoggedIn(false);
-      setUsername("");
-    };
-
-    updateAuthFromStorage();
-
-    // keep UI in sync when localStorage changes in other tabs
-    const onStorage = (e) => {
-      if (e.key === "token" || e.key === "user") updateAuthFromStorage();
-    };
-
-    window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
+    if (token) {
+      const payload = token.split(".")[1];
+      const decoded = JSON.parse(atob(payload));
+      setUsername(decoded.firstName || decoded.name || decoded.email || "");
+      setIsLoggedIn(true);
+    }
   }, []);
 
   const handleAuth = () => {
     if (isLoggedIn) {
-      // Logout
       localStorage.removeItem("token");
       localStorage.removeItem("user");
       setIsLoggedIn(false);
@@ -66,64 +38,36 @@ const Navbar = () => {
       navigate("/");
       return;
     }
-
-    // Not logged in -> go to sign in page
     navigate("/signin");
   };
 
   return (
     <nav className="navbar-container">
       <div className="navbar-left">
-        <div className="navbar-logo">
-          <Logo />
-        </div>
+        <Logo />
         <p className="navbar-title">Rishabh Guest House</p>
-      </div>  
+      </div>
 
-      <div className="navbar-links">
+      {/* Hamburger Icon for Mobile */}
+      <div className="mobile-menu-icon" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
+        <FaBars />
+      </div>
+
+      {/* Right-side Desktop Nav */}
+      <div className={`navbar-middle ${isMobileMenuOpen ? "active" : ""}`}>
         {isLoggedIn && (
           <>
-
-
-            {/* Show My Bookings only if user is not admin */}
             {JSON.parse(localStorage.getItem("user"))?.role !== "admin" && (
-              <Link
-                to="/my-bookings"
-                className="nav-links"
-                style={{
-                  color: "#1f2937",
-                  fontSize: "0.9rem",
-                  fontWeight: "500",
-                  textDecoration: "none",
-                  transition: "color 0.2s ease",
-                }}
-                onMouseEnter={(e) => (e.target.style.color = "#2563eb")}
-                onMouseLeave={(e) => (e.target.style.color = "#1f2937")}
-              >
-                My Bookings
-              </Link>
+              <Link to="/my-bookings" className="nav-link">My Bookings</Link>
             )}
-            <Link
-              to="/profile"
-              className="nav-links"
-              style={{
-                color: "#1f2937",
-                fontSize: "0.9rem",
-                fontWeight: "500",
-                textDecoration: "none",
-                transition: "color 0.2s ease",
-              }}
-              onMouseEnter={(e) => (e.target.style.color = "#2563eb")}
-              onMouseLeave={(e) => (e.target.style.color = "#1f2937")}
-            >
-              Profile
-            </Link>
+            <Link to="/profile" className="nav-link">Profile</Link>
           </>
         )}
       </div>
 
-      <div className="navbar-authentication">
-        {isLoggedIn && <span className="welcome-text">Welcome {username}!</span>}
+      <div className={`navbar-authentication ${isMobileMenuOpen ? "active" : ""}`}>
+        {isLoggedIn && <span className="welcome-text">Welcome, <strong>{username}</strong>!</span>}
+
         <button className="authButton" onClick={handleAuth}>
           {isLoggedIn ? "Logout" : "Signin"}
         </button>

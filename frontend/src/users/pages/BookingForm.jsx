@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import '../styles/bookingform.css'
+import '../styles/bookingform.css';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import axios from 'axios';
@@ -8,15 +8,16 @@ import axios from 'axios';
 const BookingForm = () => {
   const location = useLocation();
   const selectedGuestHouse = location.state?.guestHouse;
-  // console.log("DAMM",selectedGuestHouse);
+
+  // Fetch user from localStorage
+  const storedUser = JSON.parse(localStorage.getItem('user')) || null;
+
   const [rooms, setRooms] = useState([]);
   const [beds, setBeds] = useState([]);
-
   const [roomsLoading, setRoomsLoading] = useState(false);
   const [bedsLoading, setBedsLoading] = useState(false);
   const [roomsError, setRoomsError] = useState(null);
   const [bedsError, setBedsError] = useState(null);
-
 
   const [formData, setFormData] = useState({
     checkInDate: '',
@@ -24,23 +25,35 @@ const BookingForm = () => {
     guestHouse: selectedGuestHouse || '',
     room: '',
     bed: '',
-    fullName: '',
-    email: '',
-    phone: '',
-    address: '',
+    fullName: storedUser ? `${storedUser.firstName} ${storedUser.lastName}` : '',
+    email: storedUser?.email || '',
+    phone: storedUser?.phone || '',
+    address: storedUser?.address || '',
     specialRequests: ''
   });
 
+    useEffect(() => {
+    if (storedUser) {
+      setFormData((prev) => ({
+        ...prev,
+        fullName: `${storedUser.firstName} ${storedUser.lastName}`,
+        email: storedUser.email,
+        phone: storedUser.phone,
+        address: storedUser.address || '',
+      }));
+    }
+  }, []);
+
+  // Step form navigation state
+  const [step, setStep] = useState(1);
+
   useEffect(() => {
-    // when user comes from card click, selectedGuestHouse has full object
     if (selectedGuestHouse) {
       fetchRooms(selectedGuestHouse);
     }
-    // reset room/bed selections when GH changes
     setFormData(prev => ({ ...prev, room: '', bed: '' }));
     setBeds([]);
   }, [selectedGuestHouse]);
-
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -53,285 +66,161 @@ const BookingForm = () => {
       [name]: value
     }));
 
-    // When room changes, fetch beds for that room (_id)
+    // When room changes, fetch beds
     if (name === 'room') {
-      fetchBeds(value);       // value is roomId from the <option value=...>
-      // clear selected bed when room changes
+      fetchBeds(value);
       setFormData(prev => ({ ...prev, bed: '' }));
     }
   };
 
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const bookingDataWithGuestHouse = {
-      ...formData,
-      selectedGuestHouse: selectedGuestHouse ? {
-        name: selectedGuestHouse.name,
-        location: selectedGuestHouse.location,
-      } : null
-    };
-    console.log('Booking Data:', bookingDataWithGuestHouse);
-    alert('Booking submitted successfully!');
-  };
-
   const fetchRooms = async (gh) => {
-    if (!gh?.guestHouseId) {
-      setRooms([]);
-      return;
-    }
     try {
       setRoomsLoading(true);
-      setRoomsError(null);
       const res = await axios.get(
         `http://localhost:5000/api/rooms/by-guesthouse?guestHouseId=${gh.guestHouseId}`
       );
-      const list = Array.isArray(res.data?.rooms) ? res.data.rooms : [];
-      setRooms(list);
+      setRooms(Array.isArray(res.data?.rooms) ? res.data.rooms : []);
     } catch (err) {
       console.error('Error fetching rooms:', err);
-      setRoomsError(err?.response?.data?.error || 'Failed to load rooms');
-      setRooms([]);
+      setRoomsError('Failed to load rooms');
     } finally {
       setRoomsLoading(false);
     }
   };
 
   const fetchBeds = async (roomId) => {
-    if (!roomId) {
-      setBeds([]);
-      return;
-    }
     try {
       setBedsLoading(true);
-      setBedsError(null);
       const res = await axios.get(`http://localhost:5000/api/beds?roomId=${roomId}`);
-      const list = Array.isArray(res.data?.beds) ? res.data.beds
-        : Array.isArray(res.data) ? res.data
-          : [];
-      setBeds(list);
+      setBeds(Array.isArray(res.data?.beds) ? res.data.beds : []);
     } catch (err) {
       console.error('Error fetching beds:', err);
-      setBedsError(err?.response?.data?.error || 'Failed to load beds');
-      setBeds([]);
+      setBedsError('Failed to load beds');
     } finally {
       setBedsLoading(false);
     }
   };
 
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    alert('Booking submitted successfully!');
+  };
 
   return (
-    <div>
-      <div className="booking-container">
-        {/* Navbar */}
-        <Navbar />
+    <div className="booking-bg">
+      <Navbar />
 
-        <div className="booking-form-wrapper">
-          {/* Selected Guest House Info */}
-          {/* Selected Guest House Info */}
-          {selectedGuestHouse && (
-            <div className="selected-guesthouse-info">
-              <h3>You Selected:</h3>
-              <div className="guesthouse-details">
-                <h4>{selectedGuestHouse.guestHouseName}</h4>
-                <p>Location: {selectedGuestHouse.location.city}, {selectedGuestHouse.location.state}</p>
-                {selectedGuestHouse.description && (
-                  <p className="description">{selectedGuestHouse.description}</p>
-                )}
+      <div className="booking-page-container">
+        {/* Step Indicator */}
+        <div className="step-indicator">
+          <span className={step === 1 ? 'active' : ''}>1. Booking Details</span>
+          <span className={step === 2 ? 'active' : ''}>2. Personal Info</span>
+        </div>
+
+        {/* Step 1: Booking Details */}
+        {step === 1 && (
+          <form className="booking-form" onSubmit={() => setStep(2)}>
+            {selectedGuestHouse && (
+              <div className="selected-guesthouse-info">
+                <h3>You Selected:</h3>
+                <div className="guesthouse-details">
+                  <h4>{selectedGuestHouse.guestHouseName}</h4>
+                  <p>Location: {selectedGuestHouse.location.city}, {selectedGuestHouse.location.state}</p>
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-
-          {/* Booking Form */}
-          <form className="booking-form" onSubmit={handleSubmit}>
-
-            {/* Booking Details Section */}
-            <div className="form-section">
-              <h2 className="section-title">Booking Details</h2>
-
+            <div className="form-section step-form">
+              <h2>Booking Details</h2>
               <div className="form-grid">
-                {/* Check-in Date */}
+
                 <div className="form-control">
-                  <label>Check-in Date <span className="required">*</span></label>
-                  <input
-                    type="date"
-                    name="checkInDate"
-                    value={formData.checkInDate}
-                    onChange={handleChange}
-                    required
-                  />
+                  <label>Check-in Date <span>*</span></label>
+                  <input type="date" name="checkInDate" value={formData.checkInDate} onChange={handleChange} required />
                 </div>
 
-                {/* Check-out Date */}
                 <div className="form-control">
-                  <label>Check-out Date <span className="required">*</span></label>
-                  <input
-                    type="date"
-                    name="checkOutDate"
-                    value={formData.checkOutDate}
-                    onChange={handleChange}
-                    required
-                  />
+                  <label>Check-out Date <span>*</span></label>
+                  <input type="date" name="checkOutDate" value={formData.checkOutDate} onChange={handleChange} required />
                 </div>
 
-                {/* Guest House Selection */}
                 <div className="form-control">
-                  <label>Guest House <span className="required">*</span></label>
-                  <select
-                    name="guestHouse"
-                    value={selectedGuestHouse?.guestHouseName || ''}
-                    onChange={() => { }}
-                    disabled
-                  >
-                    <option value="">{selectedGuestHouse ? selectedGuestHouse.guestHouseName : 'Select Guest House'}</option>
-                  </select>
-                </div>
-
-
-
-                {/* Room Selection */}
-                <div className="form-control">
-                  <label>Room <span className="required">*</span></label>
-                  <select
-                    name="room"
-                    value={formData.room}
-                    onChange={handleChange}
-                    required
-                    disabled={roomsLoading || rooms.length === 0}
-                  >
-                    <option value="">
-                      {roomsLoading ? 'Loading rooms...' : rooms.length ? 'Select Room' : 'No rooms available'}
-                    </option>
+                  <label>Room</label>
+                  <select name="room" value={formData.room} onChange={handleChange} required>
+                    <option value="">{roomsLoading ? 'Loading...' : 'Select Room'}</option>
                     {rooms.map((room) => (
                       <option key={room._id} value={room._id}>
-                        Room {room.roomNumber} — {room.roomType} (Cap: {room.roomCapacity})
+                        Room {room.roomNumber} - {room.roomType}
                       </option>
                     ))}
                   </select>
-                  {roomsError && <small className="field-error">{roomsError}</small>}
+                  {roomsError && <small className="error">{roomsError}</small>}
                 </div>
 
-
-                {/* Bed Type Selection */}
                 <div className="form-control full-width">
-                  <label>Bed <span className="required">*</span></label>
-                  <select
-                    name="bed"
-                    value={formData.bed}
-                    onChange={handleChange}
-                    required
-                    disabled={!formData.room || bedsLoading || beds.length === 0}
-                  >
-                    <option value="">
-                      {!formData.room ? 'Select a room first'
-                        : bedsLoading ? 'Loading beds...'
-                          : beds.length ? 'Select Bed'
-                            : 'No beds available'}
-                    </option>
+                  <label>Bed</label>
+                  <select name="bed" value={formData.bed} onChange={handleChange} required>
+                    <option value="">{bedsLoading ? 'Loading...' : 'Select Bed'}</option>
                     {beds.map((bed) => (
                       <option key={bed._id} value={bed._id}>
-                        Bed #{bed.bedNumber} — {bed.bedType} {bed.isAvailable ? '' : '(Unavailable)'}
+                        Bed {bed.bedNumber} - {bed.bedType}
                       </option>
                     ))}
                   </select>
-                  {bedsError && <small className="field-error">{bedsError}</small>}
-                </div>
-
-              </div>
-            </div>
-
-            {/* Personal Information Section */}
-            <div className="form-section">
-              <h2 className="section-title">Personal Information</h2>
-
-              <div className="form-grid">
-                {/* Full Name */}
-                <div className="form-control full-width">
-                  <label>Full Name <span className="required">*</span></label>
-                  <input
-                    type="text"
-                    name="fullName"
-                    value={formData.fullName}
-                    onChange={handleChange}
-                    required
-                    placeholder="Enter your full name"
-                  />
-                </div>
-
-                {/* Email */}
-                <div className="form-control">
-                  <label>Email Address <span className="required">*</span></label>
-                  <input
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    required
-                    placeholder="your.email@example.com"
-                  />
-                </div>
-
-                {/* Phone */}
-                <div className="form-control">
-                  <label>Phone Number <span className="required">*</span></label>
-                  <input
-                    type="tel"
-                    name="phone"
-                    value={formData.phone}
-                    onChange={handleChange}
-                    required
-                    placeholder="+91 1234567890"
-                  />
-                </div>
-
-                {/* Address */}
-                <div className="form-control full-width">
-                  <label>Address <span className="required">*</span></label>
-                  <textarea
-                    name="address"
-                    value={formData.address}
-                    onChange={handleChange}
-                    required
-                    rows="3"
-                    placeholder="Enter your complete address"
-                  />
-                </div>
-
-                {/* Special Requests */}
-                <div className="form-control full-width">
-                  <label>Special Requests (Optional)</label>
-                  <textarea
-                    name="specialRequests"
-                    value={formData.specialRequests}
-                    onChange={handleChange}
-                    rows="3"
-                    placeholder="Any special requirements or requests..."
-                  />
+                  {bedsError && <small className="error">{bedsError}</small>}
                 </div>
               </div>
-            </div>
 
-            {/* Submit Button */}
-            <div className="form-actions">
-              <button
-                type="button"
-                onClick={() => window.history.back()}
-                className="btn btn-cancel"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="btn btn-confirm"
-              >
-                Send Request
-              </button>
+              <div className="form-actions">
+                <button type="button" className="btn secondary" onClick={() => window.history.back()}>Cancel</button>
+                <button type="submit" className="btn primary">Next</button>
+              </div>
             </div>
           </form>
+        )}
 
-        </div>
+        {/* Step 2: Personal Info */}
+        {step === 2 && (
+          <form className="booking-form" onSubmit={handleSubmit}>
+            <div className="form-section step-form">
+              <h2>Personal Information</h2>
+
+              <div className="form-grid">
+                <div className="form-control full-width">
+                  <label>Full Name <span>*</span></label>
+                  <input type="text" name="fullName" value={formData.fullName} onChange={handleChange} placeholder="Enter your name" required />
+                </div>
+
+                <div className="form-control">
+                  <label>Email <span>*</span></label>
+                  <input type="email" name="email" value={formData.email} onChange={handleChange} placeholder="your.email@example.com" required />
+                </div>
+
+                <div className="form-control">
+                  <label>Phone <span>*</span></label>
+                  <input type="tel" name="phone" value={formData.phone} onChange={handleChange} placeholder="+91 1234567890" required />
+                </div>
+
+                <div className="form-control full-width">
+                  <label>Address <span>*</span></label>
+                  <textarea name="address" value={formData.address} onChange={handleChange} rows="3" placeholder="Enter your full address" required></textarea>
+                </div>
+
+                <div className="form-control full-width">
+                  <label>Special Requests (Optional)</label>
+                  <textarea name="specialRequests" value={formData.specialRequests} onChange={handleChange} rows="3" placeholder="Any special requirements?"></textarea>
+                </div>
+              </div>
+
+              <div className="form-actions">
+                <button type="button" className="btn secondary" onClick={() => setStep(1)}>Back</button>
+                <button type="submit" className="btn primary">Send Request</button>
+              </div>
+            </div>
+          </form>
+        )}
       </div>
+
       <Footer />
     </div>
   );

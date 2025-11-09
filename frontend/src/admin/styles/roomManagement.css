@@ -11,3 +11,111 @@
 .delete-btn:hover {
   color: #ffffff;
 }
+
+/* Reuse the same container structure from guestHouseManagement for consistency */
+
+.gh-management-container {
+  padding: 1.5rem 2rem;
+  background-color: #f9fafb;
+  height: calc(100vh - 64px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.gh-title {
+  font-size: 1.8rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 1rem;
+}
+
+.gh-actions {
+  margin-bottom: 1rem;
+}
+
+.add-gh-btn {
+  background-color: #2563eb;
+  border: none;
+  border-radius: 6px;
+  padding: 0.6rem 1rem;
+  color: #ffffff;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+
+.add-gh-btn:hover {
+  background-color: #1d4ed8;
+  transform: translateY(-2px);
+}
+
+/* Scrollable Table Area */
+.gh-table-container {
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  padding: 1rem;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.gh-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 780px;
+}
+
+.gh-table th,
+.gh-table td {
+  padding: 0.85rem 1.2rem;
+  font-size: 0.95rem;
+  text-align: left;
+  border-bottom: 1px solid #e5e7eb;
+  color: #374151;
+}
+
+.gh-table th {
+  background-color: #f3f4f6;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.gh-table tr:hover {
+  background-color: #f9fafb;
+}
+
+/* Action Buttons */
+.action-buttons button {
+  margin-right: 0.4rem;
+  padding: 0.45rem 0.7rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s ease-in-out;
+}
+
+.action-buttons button:nth-child(1) {
+  background-color: #f59e0b; /* Edit */
+  color: white;
+}
+
+.action-buttons button:nth-child(2) {
+  background-color: #3b82f6; /* Toggle Availability */
+  color: white;
+}
+
+.action-buttons button:nth-child(3) {
+  background-color: #10b981; /* Beds */
+  color: white;
+}
+
+.action-buttons .delete-btn {
+  background-color: #ef4444; /* Delete */
+  color: white;
+}
+
+.action-buttons button:hover {
+  opacity: 0.9;
+}

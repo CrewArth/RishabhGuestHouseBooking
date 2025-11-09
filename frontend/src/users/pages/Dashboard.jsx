@@ -4,7 +4,7 @@ import Navbar from "../../components/Navbar"
 import GuestHouseCard from '../components/GuestHouseCard';
 import Footer from "../../components/Footer";
 
-export default function Dashboard(){
+export default function Dashboard() {
 
     const navigate = useNavigate();
 
@@ -19,10 +19,13 @@ export default function Dashboard(){
 
     return (
         <>
-                <Navbar /> 
+            <Navbar />
 
+            <div className="dashboard-container">
                 <GuestHouseCard />
-                <Footer />
-            </>
+            </div>
+
+            <Footer />
+        </>
     );
 }

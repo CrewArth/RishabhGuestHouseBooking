@@ -3,10 +3,9 @@ import GuestHouseFormModal from '../components/GuestHouseFormModal';
 import axios from 'axios';
 import '../styles/guestHouseManagement.css';
 import { useNavigate } from 'react-router-dom';
-
+import '../styles/auditLogs.css'
 
 const GuestHouseManagement = () => {
-
   const [guestHouses, setGuestHouses] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedGH, setSelectedGH] = useState(null);
@@ -16,11 +15,7 @@ const GuestHouseManagement = () => {
   const fetchGuestHouses = async () => {
     try {
       const response = await axios.get('http://localhost:5000/api/guesthouses');
-      console.log('API Response:', response.data);
-
-      setGuestHouses(
-        Array.isArray(response.data) ? response.data : response.data.guestHouses
-      );
+      setGuestHouses(Array.isArray(response.data) ? response.data : response.data.guestHouses);
     } catch (err) {
       console.error("Error fetching guest houses:", err);
       setGuestHouses([]);
@@ -31,24 +26,22 @@ const GuestHouseManagement = () => {
     fetchGuestHouses();
   }, []);
 
-  // Add New Guest House handler
   const handleAddGuestHouse = async (newGH) => {
     try {
       await axios.post('http://localhost:5000/api/guesthouses', newGH);
-      fetchGuestHouses(); // Refresh the list after adding
+      fetchGuestHouses();
     } catch (err) {
       console.error("Error adding guest house:", err);
     }
   };
 
-  // Edit Guest House handler
   const handleEditGuestHouse = async (updatedData) => {
     try {
       await axios.put(
         `http://localhost:5000/api/guesthouses/${selectedGH.guestHouseId}`,
         updatedData
       );
-      fetchGuestHouses(); // Refresh the list after updating
+      fetchGuestHouses();
     } catch (err) {
       console.error("Error updating guest house:", err);
     }
@@ -57,95 +50,78 @@ const GuestHouseManagement = () => {
   const toggleMaintenance = async (guestHouseId) => {
     try {
       await axios.patch(`http://localhost:5000/api/guesthouses/${guestHouseId}/maintenance`);
-      fetchGuestHouses(); // Refresh
+      fetchGuestHouses();
     } catch (err) {
       console.error("Error toggling maintenance mode", err);
     }
   };
 
-const handleDeleteGuestHouse = async (guestHouseId) => {
-  if (!window.confirm("Are you sure you want to delete this guest house and all related data?")) {
-    return;
-  }
+  const handleDeleteGuestHouse = async (guestHouseId) => {
+    if (!window.confirm("Are you sure you want to delete this guest house and all related data?")) {
+      return;
+    }
 
-  // 1) Optimistic UI: stash old list & remove immediately
-  const prev = guestHouses;
-  setGuestHouses((list) => list.filter(g => g.guestHouseId !== guestHouseId));
+    const prev = guestHouses;
+    setGuestHouses((list) => list.filter(g => g.guestHouseId !== guestHouseId));
 
-  try {
-    const res = await axios.delete(`http://localhost:5000/api/guesthouses/${guestHouseId}`);
-    // Some backends return 204 or no body; that's fine.
-    // If you expect JSON: ensure backend sends { success: true }.
-
-    // Optional: toast/alert only on true success
-    // alert("Guest House and related data deleted successfully.");
-  } catch (err) {
-    console.error("Error deleting guest house:", {
-      status: err?.response?.status,
-      data: err?.response?.data,
-      message: err?.message
-    });
-    // 2) Revert UI on failure
-    setGuestHouses(prev);
-    alert(err?.response?.data?.error || "Failed to delete. Check console for details.");
-  } finally {
-    // 3) Re-validate from server so UI is correct even if optimistic state mismatched
-    fetchGuestHouses();
-  }
-};
-
-
-
+    try {
+      await axios.delete(`http://localhost:5000/api/guesthouses/${guestHouseId}`);
+    } catch (err) {
+      console.error("Error deleting guest house:", err);
+      setGuestHouses(prev);
+      alert(err?.response?.data?.error || "Failed to delete. Check console for details.");
+    } finally {
+      fetchGuestHouses();
+    }
+  };
 
   return (
-    <div className="main-content">
-      <button onClick={() => setIsModalOpen(true)}>Add New Guest House</button>
+    <div className="gh-management-container">
+      <h1 className="gh-title">Guest House Management</h1>
 
-      <table>
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Name</th>
-            <th>Location</th>
-            <th>Maintenance Mode</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {guestHouses.map((gh) => (
-            <tr key={gh.guestHouseId}>
-              <td>{gh.guestHouseId}</td>
-              <td>{gh.guestHouseName}</td>
-              <td>{`${gh.location.city}, ${gh.location.state}`}</td>
-              <td>{gh.maintenance ? '🛠️ On' : '✅ Off'}</td>
-              <td>
-                <button onClick={() => {
-                  setSelectedGH(gh); // Set the clicked guest house as selected
-                  setIsModalOpen(true); // Open modal in edit mode
-                }}>
-                  Edit
-                </button>
+      <div className="gh-actions">
+        <button className="add-gh-btn" onClick={() => setIsModalOpen(true)}>
+          Add New Guest House
+        </button>
+      </div>
 
-                <button onClick={() => navigate(`/admin/rooms?guestHouseId=${gh.guestHouseId}`)}>
-                  Rooms
-                </button>
-
-
-                <button onClick={() => toggleMaintenance(gh.guestHouseId)}>
-                  Toggle Maintenance
-                </button>
-
-                <button
-                  className="delete-btn"
-                  onClick={() => handleDeleteGuestHouse(gh.guestHouseId)}
-                >
-                  Delete
-                </button>
-              </td>
+      <div className="gh-table-container">
+        <table className="gh-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Name</th>
+              <th>Location</th>
+              <th>Maintenance Mode</th>
+              <th>Actions</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {guestHouses.map((gh) => (
+              <tr key={gh.guestHouseId}>
+                <td>{gh.guestHouseId}</td>
+                <td>{gh.guestHouseName}</td>
+                <td>{`${gh.location.city}, ${gh.location.state}`}</td>
+                <td>{gh.maintenance ? '🛠️ On' : '✅ Off'}</td>
+                <td className="action-buttons">
+                  <button onClick={() => { setSelectedGH(gh); setIsModalOpen(true); }}>
+                    Edit
+                  </button>
+                  <button onClick={() => navigate(`/admin/rooms?guestHouseId=${gh.guestHouseId}`)}>
+                    Rooms
+                  </button>
+                  <button onClick={() => toggleMaintenance(gh.guestHouseId)}>
+                    Toggle Maintenance
+                  </button>
+                  <button className="delete-btn" onClick={() => handleDeleteGuestHouse(gh.guestHouseId)}>
+                    Delete
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
       {isModalOpen && (
         <GuestHouseFormModal
@@ -158,7 +134,6 @@ const handleDeleteGuestHouse = async (guestHouseId) => {
           initialData={selectedGH}
         />
       )}
-
     </div>
   );
 };

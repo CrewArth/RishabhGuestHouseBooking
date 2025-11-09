@@ -1,31 +1,28 @@
-import React from 'react'
-import Logo from './Logo'
+import React from 'react';
+import Logo from './Logo';
 import '../styles/footer.css';
-import { Navigate, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 const Footer = () => {
-
   const navigate = useNavigate();
 
   return (
-    <div>
-        <div className="footer-container">
-        <div className="company">
-            <Logo />
-            <p>Rishabh Software</p>
-        </div>
-        <div className="contactus">
-            <ul>
-                <li>About Us</li>
-                <li>Contact Us</li>
-                <li>Terms & Policy</li>
-                <li>FAQ</li>
-            </ul>
-        </div>
+    <footer className="footer-container">
+      <div className="company">
+        <Logo />
+        <p>Rishabh Software</p>
+      </div>
 
-        </div>
-    </div>
-  )
-}
+      <div className="contactus">
+        <ul>
+          <li onClick={() => navigate('/about')}>About Us</li>
+          <li onClick={() => navigate('/contact')}>Contact Us</li>
+          <li onClick={() => navigate('/terms')}>Terms & Policy</li>
+          <li onClick={() => navigate('/faq')}>FAQ</li>
+        </ul>
+      </div>
+    </footer>
+  );
+};
 
-export default Footer
+export default Footer;

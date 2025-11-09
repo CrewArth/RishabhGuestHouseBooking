@@ -1,20 +1,28 @@
-/* guestHouseManagement.css */
-
-.main-content {
-  padding: 2rem;
+/* Outer page wrapper - fixed size */
+.gh-management-container {
+  padding: 1.5rem 2rem;
   background-color: #f9fafb;
-  height: 100vh;
-  overflow-y: auto;
+  height: calc(100vh - 64px); /* Navbar height accounted */
+  overflow: hidden; /* Prevent page scroll */
+  display: flex;
+  flex-direction: column;
+  margin-top: 40px;
 }
 
-.main-content h1 {
-  font-size: 2rem;
-  font-weight: bold;
-  margin-bottom: 1.5rem;
+/* Title */
+.gh-title {
+  font-size: 1.8rem;
+  font-weight: 600;
   color: #1f2937;
+  margin-bottom: 1rem;
 }
 
-.main-content button {
+/* Button Row */
+.gh-actions {
+  margin-bottom: 1rem;
+}
+
+.add-gh-btn {
   background-color: #2563eb;
   border: none;
   border-radius: 6px;
@@ -23,63 +31,85 @@
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease-in-out;
-  margin-bottom: 1.5rem;
 }
 
-.main-content button:hover {
+.add-gh-btn:hover {
   background-color: #1d4ed8;
   transform: translateY(-2px);
 }
 
-table {
-  width: 100%;
-  border-collapse: collapse;
-  background-color: white;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  border-radius: 6px;
-  overflow: hidden;
+/* Scrollable Guest House Table Container */
+.gh-table-container {
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  padding: 1rem;
+  overflow-y: auto;
+  flex: 1; /* takes available vertical space */
 }
 
-table th, table td {
-  padding: 1rem;
+/* Table */
+.gh-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 780px;
+}
+
+.gh-table th,
+.gh-table td {
+  padding: 0.85rem 1.2rem;
+  font-size: 0.95rem;
   text-align: left;
   border-bottom: 1px solid #e5e7eb;
-  font-size: 0.95rem;
   color: #374151;
 }
 
-table th {
+.gh-table th {
   background-color: #f3f4f6;
   font-weight: 600;
+  color: #1f2937;
 }
 
-table tr:hover {
+.gh-table tr:hover {
   background-color: #f9fafb;
 }
 
-td button {
-  margin-right: 0.5rem;
-  padding: 0.4rem 0.7rem;
-  border-radius: 4px;
+/* Action Buttons */
+.action-buttons button {
+  margin-right: 0.4rem;
+  padding: 0.45rem 0.7rem;
+  border-radius: 6px;
   font-size: 0.85rem;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s ease-in-out;
 }
 
-td button:nth-child(1) {
-  background-color: #f59e0b; /* Edit button */
+.action-buttons button:nth-child(1) {
+  background-color: #f59e0b; /* Edit */
   color: white;
 }
 
-td button:nth-child(2) {
-  background-color: #10b981; /* Rooms button */
+.action-buttons button:nth-child(2) {
+  background-color: #10b981; /* Rooms */
   color: white;
 }
 
-td button:nth-child(3) {
-  background-color: #ef4444; /* Toggle button */
+.action-buttons button:nth-child(3) {
+  background-color: #3b82f6; /* Toggle Maintenance */
   color: white;
 }
 
-/* Modal base styling */
+.action-buttons .delete-btn {
+  background-color: #ef4444; /* Delete */
+  color: white;
+}
+
+.action-buttons button:hover {
+  opacity: 0.9;
+}
+
+/* Modal - No changes */
 .modal {
   position: fixed;
   top: 0;
@@ -90,7 +120,7 @@ td button:nth-child(3) {
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 50;
+  z-index: 120;
 }
 
 .modal > div {
@@ -99,5 +129,5 @@ td button:nth-child(3) {
   border-radius: 8px;
   width: 100%;
   max-width: 450px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
 }

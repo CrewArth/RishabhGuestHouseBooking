@@ -27,35 +27,36 @@ const AdminDashboard = () => {
 
   return (
     <div className="admin-dashboard">
-      <h1>Admin Dashboard</h1>
+      <h1 className="dashboard-title">Admin Dashboard</h1>
+
       <div className="card-grid">
         <div className="dashboard-card">
-          <h2>{stats.totalBookings}</h2>
+          <h2 className="stat-number">{stats.totalBookings}</h2>
           <p>Total Bookings</p>
         </div>
 
         <div className="dashboard-card">
-          <h2>{stats.totalUsers}</h2>
+          <h2 className="stat-number">{stats.totalUsers}</h2>
           <p>Total Users</p>
         </div>
 
         <div className="dashboard-card">
-          <h2>{stats.totalGuestHouses}</h2>
+          <h2 className="stat-number">{stats.totalGuestHouses}</h2>
           <p>Total Guest Houses</p>
         </div>
 
         <div className="dashboard-card danger">
-          <h2>{stats.rejectedBookings}</h2>
+          <h2 className="stat-number">{stats.rejectedBookings}</h2>
           <p>Rejected Bookings</p>
         </div>
 
         <div className="dashboard-card warning">
-          <h2>{stats.pendingBookings}</h2>
+          <h2 className="stat-number">{stats.pendingBookings}</h2>
           <p>Pending Bookings</p>
         </div>
 
         <div className="dashboard-card success">
-          <h2>{stats.approvedBookings}</h2>
+          <h2 className="stat-number">{stats.approvedBookings}</h2>
           <p>Approved Bookings</p>
         </div>
       </div>

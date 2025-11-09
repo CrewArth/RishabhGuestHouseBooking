@@ -1,7 +1,8 @@
 import GuestHouse from '../models/GuestHouse.js';
 import Room from '../models/Room.js';
 import Bed from '../models/Bed.js';
-import logAction from '../models/AuditLog.js';
+import { logAction } from '../utils/auditLogger.js';
+
 
 export const createGuestHouse = async (req, res) => {
   try {
@@ -23,10 +24,24 @@ export const createGuestHouse = async (req, res) => {
       image: imageUrl,
     });
 
+    // ✅ Guest House Created
+    await logAction({
+      action: 'GUESTHOUSE_CREATED',
+      entityType: 'GuestHouse',
+      entityId: guestHouse.guestHouseId,
+      performedBy: req.user?.email || 'Admin',
+      details: {
+        guestHouseName: guestHouse.guestHouseName,
+        location: guestHouse.location,
+      },
+    });
+
     res.status(201).json({
       message: "Guest House Created Successfully",
       guestHouse,
     });
+
+
   } catch (error) {
     console.error("Error creating GuestHouse ", error);
     res.status(500).json({ message: error?.message || "Error creating guest house" });
@@ -59,20 +74,24 @@ export const toggleMaintenanceMode = async (req, res) => {
     guestHouse.maintenance = !guestHouse.maintenance;
     await guestHouse.save();
 
+    // ✅ Maintenance Status Toggled
     await logAction({
       action: 'MAINTENANCE_TOGGLED',
       entityType: 'GuestHouse',
-      entityId: guestHouse._id || guestHouse.guestHouseId,
-      performedBy: 'Admin',
+      entityId: guestHouse.guestHouseId,
+      performedBy: req.user?.email || 'Admin',
       details: {
-        maintenance: guestHouse.maintenance,
-      }
+        previousStatus: guestHouse.maintenance,
+        newStatus: !guestHouse.maintenance,
+      },
     });
 
     res.json({
       message: `Maintenance mode ${guestHouse.maintenance ? 'activated' : 'deactivated'}`,
       guestHouse,
     });
+
+
   } catch (error) {
     console.error('Error toggling maintenance mode:', error);
     res.status(500).json({ message: 'Server error while toggling maintenance mode' });
@@ -104,12 +123,15 @@ export const deleteGuestHouse = async (req, res) => {
 
     // 6. Log Deletion (optional, wrapped safely)
     try {
+      // ✅ Guest House Deleted
       await logAction({
-        action: "GUESTHOUSE_DELETED",
-        entityType: "GuestHouse",
-        entityId: guestHouse._id || guestHouse.guestHouseId,
-        performedBy: req.user?._id || "System",
-        details: { deletedRooms: rooms.length }
+        action: 'GUESTHOUSE_DELETED',
+        entityType: 'GuestHouse',
+        entityId: guestHouseId,
+        performedBy: req.user?.email || 'Admin',
+        details: {
+          message: 'Guest house deleted permanently',
+        },
       });
     } catch (logError) {
       console.warn("Audit log error (continued without breaking):", logError.message);

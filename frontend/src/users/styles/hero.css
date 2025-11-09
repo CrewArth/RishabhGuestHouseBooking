@@ -2,15 +2,18 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Noto+Sans:ital,wght@0,100..900;1,100..900&family=Outfit:wght@700&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap');
 
 .hero-container {
-  min-height: 120vh;
+  min-height: 100vh; /* Ensure full screen height */
   width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 2rem;
-  margin-top: -125px; /* If you have a fixed navbar, this will help center the content properly */
-  padding-top: 64px; /* This compensates for the negative margin */
+  padding-top: 90px; /* Space for navbar height */
+  box-sizing: border-box;
+  background-color: #fff; /* Optional: you can set a background here */
+  overflow: hidden;
 }
+
 
 .hero-content {
   max-width: 1200px;
@@ -20,6 +23,7 @@
   align-items: center;
   gap: 2rem;
   padding: 2rem;
+  flex-wrap: wrap; /* allow wrap on small screens */
 }
 
 .hero-text {
@@ -42,14 +46,14 @@
 }
 
 .hero-subtitle {
-  font-size: 1.5rem;
+  font-size: 1.3rem;
   color: #4a5568;
   margin-bottom: 2rem;
 }
 
 .hero-button {
   padding: 1rem 2rem;
-  font-size: 1.2rem;
+  font-size: 1.1rem;
   font-weight: 600;
   color: white;
   background: linear-gradient(to right, #4a90e2, #357abd);
@@ -64,16 +68,25 @@
   box-shadow: 0 4px 12px rgba(74, 144, 226, 0.3);
 }
 
-.hero-icon {
-  font-size: 20rem;
-  color: #4a90e2;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0.9;
+.hero-icon img {
+  max-width: 100%;
+  height: auto;
+  display: block;
   animation: float 6s ease-in-out infinite;
 }
 
+/* Floating animation for hero image */
+@keyframes float {
+  0% {
+    transform: translatey(0px);
+  }
+  50% {
+    transform: translatey(-10px);
+  }
+  100% {
+    transform: translatey(0px);
+  }
+}
 
 /* Responsive Design */
 @media (max-width: 768px) {
@@ -81,6 +94,7 @@
     flex-direction: column-reverse;
     text-align: center;
     padding: 1rem;
+    gap: 1rem;
   }
 
   .hero-title {
@@ -92,6 +106,12 @@
   }
 
   .hero-icon {
-    font-size: 12rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .hero-button {
+    width: 100%;
+    max-width: 280px;
+    margin: 0 auto;
   }
 }

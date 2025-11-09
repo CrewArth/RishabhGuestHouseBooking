@@ -8,6 +8,7 @@ const sendError = (res, status, message, details) =>
   res.status(status).json({ success: false, message, ...(details ? { details } : {}) });
 
 
+// Create Room 
 // POST /api/rooms
 export const createRoom = async (req, res) => {
   try {
@@ -29,15 +30,18 @@ export const createRoom = async (req, res) => {
       roomCapacity,
       isAvailable
     });
+
+    // ✅ Room Created
     await logAction({
       action: 'ROOM_CREATED',
       entityType: 'Room',
       entityId: room._id,
-      performedBy: 'Admin',
+      performedBy: req.user?.email || 'Admin',
       details: {
         guestHouseId: room.guestHouseId,
-        roomNumber: room.roomNumber
-      }
+        roomNumber: room.roomNumber,
+        roomType: room.roomType,
+      },
     });
 
     return res.status(201).json({ success: true, message: 'Room created', room });
@@ -117,17 +121,16 @@ export const updateRoom = async (req, res) => {
       { new: true, runValidators: true }
     );
 
+    // ✅ Room Updated
     await logAction({
-  action: 'ROOM_UPDATED',
-  entityType: 'Room',
-  entityId: room._id,
-  performedBy: 'Admin',
-  details: {
-    guestHouseId: room.guestHouseId,
-    roomNumber: room.roomNumber
-  }
-});
-
+      action: 'ROOM_UPDATED',
+      entityType: 'Room',
+      entityId: room._id,
+      performedBy: req.user?.email || 'Admin',
+      details: {
+        updatedFields: req.body,
+      },
+    });
     if (!room) return sendError(res, 404, 'Room not found');
     return res.json({ success: true, message: 'Room updated', room });
   } catch (err) {
@@ -152,16 +155,17 @@ export const setAvailability = async (req, res) => {
       { new: true }
     );
 
+    // ✅ Room Availability Toggled
     await logAction({
-  action: 'ROOM_AVAILABILITY_TOGGLED',
-  entityType: 'Room',
-  entityId: room._id,
-  performedBy: 'Admin',
-  details: {
-    guestHouseId: room.guestHouseId,
-    roomNumber: room.roomNumber
-  }
-});
+      action: 'ROOM_AVAILABILITY_TOGGLED',
+      entityType: 'Room',
+      entityId: room._id,
+      performedBy: req.user?.email || 'Admin',
+      details: {
+        previousStatus: room.isAvailable,
+        newStatus: !room.isAvailable,
+      },
+    });
     if (!room) return sendError(res, 404, 'Room not found');
     return res.json({ success: true, message: 'Availability updated', room });
   } catch (err) {
@@ -179,16 +183,16 @@ export const softDeleteRoom = async (req, res) => {
       { new: true }
     );
 
+    // ✅ Room Deleted
     await logAction({
-  action: 'ROOM_DELETED',
-  entityType: 'Room',
-  entityId: room._id,
-  performedBy: 'Admin',
-  details: {
-    guestHouseId: room.guestHouseId,
-    roomNumber: room.roomNumber
-  }
-});
+      action: 'ROOM_DELETED',
+      entityType: 'Room',
+      entityId: roomId,
+      performedBy: req.user?.email || 'Admin',
+      details: {
+        message: 'Room deleted successfully',
+      },
+    });
     if (!room) return sendError(res, 404, 'Room not found');
     return res.json({ success: true, message: 'Room archived', room });
   } catch (err) {

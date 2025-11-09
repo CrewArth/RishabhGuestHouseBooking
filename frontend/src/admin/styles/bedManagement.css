@@ -1,0 +1,119 @@
+/* Ensure that admin-content is aligned correctly below navbar and to the right of sidebar */
+.admin-content {
+  margin-left: -0px;
+  padding: 2rem;
+  padding-top: calc(var(--navbar-height) + 1rem);
+  background-color: #ffffff;
+  min-height: calc(100vh - var(--navbar-height));
+  overflow-y: auto;
+}
+
+/* Page heading */
+.admin-content h2 {
+  font-size: 1.8rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 1.5rem;
+}
+
+/* Action bar */
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.btn-primary,
+.btn-secondary {
+  padding: 0.6rem 1rem;
+  border-radius: 6px;
+  font-weight: 500;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+
+.btn-primary {
+  background: #2563eb;
+  color: white;
+  border: none;
+}
+
+.btn-primary:hover {
+  background-color: #1d4ed8;
+}
+
+.btn-secondary {
+  background: #f3f4f6;
+  color: #374151;
+  border: none;
+}
+
+.btn-secondary:hover {
+  background-color: #e5e7eb;
+}
+
+/* Table container (scroll if needed) */
+.table-container {
+  max-height: calc(100vh - 250px);
+  overflow-y: auto;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+}
+
+/* Table styles */
+.styled-table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: white;
+}
+
+.styled-table th,
+.styled-table td {
+  padding: 1rem;
+  border-bottom: 1px solid #e5e7eb;
+  text-align: left;
+}
+
+.styled-table th {
+  background-color: #f3f4f6;
+  font-weight: 600;
+}
+
+.styled-table tr:hover td {
+  background-color: #f9fafb;
+}
+
+/* Button Actions */
+.btn-edit {
+  background-color: #f59e0b;
+  color: white;
+}
+
+.btn-warning {
+  background-color: #10b981;
+  color: white;
+}
+
+.btn-danger {
+  background-color: #ef4444;
+  color: white;
+}
+
+.btn-edit,
+.btn-warning,
+.btn-danger {
+  padding: 0.4rem 0.7rem;
+  font-size: 0.85rem;
+  border: none;
+  border-radius: 4px;
+  margin-right: 0.4rem;
+  cursor: pointer;
+  transition: 0.2s ease-in-out;
+}
+
+.btn-edit:hover,
+.btn-warning:hover,
+.btn-danger:hover {
+  opacity: 0.85;
+}

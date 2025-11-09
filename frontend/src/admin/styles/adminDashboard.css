@@ -1,52 +1,69 @@
+/* Root styles */
 .admin-dashboard {
-  padding: 20px;
-  background-color: #f9f9f9;
+  padding: 20px 30px;
+  margin-top: 80px; /* Ensure it doesn't overlap with navbar */
+  background-color: #f9fafb;
+  min-height: calc(100vh - 80px);
+  font-family: 'Inter', sans-serif;
 }
 
-.admin-dashboard h1 {
-  text-align: center;
+/* Dashboard Title */
+.dashboard-title {
+  text-align: left;
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1f2937;
   margin-bottom: 30px;
-  color: #333;
+  padding-left: 4px;
 }
 
+/* Grid of Cards */
 .card-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 24px;
 }
 
+/* Card Styles */
 .dashboard-card {
-  padding: 25px;
-  border-radius: 12px;
+  padding: 28px 20px;
+  border-radius: 14px;
   background-color: white;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.07);
   text-align: center;
-  transition: transform 0.2s ease-in-out;
+  transition: all 0.25s ease;
 }
 
 .dashboard-card:hover {
-  transform: translateY(-5px);
+  transform: translateY(-6px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
 }
 
-.dashboard-card h2 {
-  font-size: 2rem;
-  color: #4e73df;
+/* Card Numbers */
+.stat-number {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: #2563eb;
   margin-bottom: 10px;
+  font-family: 'Outfit', sans-serif;
 }
 
+/* Card Labels */
 .dashboard-card p {
   font-size: 1rem;
-  color: #666;
+  color: #4b5563;
+  font-weight: 500;
 }
 
-.dashboard-card.danger h2 {
-  color: #e74a3b;
+/* Variant colors */
+.dashboard-card.danger .stat-number {
+  color: #dc2626;
 }
 
-.dashboard-card.warning h2 {
-  color: #f6c23e;
+.dashboard-card.warning .stat-number {
+  color: #f59e0b;
 }
 
-.dashboard-card.success h2 {
-  color: #1cc88a;
+.dashboard-card.success .stat-number {
+  color: #16a34a;
 }

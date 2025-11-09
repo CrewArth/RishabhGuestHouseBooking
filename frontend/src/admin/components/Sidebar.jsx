@@ -1,4 +1,4 @@
-import { Home, Building2, DoorOpen, BookOpen, Bed, FileText, ChevronRight } from 'lucide-react';
+import { Home, Building2, DoorOpen, BookOpen, Bed, FileText, ChevronRight, PersonStanding } from 'lucide-react';
 import "../styles/sidebar.css";
 import { NavLink } from 'react-router-dom';
 
@@ -9,13 +9,12 @@ const Sidebar = () => {
     { icon: DoorOpen, label: 'Room Management', to: '/admin/rooms' },
     { icon: Bed, label: 'Bed Management', to: '/admin/beds' },
     { icon: BookOpen, label: 'Booking Management', to: '/admin/bookings' },
-    { icon: FileText, label: 'List Users', to: '/admin/users' },
-
+    { icon: PersonStanding, label: 'List Users', to: '/admin/users' },
     { icon: FileText, label: 'Audit Logs', to: '/admin/audits' },
   ];
 
   return (
-    <div className="sidebar">
+    <aside className="sidebar">
       <nav className="sidebar-nav">
         <ul className="nav-list">
           {menuItems.map((item, index) => (
@@ -32,7 +31,7 @@ const Sidebar = () => {
           ))}
         </ul>
       </nav>
-    </div>
+    </aside>
   );
 };
 

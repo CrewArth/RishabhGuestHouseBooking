@@ -4,8 +4,6 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import RoomFormModal from '../components/RoomFormModel';
 import '../styles/roomManagement.css';
 
-
-
 const RoomManagement = () => {
   const [rooms, setRooms] = useState([]);
   const [selectedRoom, setSelectedRoom] = useState(null);
@@ -25,12 +23,13 @@ const RoomManagement = () => {
 
   const fetchRooms = async () => {
     try {
-      const response = await axios.get(`http://localhost:5000/api/rooms/by-guesthouse?guestHouseId=${guestHouseId}`);
+      const response = await axios.get(
+        `http://localhost:5000/api/rooms/by-guesthouse?guestHouseId=${guestHouseId}`
+      );
       setRooms(response.data.rooms || []);
-      console.log(response.data);
     } catch (error) {
-      console.log("Error fetching rooms:", error);
-      setRooms([]); // fallback to empty state on error
+      console.log('Error fetching rooms:', error);
+      setRooms([]);
     }
   };
 
@@ -48,7 +47,10 @@ const RoomManagement = () => {
 
   const handleEditRoom = async (updatedRoom) => {
     try {
-      await axios.put(`http://localhost:5000/api/rooms/${selectedRoom._id}`, updatedRoom);
+      await axios.put(
+        `http://localhost:5000/api/rooms/${selectedRoom._id}`,
+        updatedRoom
+      );
       fetchRooms();
     } catch (error) {
       console.error('Error updating room:', error);
@@ -57,9 +59,12 @@ const RoomManagement = () => {
 
   const toggleRoomAvailability = async (roomId, currentStatus) => {
     try {
-      await axios.patch(`http://localhost:5000/api/rooms/${roomId}/availability`, {
-        isAvailable: !currentStatus   // flip top true/false
-      });
+      await axios.patch(
+        `http://localhost:5000/api/rooms/${roomId}/availability`,
+        {
+          isAvailable: !currentStatus,
+        }
+      );
       fetchRooms();
     } catch (error) {
       console.error('Error toggling availability:', error);
@@ -67,63 +72,84 @@ const RoomManagement = () => {
   };
 
   const deleteRoom = async (roomId) => {
-  try {
-    const confirmDelete = window.confirm('Are you sure you want to delete this room?');
-    if (!confirmDelete) return;
+    try {
+      const confirmDelete = window.confirm(
+        'Are you sure you want to delete this room?'
+      );
+      if (!confirmDelete) return;
 
-    await axios.delete(`http://localhost:5000/api/rooms/${roomId}`);
-    fetchRooms();
-  } catch (error) {
-    console.error('Error deleting room:', error);
-  }
+      await axios.delete(`http://localhost:5000/api/rooms/${roomId}`);
+      fetchRooms();
+    } catch (error) {
+      console.error('Error deleting room:', error);
+    }
   };
 
   return (
-    <div className="main-content">
-      <h2>Rooms for Guest House ID: {guestHouseId}</h2>
-      <button onClick={() => setIsModalOpen(true)}>Add New Room</button>
+    <div className="gh-management-container">
+      <h2 className="gh-title">Room Management for Guest House ID: {guestHouseId}</h2>
 
-      <table>
-        <thead>
-          <tr>
-            <th>Room Number</th>
-            <th>Type</th>
-            <th>Capacity</th>
-            <th>Availability</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rooms.map((room) => (
-            <tr key={room._id}>
-              <td>{room.roomNumber}</td>
-              <td>{room.roomType}</td>
-              <td>{room.roomCapacity}</td>
-              <td>{room.isAvailable ? '✅ Yes' : '❌ No'}</td>
-              <td>
-                <button onClick={() => {
-                  setSelectedRoom(room);
-                  setIsModalOpen(true);
-                }}>Edit</button>
+      <div className="gh-actions">
+        <button className="add-gh-btn" onClick={() => setIsModalOpen(true)}>
+          Add New Room
+        </button>
+      </div>
 
-                <button onClick={() => toggleRoomAvailability(room._id, room.isAvailable)}>
-                  Toggle Availability
-                </button>
-
-                <button onClick={() => navigate(`/admin/beds?roomId=${room._id}`)}>Beds</button>
-
-                <button
-                  className="delete-btn"
-                  onClick={() => deleteRoom(room._id)}
-                  style={{ color: 'white', marginLeft: '5px' }}
-                >
-                  Delete
-                </button>
-              </td>
+      <div className="gh-table-container">
+        <table className="gh-table">
+          <thead>
+            <tr>
+              <th>Room Number</th>
+              <th>Type</th>
+              <th>Capacity</th>
+              <th>Availability</th>
+              <th>Actions</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {rooms.map((room) => (
+              <tr key={room._id}>
+                <td>{room.roomNumber}</td>
+                <td>{room.roomType}</td>
+                <td>{room.roomCapacity}</td>
+                <td>{room.isAvailable ? '✅ Available' : '❌ Not Available'}</td>
+                <td className="action-buttons">
+
+                  <button
+                    onClick={() => {
+                      setSelectedRoom(room);
+                      setIsModalOpen(true);
+                    }}
+                  >
+                    Edit
+                  </button>
+
+                  <button
+                    onClick={() =>
+                      toggleRoomAvailability(room._id, room.isAvailable)
+                    }
+                  >
+                    Toggle Availability
+                  </button>
+
+                  <button
+                    onClick={() => navigate(`/admin/beds?roomId=${room._id}`)}
+                  >
+                    Beds
+                  </button>
+
+                  <button
+                    className="delete-btn"
+                    onClick={() => deleteRoom(room._id)}
+                  >
+                    Delete
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
       {isModalOpen && (
         <RoomFormModal
@@ -136,7 +162,6 @@ const RoomManagement = () => {
           initialData={selectedRoom}
         />
       )}
-
     </div>
   );
 };

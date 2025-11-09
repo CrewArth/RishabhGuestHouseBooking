@@ -20,16 +20,17 @@ export const createBed = async (req, res) => {
     // Create new bed
     await Bed.create({ roomId, bedNumber, bedType });
 
+    // ✅ Bed Created
     await logAction({
       action: 'BED_CREATED',
       entityType: 'Bed',
-      entityId: Bed._id,
-      performedBy: 'Admin',
+      entityId: bed._id,
+      performedBy: req.user?.email || 'Admin',
       details: {
-        roomId: Bed.roomId,
-        bedNumber: Bed.bedNumber,
-        bedType: Bed.bedType
-      }
+        roomId: bed.roomId,
+        bedNumber: bed.bedNumber,
+        bedType: bed.bedType,
+      },
     });
 
 
@@ -76,16 +77,16 @@ export const updateBed = async (req, res) => {
       { new: true, runValidators: true }
     );
 
+    // ✅ Bed Updated
     await logAction({
       action: 'BED_UPDATED',
       entityType: 'Bed',
-      entityId: updatedBed._id,
-      performedBy: 'Admin',
+      entityId: bed._id,
+      performedBy: req.user?.email || 'Admin',
       details: {
         updatedFields: req.body,
-      }
+      },
     });
-
 
     if (!updatedBed) return res.status(404).json({ error: 'Bed not found' });
 
@@ -118,14 +119,16 @@ export const toggleAvailability = async (req, res) => {
       { new: true }
     );
 
+    // ✅ Bed Availability Toggled
     await logAction({
       action: 'BED_AVAILABILITY_TOGGLED',
       entityType: 'Bed',
       entityId: bed._id,
-      performedBy: 'Admin',
+      performedBy: req.user?.email || 'Admin',
       details: {
-        isAvailable: bed.isAvailable
-      }
+        previousStatus: bed.isAvailable,
+        newStatus: !bed.isAvailable,
+      },
     });
 
 
@@ -149,17 +152,16 @@ export const softDeleteBed = async (req, res) => {
       { new: true }
     );
 
+    // ✅ Bed Deleted
     await logAction({
       action: 'BED_DELETED',
       entityType: 'Bed',
-      entityId: bed._id,
-      performedBy: 'Admin',
+      entityId: bedId,
+      performedBy: req.user?.email || 'Admin',
       details: {
-        roomId: bed.roomId,
-        bedNumber: bed.bedNumber
-      }
+        message: 'Bed removed from room',
+      },
     });
-
 
     if (!bed) return res.status(404).json({ error: 'Bed not found' });
 

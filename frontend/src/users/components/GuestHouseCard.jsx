@@ -3,9 +3,9 @@ import "../styles/guestHouseCard.css";
 import { FaMapMarkerAlt, FaTools } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
-import { fetchGuestHouses } from "../../redux/guestHouseSlice"; // <-- adjust relative path
+import { fetchGuestHouses } from "../../redux/guestHouseSlice";
 
-const GuestHouseCard = () => {
+const GuestHouseCard = ({ showOnlyThree = false }) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
@@ -14,28 +14,40 @@ const GuestHouseCard = () => {
   );
 
   useEffect(() => {
-    // Only fetch if not already loaded to avoid extra calls on remount
     if (!guestHouses || guestHouses.length === 0) {
       dispatch(fetchGuestHouses());
     }
-  }, [dispatch]); // keep deps minimal to avoid loops
+  }, [dispatch]);
 
   const redirectBookingForm = (house) => {
     navigate("/booking", { state: { guestHouse: house } });
   };
 
   if (loading) return <p>Loading guest houses...</p>;
-  if (error) return <p style={{ color: 'crimson' }}>Error: {error}</p>;
-  if (!guestHouses || guestHouses.length === 0) return <p>No guest houses found.</p>;
+  if (error) return <p style={{ color: "crimson" }}>Error: {error}</p>;
+  if (!guestHouses || guestHouses.length === 0)
+    return <p>No guest houses found.</p>;
+
+  // Slice guest houses if we want only 3 for homepage
+  const displayHouses = showOnlyThree
+    ? guestHouses.slice(0, 4)
+    : guestHouses;
 
   return (
-    <div className="guest-house-container">
+    <section className="featured-guest-house-section">
+      <h2 className="featured-title">Featured Guest Houses</h2>
       <div className="guest-house-grid">
-        {guestHouses.map((house) => (
-          <div key={house._id || house.guestHouseId} className="guest-house-card">
+        {displayHouses.map((house) => (
+          <div
+            key={house._id || house.guestHouseId}
+            className="guest-house-card"
+          >
             <div className="card-image">
               <img
-                src={house.image || "https://via.placeholder.com/600x360?text=Guest+House"}
+                src={
+                  house.image ||
+                  "https://via.placeholder.com/600x360?text=Guest+House"
+                }
                 alt={house.guestHouseName}
               />
               {house.maintenance && (
@@ -51,10 +63,14 @@ const GuestHouseCard = () => {
                 <FaMapMarkerAlt />
                 {house.location?.city}, {house.location?.state}
               </p>
-              <p className="description">{house.description || "No description available."}</p>
+              <p className="description">
+                {house.description || "No description available."}
+              </p>
 
               <button
-                className={`book-button ${house.maintenance ? "disabled" : ""}`}
+                className={`book-button ${
+                  house.maintenance ? "disabled" : ""
+                }`}
                 disabled={house.maintenance}
                 onClick={() => redirectBookingForm(house)}
               >
@@ -64,7 +80,7 @@ const GuestHouseCard = () => {
           </div>
         ))}
       </div>
-    </div>
+    </section>
   );
 };
 

@@ -36,6 +36,7 @@ body {
   justify-content: center;
   min-height: 100vh;
   padding: 20px;
+  margin-top: 30px;
   background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
 }
 
@@ -259,4 +260,32 @@ body {
     padding: 11px 12px;
     font-size: 16px;
   }
+}
+
+/* Spinner Animation */
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 3px solid #ffffff;
+  border-top: 3px solid #4338ca;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+  display: inline-block;
+  vertical-align: middle;
+  margin: 0 auto;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Error input highlight */
+.input-error {
+  border-color: #dc2626 !important;
+}
+
+.error-text {
+  color: #dc2626;
+  font-size: 12px;
+  margin-top: 4px;
 }

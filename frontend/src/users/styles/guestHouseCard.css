@@ -1,15 +1,36 @@
-.guest-house-container {
-  padding: 2rem;
-  max-width: 1400px;
-  margin: 0 auto;
-  margin-top: 50px;
+/* SECTION WRAPPER */
+.featured-guest-house-section {
+  background-color: #ffffff; /* Same as hero background */
+  padding: 4rem 2rem;
+  text-align: center;
 }
 
+.featured-title {
+  font-size: 2.25rem;
+  font-weight: 700;
+  color: #2d3748;
+  margin-bottom: 2.5rem;
+  font-family: 'Outfit', sans-serif;
+  letter-spacing: 0.02em;
+}
+
+.dashboard-container {
+  margin-top: 40px; /* Same height or a bit more than your navbar */
+  padding: 20px;
+}
+
+/* CONTAINER */
+.guest-house-container {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* GRID & CARDS */
 .guest-house-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 2rem;
-  padding: 1rem;
+  padding: 0 1rem;
 }
 
 .guest-house-card {
@@ -24,10 +45,11 @@
 }
 
 .guest-house-card:hover {
-  transform: translateY(-5px);
+  transform: translateY(-6px);
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
 }
 
+/* IMAGE */
 .card-image {
   position: relative;
   width: 100%;
@@ -39,28 +61,32 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 0.5s ease;
+  transition: transform 0.5s ease, opacity 0.3s ease;
+  opacity: 0;
+  animation: imageLoad 0.3s ease forwards;
 }
 
 .guest-house-card:hover .card-image img {
   transform: scale(1.1);
 }
 
+/* MAINTENANCE BADGE */
 .maintenance-badge {
   position: absolute;
   top: 1rem;
   right: 1rem;
   background: rgba(255, 59, 48, 0.9);
   color: white;
-  padding: 0.5rem 1rem;
+  padding: 0.4rem 0.9rem;
   border-radius: 20px;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  backdrop-filter: blur(4px);
+  gap: 0.4rem;
+  backdrop-filter: blur(6px);
 }
 
+/* CARD CONTENT */
 .card-content {
   padding: 1.5rem;
 }
@@ -68,7 +94,7 @@
 .house-name {
   font-size: 1.4rem;
   color: #2d3748;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.5rem;
   font-weight: 600;
 }
 
@@ -92,6 +118,7 @@
   margin-bottom: 1.5rem;
 }
 
+/* ACTION BUTTON */
 .book-button {
   width: 100%;
   padding: 0.75rem;
@@ -101,11 +128,12 @@
   color: white;
   font-weight: 600;
   cursor: pointer;
-  transition: opacity 0.2s ease;
+  transition: transform 0.2s ease, opacity 0.2s ease;
 }
 
 .book-button:hover:not(.disabled) {
   opacity: 0.9;
+  transform: translateY(-1px);
 }
 
 .book-button.disabled {
@@ -113,10 +141,14 @@
   cursor: not-allowed;
 }
 
-/* Responsive adjustments */
+/* RESPONSIVE */
 @media (max-width: 768px) {
-  .guest-house-container {
-    padding: 1rem;
+  .featured-guest-house-section {
+    padding: 3rem 1rem;
+  }
+
+  .featured-title {
+    font-size: 1.75rem;
   }
 
   .guest-house-grid {
@@ -125,7 +157,7 @@
   }
 
   .card-content {
-    padding: 1.25rem;
+    padding: 1rem;
   }
 
   .house-name {
@@ -133,12 +165,7 @@
   }
 }
 
-/* Loading animation for images */
-.card-image img {
-  opacity: 0;
-  animation: imageLoad 0.3s ease forwards;
-}
-
+/* IMAGE LOADING ANIMATION */
 @keyframes imageLoad {
   from {
     opacity: 0;

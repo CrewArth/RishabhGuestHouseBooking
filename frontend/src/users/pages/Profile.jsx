@@ -137,7 +137,12 @@ const Profile = () => {
                             </div>
 
                             <div className="profile-buttons">
-                                <button onClick={() => setIsEditing(true)} className="btn btn-edit">Edit Profile</button>
+                                <button onClick={() => navigate(-1)} className="btn btn-back">
+                                    ← Back
+                                </button>
+                                <button onClick={() => setIsEditing(true)} className="btn btn-edit">
+                                    Edit Profile
+                                </button>
                             </div>
                         </div>
                     )
