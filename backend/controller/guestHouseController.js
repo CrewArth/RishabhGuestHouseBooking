@@ -155,3 +155,59 @@ export const deleteGuestHouse = async (req, res) => {
 // };
 
 // await s3.deleteObject(params).promise();
+
+
+export const updateGuestHouse = async (req, res) => {
+  try {
+    const { guestHouseId } = req.params;
+
+    // Parse location if exists
+    let location = {};
+    if (req.body.location) {
+      try {
+        location = JSON.parse(req.body.location);
+      } catch {
+        location = req.body.location;
+      }
+    }
+
+    // Construct update object
+    const updateData = {
+      guestHouseName: req.body.guestHouseName,
+      description: req.body.description,
+      location,
+    };
+
+    if (req.file) {
+      updateData.image = req.file.location; // S3 or multer-s3 file path
+    }
+
+    // Update guest house
+    const updatedGuestHouse = await GuestHouse.findOneAndUpdate(
+      { guestHouseId: parseInt(guestHouseId, 10) },
+      updateData,
+      { new: true }
+    );
+
+    if (!updatedGuestHouse) {
+      return res.status(404).json({ message: "Guest House not found" });
+    }
+
+    // ✅ Log update
+    await logAction({
+      action: 'GUESTHOUSE_UPDATED',
+      entityType: 'GuestHouse',
+      entityId: updatedGuestHouse.guestHouseId,
+      performedBy: req.user?.email || 'Admin',
+      details: updateData,
+    });
+
+    res.status(200).json({
+      message: "Guest House updated successfully",
+      guestHouse: updatedGuestHouse,
+    });
+  } catch (error) {
+    console.error("Error updating Guest House:", error);
+    res.status(500).json({ message: "Server error while updating Guest House" });
+  }
+};

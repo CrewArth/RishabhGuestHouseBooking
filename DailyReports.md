@@ -108,6 +108,75 @@ This timeline logs each day's key achievements in the creation of the Guest Hous
 
 ---
 
+### 🗓️ **Day 09 – November 09, 2025**
+#### 🧭 Admin Dashboard & Layout Refinement
+- Fixed layout overlay issue where main content was hidden under the navbar.
+- Updated **Sidebar** to maintain full-screen height with no global scroll.
+- Improved hover and active states for sidebar menu items.
+- Adjusted admin content alignment and spacing for better readability.
+- Refined “Admin Dashboard” heading position (left-aligned) and card font styles.
+
+#### 🏠 Guest House Management Page
+- Fixed page overlay issue below the navbar.
+- Added heading **“Guest House Management”** for better clarity.
+- Restricted window scrolling; enabled inner scroll only for guest house list.
+- Enhanced table design — added consistent padding, hover effects, and column alignment.
+- Styled action buttons (Edit, Rooms, Maintenance, Delete) with consistent colors.
+- Improved modal structure for **Add/Edit Guest House** with rounded borders and shadows.
+
+#### 🛏️ Room Management Page
+- Updated layout to match the Guest House Management design.
+- Enhanced table structure and button alignment.
+- Refined **RoomFormModal** for clean, responsive form UI.
+- Added focus and hover states for input fields and buttons.
+- Fixed scroll behavior to avoid content overlap.
+
+---
+
+### 🗓️ **Day 10 – November 10, 2025**
+#### 🛌 Bed Management Page
+- Implemented a consistent layout for **Bed Management** following the same admin UI design.
+- Fixed sidebar and content alignment to prevent overlay.
+- Restricted global scroll; added internal scroll for tables only.
+- Styled **BedFormModal** for better spacing and visual clarity.
+- Improved color contrast and responsiveness across all screen sizes.
+
+#### 👤 User Management Page
+- Enhanced **Users List Page**:
+  - Added **Sr No.** column for indexing users.
+  - Added **Edit** and **Delete** buttons for each user record.
+  - Implemented **soft delete (deactivation)** using PATCH API.
+  - Created and integrated **EditUserModal** for updating user details (name, phone, address, status).
+- Improved table UI with status badges for Active/Inactive users.
+- Fixed API route alignment for PUT and PATCH requests.
+- Validated successful **user update** flow via admin panel.
+
+#### 📜 Audit Logs Page
+- Refined **Audit Logs UI** with clean table design and improved readability.
+- Added color-coded **action badges**:
+  - 🟩 Created  
+  - 🟧 Updated  
+  - 🔴 Deleted  
+  - ⚙️ Toggled
+- Improved timestamp formatting and responsive mobile layout.
+- Added smooth hover effects and consistent table alignment.
+- Implemented a centralized **`logAction()` utility function** for:
+  - Guest House, Room, and Bed CRUD operations.
+  - Maintenance, Availability, and Deletion tracking.
+- Ensured all audit logs display correctly with user and timestamp.
+
+---
+
+### 🎯 **Overall Outcomes**
+- Achieved a **consistent and professional admin UI** across all management pages.  
+- Fixed layout and scroll inconsistencies between modules.  
+- Improved usability and responsiveness across devices.  
+- Streamlined admin workflows with updated modals and visual feedback.  
+- Established a unified foundation for future UI and UX improvements.
+
+---
+
+
 ## 🚀 Next Key Goals
 1. **User booking flow** (backend and user dashboard integration).
 2. Payment system integration with Razorpay/Stripe.
