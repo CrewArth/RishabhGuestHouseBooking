@@ -10,6 +10,7 @@ const AdminDashboard = () => {
     rejectedBookings: 0,
     pendingBookings: 0,
     approvedBookings: 0,
+    todaysBookings: 0
   });
 
   const fetchStats = async () => {
@@ -59,9 +60,24 @@ const AdminDashboard = () => {
           <h2 className="stat-number">{stats.approvedBookings}</h2>
           <p>Approved Bookings</p>
         </div>
+
+        <div className="dashboard-card">
+          <h2 className="stat-number">{stats.occupancyRate}%</h2>
+          <p>Occupancy Rate</p>
+        </div>
+
+          <div className="dashboard-card">
+          <h2 className="stat-number">{stats.todaysBookings}</h2>
+          <p>Today's Booking</p>
+        </div>
       </div>
+      
     </div>
+
+    
   );
 };
+
+
 
 export default AdminDashboard;

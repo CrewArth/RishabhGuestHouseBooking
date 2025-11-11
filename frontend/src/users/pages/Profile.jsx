@@ -32,10 +32,8 @@ const Profile = () => {
 
     const handleUpdate = async () => {
         try {
-            const response = await axios.put(
-                `http://localhost:5000/api/user/${user._id}`,
-                updatedUser
-            );
+            const response = await axios.put(`http://localhost:5000/api/users/${user._id}`, updatedUser);
+
 
             // Check if we have a valid response with user data
             if (response.data && response.data.user) {

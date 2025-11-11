@@ -186,4 +186,3 @@ This timeline logs each day's key achievements in the creation of the Guest Hous
 
 ---
 
-🔖 _Would you like the report emailed, exported as PDF, or added as a page in your admin UI?_  

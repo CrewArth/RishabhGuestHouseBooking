@@ -39,6 +39,7 @@ body, html {
   justify-content: space-between;
   gap: 2rem;
   box-shadow: 0 -6px 30px rgba(2,8,23,0.35) inset;
+  margin-bottom: -50px;
 }
 
 /* Company logo + name */

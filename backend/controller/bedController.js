@@ -18,7 +18,7 @@ export const createBed = async (req, res) => {
     }
 
     // Create new bed
-    await Bed.create({ roomId, bedNumber, bedType });
+    const bed = await Bed.create({ roomId, bedNumber, bedType });
 
     // ✅ Bed Created
     await logAction({

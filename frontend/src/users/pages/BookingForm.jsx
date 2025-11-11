@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import '../styles/bookingform.css';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
@@ -8,6 +8,7 @@ import axios from 'axios';
 const BookingForm = () => {
   const location = useLocation();
   const selectedGuestHouse = location.state?.guestHouse;
+  const navigate = useNavigate();
 
   // Fetch user from localStorage
   const storedUser = JSON.parse(localStorage.getItem('user')) || null;
@@ -18,6 +19,10 @@ const BookingForm = () => {
   const [bedsLoading, setBedsLoading] = useState(false);
   const [roomsError, setRoomsError] = useState(null);
   const [bedsError, setBedsError] = useState(null);
+
+  // NEW: Track unavailable rooms/beds
+  const [unavailableRooms, setUnavailableRooms] = useState([]);
+  const [unavailableBeds, setUnavailableBeds] = useState([]);
 
   const [formData, setFormData] = useState({
     checkInDate: '',
@@ -32,7 +37,7 @@ const BookingForm = () => {
     specialRequests: ''
   });
 
-    useEffect(() => {
+  useEffect(() => {
     if (storedUser) {
       setFormData((prev) => ({
         ...prev,
@@ -44,7 +49,6 @@ const BookingForm = () => {
     }
   }, []);
 
-  // Step form navigation state
   const [step, setStep] = useState(1);
 
   useEffect(() => {
@@ -66,7 +70,6 @@ const BookingForm = () => {
       [name]: value
     }));
 
-    // When room changes, fetch beds
     if (name === 'room') {
       fetchBeds(value);
       setFormData(prev => ({ ...prev, bed: '' }));
@@ -101,9 +104,62 @@ const BookingForm = () => {
     }
   };
 
-  const handleSubmit = (e) => {
+  // ✅ Check room & bed availability
+  const checkAvailability = async () => {
+    try {
+      if (!formData.checkInDate || !formData.checkOutDate || !selectedGuestHouse) return;
+
+      const res = await axios.get(`http://localhost:5000/api/bookings/availability`, {
+        params: {
+          guestHouseId: selectedGuestHouse._id || selectedGuestHouse.guestHouseId,
+          checkIn: formData.checkInDate,
+          checkOut: formData.checkOutDate,
+        },
+      });
+
+      setUnavailableRooms(res.data.unavailableRooms || []);
+      setUnavailableBeds(res.data.unavailableBeds || []);
+    } catch (err) {
+      console.error("Error checking availability:", err);
+    }
+  };
+
+  // Auto-check availability whenever dates or guesthouse change
+  useEffect(() => {
+    if (formData.checkInDate && formData.checkOutDate && selectedGuestHouse) {
+      checkAvailability();
+    }
+  }, [formData.checkInDate, formData.checkOutDate, selectedGuestHouse]);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    alert('Booking submitted successfully!');
+
+    try {
+      const bookingData = {
+        guestHouseId: selectedGuestHouse?._id || selectedGuestHouse?.guestHouseId,
+        roomId: formData.room,
+        bedId: formData.bed,
+        checkIn: formData.checkInDate,
+        checkOut: formData.checkOutDate,
+        fullName: formData.fullName,
+        phone: formData.phone,
+        address: formData.address,
+        specialRequests: formData.specialRequests,
+        userId: storedUser?._id,
+      };
+
+      const res = await axios.post("http://localhost:5000/api/bookings", bookingData);
+
+      if (res.status === 201) {
+        alert("Booking request submitted successfully!");
+        navigate('/my-bookings');
+      } else {
+        alert(res.data?.message || "Failed to submit booking");
+      }
+    } catch (error) {
+      console.error("Error submitting booking:", error);
+      alert(error.response?.data?.message || "Server error submitting booking");
+    }
   };
 
   return (
@@ -119,7 +175,7 @@ const BookingForm = () => {
 
         {/* Step 1: Booking Details */}
         {step === 1 && (
-          <form className="booking-form" onSubmit={() => setStep(2)}>
+          <form className="booking-form" onSubmit={(e) => { e.preventDefault(); setStep(2)}}>
             {selectedGuestHouse && (
               <div className="selected-guesthouse-info">
                 <h3>You Selected:</h3>
@@ -148,11 +204,14 @@ const BookingForm = () => {
                   <label>Room</label>
                   <select name="room" value={formData.room} onChange={handleChange} required>
                     <option value="">{roomsLoading ? 'Loading...' : 'Select Room'}</option>
-                    {rooms.map((room) => (
-                      <option key={room._id} value={room._id}>
-                        Room {room.roomNumber} - {room.roomType}
-                      </option>
-                    ))}
+                    {rooms.map((room) => {
+                      const isUnavailable = unavailableRooms.includes(room._id);
+                      return (
+                        <option key={room._id} value={room._id} disabled={isUnavailable}>
+                          Room {room.roomNumber} - {room.roomType} {isUnavailable ? '(Full)' : ''}
+                        </option>
+                      );
+                    })}
                   </select>
                   {roomsError && <small className="error">{roomsError}</small>}
                 </div>
@@ -161,11 +220,14 @@ const BookingForm = () => {
                   <label>Bed</label>
                   <select name="bed" value={formData.bed} onChange={handleChange} required>
                     <option value="">{bedsLoading ? 'Loading...' : 'Select Bed'}</option>
-                    {beds.map((bed) => (
-                      <option key={bed._id} value={bed._id}>
-                        Bed {bed.bedNumber} - {bed.bedType}
-                      </option>
-                    ))}
+                    {beds.map((bed) => {
+                      const isUnavailable = unavailableBeds.includes(bed._id);
+                      return (
+                        <option key={bed._id} value={bed._id} disabled={isUnavailable}>
+                          Bed {bed.bedNumber} - {bed.bedType} {isUnavailable ? '(Booked)' : ''}
+                        </option>
+                      );
+                    })}
                   </select>
                   {bedsError && <small className="error">{bedsError}</small>}
                 </div>
@@ -188,27 +250,27 @@ const BookingForm = () => {
               <div className="form-grid">
                 <div className="form-control full-width">
                   <label>Full Name <span>*</span></label>
-                  <input type="text" name="fullName" value={formData.fullName} onChange={handleChange} placeholder="Enter your name" required />
+                  <input type="text" name="fullName" value={formData.fullName} onChange={handleChange} required />
                 </div>
 
                 <div className="form-control">
                   <label>Email <span>*</span></label>
-                  <input type="email" name="email" value={formData.email} onChange={handleChange} placeholder="your.email@example.com" required />
+                  <input type="email" name="email" value={formData.email} onChange={handleChange} required />
                 </div>
 
                 <div className="form-control">
                   <label>Phone <span>*</span></label>
-                  <input type="tel" name="phone" value={formData.phone} onChange={handleChange} placeholder="+91 1234567890" required />
+                  <input type="tel" name="phone" value={formData.phone} onChange={handleChange} required />
                 </div>
 
                 <div className="form-control full-width">
                   <label>Address <span>*</span></label>
-                  <textarea name="address" value={formData.address} onChange={handleChange} rows="3" placeholder="Enter your full address" required></textarea>
+                  <textarea name="address" value={formData.address} onChange={handleChange} rows="3" required></textarea>
                 </div>
 
                 <div className="form-control full-width">
                   <label>Special Requests (Optional)</label>
-                  <textarea name="specialRequests" value={formData.specialRequests} onChange={handleChange} rows="3" placeholder="Any special requirements?"></textarea>
+                  <textarea name="specialRequests" value={formData.specialRequests} onChange={handleChange} rows="3"></textarea>
                 </div>
               </div>
 

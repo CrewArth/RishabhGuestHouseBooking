@@ -72,7 +72,7 @@ const EditUserModal = ({ user, onClose, onSubmit }) => {
               name="phone"
               value={form.phone}
               onChange={handleChange}
-              required
+              
             />
           </label>
 
@@ -84,7 +84,7 @@ const EditUserModal = ({ user, onClose, onSubmit }) => {
               name="address"
               value={form.address}
               onChange={handleChange}
-              required
+              
             />
           </label>
 

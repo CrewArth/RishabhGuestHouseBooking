@@ -4,7 +4,7 @@ import User from "../models/User.js";
 
 const router = express.Router();
 
-router.put('/user/:id', updateUser);
+router.put('/:id', updateUser);
 // DELETE user by ID
 router.delete('/:id', deleteUser);
 
