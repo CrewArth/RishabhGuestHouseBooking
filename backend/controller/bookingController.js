@@ -5,6 +5,9 @@ import { logAction } from "../utils/auditLogger.js";
 import { sendEmail } from '../utils/emailService.js';
 import User from '../models/User.js';
 import GuestHouse from '../models/GuestHouse.js';
+import { bookingRequest } from "../utils/emailTemplates/bookingRequest.js";
+import { bookingStatusUpdate } from "../utils/emailTemplates/bookingStatusUpdate.js";
+
 
 
 // 🟢 Create a new booking (user)
@@ -51,35 +54,10 @@ export const createBooking = async (req, res) => {
     // ✅ Save it in MongoDB
     await newBooking.save();
 
-    // 📨 Send confirmation to user
     await sendEmail({
       to: user.email,
       subject: "📅 Booking Request Submitted",
-      html: `
-    <h2>Hi ${user.firstName},</h2>
-    <p>Your booking request has been received successfully.</p>
-    <p>
-      <b>Guest House:</b> ${guestHouse?.guestHouseName || "Unknown Guest House"}<br/>
-      <b>Check-in:</b> ${new Date(req.body.checkIn).toLocaleDateString()}<br/>
-      <b>Check-out:</b> ${new Date(req.body.checkOut).toLocaleDateString()}
-    </p>
-    <p>We’ll notify you once the admin approves or rejects your request.</p>
-    <p>Thanks & Regards<br/>Rishabh GuestHouse</p>
-  `,
-    });
-
-    // 📨 Notify admin
-    await sendEmail({
-      to: adminEmail,
-      subject: "🆕 New Booking Request Received",
-      html: `
-    <h2>New Booking Alert!</h2>
-    <p><b>User:</b> ${user.firstName} ${user.lastName} (${user.email})</p>
-    <p><b>Guest House:</b> ${guestHouse?.guestHouseName || "Unknown"}</p>
-    <p><b>Check-in:</b> ${new Date(req.body.checkIn).toLocaleDateString()}</p>
-    <p><b>Check-out:</b> ${new Date(req.body.checkOut).toLocaleDateString()}</p>
-    <p>Login to the admin panel to review and approve this booking.</p>
-  `,
+      html: bookingRequest(user, newBooking, guestHouse),
     });
 
     await logAction({
@@ -144,7 +122,6 @@ export const approveBooking = async (req, res) => {
     // 2️⃣ Fetch related user and guest house
     const user = await User.findById(booking.userId);
     const guestHouse = await GuestHouse.findById(booking.guestHouseId);
-    const adminEmail = process.env.ADMIN_EMAIL || "admin@guesthouse.com";
 
     // 3️⃣ Update booking status
     booking.status = "approved";
@@ -153,23 +130,17 @@ export const approveBooking = async (req, res) => {
     // 4️⃣ Mark bed as unavailable
     await Bed.findByIdAndUpdate(booking.bedId, { isAvailable: false });
 
-    // 5️⃣ Send approval email to user
-    await sendEmail({
-      to: user.email,
-      subject: "✅ Booking Approved",
-      html: `
-        <h2>Hi ${user.firstName},</h2>
-        <p>Good news! Your booking has been <b>approved</b>.</p>
-        <p>
-          <b>Guest House:</b> ${guestHouse?.guestHouseName || "Unknown Guest House"}<br/>
-          <b>Check-in:</b> ${new Date(booking.checkIn).toLocaleDateString()}<br/>
-          <b>Check-out:</b> ${new Date(booking.checkOut).toLocaleDateString()}
-        </p>
-        <p>Your room and bed are now reserved. We look forward to hosting you!</p>
-        <br/>
-        <p>Thank you,<br/><b>Rishabh GuestHouse Team</b></p>
-      `,
-    });
+    // 5️⃣ Send email notification to user
+    try {
+      await sendEmail({
+        to: user.email,
+        subject: "✅ Booking Approved",
+        html: bookingStatusUpdate(user, booking, guestHouse, "approved"),
+      });
+      console.log(`📧 Approval email sent to ${user.email}`);
+    } catch (emailErr) {
+      console.error("❌ Failed to send approval email:", emailErr);
+    }
 
     // 6️⃣ Log audit action
     await logAction({
@@ -200,25 +171,21 @@ export const rejectBooking = async (req, res) => {
     const user = await User.findById(booking.userId);
     const guestHouse = await GuestHouse.findById(booking.guestHouseId);
 
+    // Update status
     booking.status = "rejected";
     await booking.save();
 
-    await sendEmail({
-      to: user.email,
-      subject: "❌ Booking Rejected",
-      html: `
-        <h2>Hi ${user.firstName},</h2>
-        <p>We’re sorry to inform you that your booking request has been <b>rejected</b>.</p>
-        <p>
-          <b>Guest House:</b> ${guestHouse?.guestHouseName || "Unknown Guest House"}<br/>
-          <b>Check-in:</b> ${new Date(booking.checkIn).toLocaleDateString()}<br/>
-          <b>Check-out:</b> ${new Date(booking.checkOut).toLocaleDateString()}
-        </p>
-        <p>This could be due to unavailability or overlapping reservations. You can try booking another room or date range.</p>
-        <br/>
-        <p>Thank you,<br/><b>Rishabh GuestHouse Team</b></p>
-      `,
-    });
+    // Send rejection email
+    try {
+      await sendEmail({
+        to: user.email,
+        subject: "❌ Booking Rejected",
+        html: bookingStatusUpdate(user, booking, guestHouse, "rejected"),
+      });
+      console.log(`📧 Rejection email sent to ${user.email}`);
+    } catch (emailErr) {
+      console.error("❌ Failed to send rejection email:", emailErr);
+    }
 
     await logAction({
       action: "BOOKING_REJECTED",
@@ -234,6 +201,7 @@ export const rejectBooking = async (req, res) => {
     res.status(500).json({ message: "Server error rejecting booking" });
   }
 };
+
 
 
 // 🟢 Check Room & Bed Availability for selected Guest House and Date Range

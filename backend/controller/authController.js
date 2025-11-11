@@ -2,6 +2,7 @@ import User from '../models/User.js';
 import bcrypt from 'bcryptjs';
 import { generateToken } from '../utils/jwt.js';
 import { sendEmail } from '../utils/emailService.js';
+import { welcomeEmail } from '../utils/emailTemplates/welcomeEmail.js';
 
 //Controller for Registering Users
 export const registerUser = async (req, res) => {
@@ -19,17 +20,23 @@ export const registerUser = async (req, res) => {
         const newUser = new User({ firstName, lastName, email, phone, address, password });
         await newUser.save(); // pre-save will hash password
 
-        // Send Email to user after user creation
+        // // Send Email to user after user creation
+        // await sendEmail({
+        //     to: newUser.email,
+        //     subject: "🎉 Welcome to Rishabh GuestHouse",
+        //     html: `
+        //     <h2>Hi ${newUser.firstName},</h2>
+        //     <p>Thank you for joining <b>GuestHouse Booking</b>!</p>
+        //     <p>You can now explore, book, and enjoy your stay at our finest guest houses.</p>
+        //     <p>Cheers,<br/>GuestHouse Team</p>
+        // `,
+        // });
+
         await sendEmail({
             to: newUser.email,
-            subject: "🎉 Welcome to Rishabh GuestHouse",
-            html: `
-            <h2>Hi ${newUser.firstName},</h2>
-            <p>Thank you for joining <b>GuestHouse Booking</b>!</p>
-            <p>You can now explore, book, and enjoy your stay at our finest guest houses.</p>
-            <p>Cheers,<br/>GuestHouse Team</p>
-        `,
-        });
+            subject: "🎉 Welcome to Rishabh Guest House",
+            html: welcomeEmail(newUser),
+        })
 
         const token = generateToken(newUser);
         res.status(201).json({

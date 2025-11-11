@@ -1,4 +1,3 @@
-// src/pages/user/MyBookings.jsx
 import React, { useEffect, useState } from "react";
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
@@ -9,17 +8,24 @@ const MyBookings = () => {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [user, setUser] = useState(null); // ✅ make it part of state
 
-  const user = JSON.parse(localStorage.getItem("user"));
+  useEffect(() => {
+    // ✅ Parse user only once on mount
+    const storedUser = JSON.parse(localStorage.getItem("user"));
+    if (storedUser) {
+      setUser(storedUser);
+    } else {
+      setError("User not found. Please log in again.");
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     const fetchBookings = async () => {
-      try {
-        if (!user?._id) {
-          setError("User not found. Please log in again.");
-          return;
-        }
+      if (!user?._id) return;
 
+      try {
         const res = await axios.get(
           `http://localhost:5000/api/bookings/my?userId=${user._id}`
         );
@@ -33,7 +39,7 @@ const MyBookings = () => {
     };
 
     fetchBookings();
-  }, [user]);
+  }, [user?._id]); // ✅ only run when userId is available
 
   if (loading)
     return (
@@ -75,8 +81,16 @@ const MyBookings = () => {
               {bookings.map((b) => (
                 <tr key={b._id}>
                   <td>{b.guestHouseId?.guestHouseName || "—"}</td>
-                  <td>{b.roomId?.roomNumber ? `Room ${b.roomId.roomNumber}` : "—"}</td>
-                  <td>{b.bedId?.bedNumber ? `Bed ${b.bedId.bedNumber} (${b.bedId.bedType})` : "—"}</td>
+                  <td>
+                    {b.roomId?.roomNumber
+                      ? `Room ${b.roomId.roomNumber}`
+                      : "—"}
+                  </td>
+                  <td>
+                    {b.bedId?.bedNumber
+                      ? `Bed ${b.bedId.bedNumber} (${b.bedId.bedType})`
+                      : "—"}
+                  </td>
                   <td>{new Date(b.checkIn).toLocaleDateString("en-IN")}</td>
                   <td>{new Date(b.checkOut).toLocaleDateString("en-IN")}</td>
                   <td>
@@ -88,12 +102,10 @@ const MyBookings = () => {
           </table>
         )}
       </div>
-      
       <Footer />
-
-
     </>
   );
 };
 
 export default MyBookings;
+1

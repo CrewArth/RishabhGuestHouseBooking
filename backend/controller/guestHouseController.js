@@ -51,7 +51,7 @@ export const createGuestHouse = async (req, res) => {
 // Get all the Guest Houses
 export const getGuestHouses = async (req, res) => {
   try {
-    const guestHouses = await GuestHouse.find();
+    const guestHouses = await GuestHouse.find().sort({createdAt: -1});
     res.status(200).json(guestHouses);
   } catch (error) {
     console.error("Error fetching guest houses")
@@ -102,59 +102,68 @@ export const deleteGuestHouse = async (req, res) => {
   const guestHouseId = parseInt(req.params.guestHouseId, 10);
 
   try {
-    // 1. Validate Guest House
+    // 1️⃣ Validate Guest House
     const guestHouse = await GuestHouse.findOne({ guestHouseId });
     if (!guestHouse) {
       return res.status(404).json({ error: "Guest House not found" });
     }
 
-    // 2. Get all rooms under guest house
+    // 2️⃣ Delete image from AWS S3 (if exists)
+    if (guestHouse.image) {
+      try {
+        const key = guestHouse.image.split('.amazonaws.com/')[1]; // Extract file key
+        if (key) {
+          const params = {
+            Bucket: process.env.AWS_S3_BUCKET,
+            Key: key,
+          };
+
+          await s3.deleteObject(params).promise();
+          console.log(`🗑️ Deleted image from S3: ${key}`);
+        }
+      } catch (s3Error) {
+        console.warn("⚠️ Failed to delete image from S3:", s3Error.message);
+      }
+    }
+
+    // 3️⃣ Get all rooms under guest house
     const rooms = await Room.find({ guestHouseId });
 
-    // 3. Delete all beds under those rooms
+    // 4️⃣ Delete all beds under those rooms
     const roomIds = rooms.map((room) => room._id);
     await Bed.deleteMany({ roomId: { $in: roomIds } });
 
-    // 4. Delete all rooms under guest house
+    // 5️⃣ Delete all rooms
     await Room.deleteMany({ guestHouseId });
 
-    // 5. Delete the guest house itself
+    // 6️⃣ Delete the guest house itself
     await GuestHouse.deleteOne({ guestHouseId });
 
-    // 6. Log Deletion (optional, wrapped safely)
+    // 7️⃣ Log action (safe wrapped)
     try {
-      // ✅ Guest House Deleted
       await logAction({
         action: 'GUESTHOUSE_DELETED',
         entityType: 'GuestHouse',
         entityId: guestHouseId,
         performedBy: req.user?.email || 'Admin',
         details: {
-          message: 'Guest house deleted permanently',
+          message: 'Guest house deleted permanently, including image on S3',
         },
       });
     } catch (logError) {
-      console.warn("Audit log error (continued without breaking):", logError.message);
+      console.warn("Audit log error (continued):", logError.message);
     }
-
 
     return res.json({
       success: true,
-      message: "Guest House and associated Rooms & Beds deleted successfully",
+      message:
+        "Guest House, image, and associated Rooms & Beds deleted successfully",
     });
   } catch (error) {
-    console.error("Error deleting guest house:", error);
+    console.error("❌ Error deleting guest house:", error);
     res.status(500).json({ error: "Server error while deleting Guest House" });
   }
 };
-
-// Delete Image when Guest House gets deleted
-// const params = {
-//   Bucket: process.env.AWS_S3_BUCKET,
-//   Key: guestHouse.image.split('.amazonaws.com/')[1] // Extract file key
-// };
-
-// await s3.deleteObject(params).promise();
 
 
 export const updateGuestHouse = async (req, res) => {
