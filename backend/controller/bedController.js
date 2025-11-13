@@ -55,18 +55,22 @@ export const createBed = async (req, res) => {
 export const listBedsByRoom = async (req, res) => {
   try {
     const { roomId } = req.query;
+
     if (!roomId) {
       return res.status(400).json({ error: "roomId is required" });
     }
 
-    const beds = await Bed.find({ roomId });
-    res.json({ success: true, beds });
+    // FIX: include isActive filter
+    const beds = await Bed.find({ roomId, isActive: true });
+
+    return res.json({ success: true, beds });
 
   } catch (error) {
     console.error('Error fetching beds: ', error);
-    res.status(500).json({ error: "Server error while fetching beds" });
+    return res.status(500).json({ error: "Server error while fetching beds" });
   }
 };
+
 
 // Update bed details
 export const updateBed = async (req, res) => {
@@ -77,22 +81,19 @@ export const updateBed = async (req, res) => {
       { new: true, runValidators: true }
     );
 
-    // ✅ Bed Updated
+    if (!updatedBed) return res.status(404).json({ error: 'Bed not found' });
+
     await logAction({
       action: 'BED_UPDATED',
       entityType: 'Bed',
-      entityId: bed._id,
+      entityId: updatedBed._id,   // FIXED
       performedBy: req.user?.email || 'Admin',
-      details: {
-        updatedFields: req.body,
-      },
+      details: { updatedFields: req.body },
     });
-
-    if (!updatedBed) return res.status(404).json({ error: 'Bed not found' });
 
     const beds = await Bed.find({ roomId: updatedBed.roomId, isActive: true });
 
-    res.json({
+    return res.json({
       success: true,
       message: 'Bed updated successfully',
       beds,
@@ -100,9 +101,10 @@ export const updateBed = async (req, res) => {
 
   } catch (error) {
     console.error("Error updating bed: ", error);
-    res.status(500).json({ error: "Server error while updating beds" });
+    return res.status(500).json({ error: "Server error while updating beds" });
   }
 };
+
 
 
 // Toggle Bed Availability
@@ -152,28 +154,29 @@ export const softDeleteBed = async (req, res) => {
       { new: true }
     );
 
-    // ✅ Bed Deleted
+    if (!bed) return res.status(404).json({ error: 'Bed not found' });
+
     await logAction({
       action: 'BED_DELETED',
       entityType: 'Bed',
-      entityId: bedId,
+      entityId: bed._id,   // FIXED
       performedBy: req.user?.email || 'Admin',
       details: {
-        message: 'Bed removed from room',
+        message: 'Bed archived (soft deleted)',
+        bedId: bed._id.toString(),
       },
     });
 
-    if (!bed) return res.status(404).json({ error: 'Bed not found' });
-
     const beds = await Bed.find({ roomId: bed.roomId, isActive: true });
 
-    res.json({
+    return res.json({
       success: true,
       message: 'Bed archived',
       beds,
     });
+
   } catch (error) {
     console.error('Error deleting bed', error);
-    res.status(500).json({ error: 'Server error while deleting bed' });
+    return res.status(500).json({ error: 'Server error while deleting bed' });
   }
 };

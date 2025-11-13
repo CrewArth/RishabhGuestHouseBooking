@@ -20,18 +20,6 @@ export const registerUser = async (req, res) => {
         const newUser = new User({ firstName, lastName, email, phone, address, password });
         await newUser.save(); // pre-save will hash password
 
-        // // Send Email to user after user creation
-        // await sendEmail({
-        //     to: newUser.email,
-        //     subject: "🎉 Welcome to Rishabh GuestHouse",
-        //     html: `
-        //     <h2>Hi ${newUser.firstName},</h2>
-        //     <p>Thank you for joining <b>GuestHouse Booking</b>!</p>
-        //     <p>You can now explore, book, and enjoy your stay at our finest guest houses.</p>
-        //     <p>Cheers,<br/>GuestHouse Team</p>
-        // `,
-        // });
-
         await sendEmail({
             to: newUser.email,
             subject: "🎉 Welcome to Rishabh Guest House",

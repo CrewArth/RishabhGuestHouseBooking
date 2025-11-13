@@ -23,10 +23,9 @@ export const getAdminSummary = async (req, res) => {
       createdAt: { $gte: today }
     });
 
-    let occupancyRate = 0;
-    if (totalGuestHouses > 0) {
-      occupancyRate = ((approvedBookings / totalGuestHouses) * 100).toFixed(2);
-    }
+  const occupancyRate =
+  totalBookings > 0 ? ((approvedBookings / totalBookings) * 100).toFixed(2) : 0;
+
 
     res.json({
       totalUsers,
@@ -44,11 +43,29 @@ export const getAdminSummary = async (req, res) => {
   }
 };
 
-// 🧾 GET /api/admin/users
+// 🧾 GET /api/admin/users?page=1&limit=10
 export const listUsers = async (req, res) => {
   try {
-    const users = await User.find({}, "firstName lastName email isActive").lean();
-    return res.json({ users });
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    // Fetch paginated users
+    const users = await User.find({}, "firstName lastName email isActive createdAt")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean();
+
+    const totalUsers = await User.countDocuments();
+    const totalPages = Math.ceil(totalUsers / limit);
+
+    return res.json({
+      users,
+      totalUsers,
+      totalPages,
+      currentPage: page,
+    });
   } catch (err) {
     console.error("listUsers error:", err);
     return res.status(500).json({ error: "Server error while fetching users" });

@@ -1,133 +1,225 @@
-/* Outer page wrapper - fixed size */
+/* ====== Container ====== */
 .gh-management-container {
-  padding: 1.5rem 2rem;
+  padding: 2rem;
   background-color: #f9fafb;
-  height: calc(100vh - 64px); /* Navbar height accounted */
-  overflow: hidden; /* Prevent page scroll */
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
-  margin-top: 40px;
+  gap: 1.5rem;
+  margin-top: 30px;
 }
 
-/* Title */
+/* ====== Header ====== */
+.gh-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
 .gh-title {
   font-size: 1.8rem;
   font-weight: 600;
   color: #1f2937;
-  margin-bottom: 1rem;
-}
-
-/* Button Row */
-.gh-actions {
-  margin-bottom: 1rem;
 }
 
 .add-gh-btn {
   background-color: #2563eb;
-  border: none;
-  border-radius: 6px;
-  padding: 0.6rem 1rem;
   color: #ffffff;
   font-weight: 500;
+  border: none;
+  border-radius: 8px;
+  padding: 0.7rem 1.4rem;
   cursor: pointer;
-  transition: all 0.2s ease-in-out;
+  transition: all 0.25s ease-in-out;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.2);
 }
-
 .add-gh-btn:hover {
   background-color: #1d4ed8;
   transform: translateY(-2px);
 }
 
-/* Scrollable Guest House Table Container */
-.gh-table-container {
+/* ====== Table Wrapper ====== */
+.gh-table-wrapper {
   background: #ffffff;
-  border-radius: 8px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  border-radius: 12px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
+  overflow-x: auto;
   padding: 1rem;
-  overflow-y: auto;
-  flex: 1; /* takes available vertical space */
 }
 
-/* Table */
 .gh-table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 780px;
+  font-size: 0.95rem;
+  min-width: 850px;
 }
 
 .gh-table th,
 .gh-table td {
-  padding: 0.85rem 1.2rem;
-  font-size: 0.95rem;
   text-align: left;
+  padding: 1rem;
   border-bottom: 1px solid #e5e7eb;
-  color: #374151;
+  vertical-align: middle;
 }
 
 .gh-table th {
   background-color: #f3f4f6;
-  font-weight: 600;
   color: #1f2937;
+  font-weight: 600;
+  font-size: 0.95rem;
+  letter-spacing: 0.2px;
+}
+
+.gh-table td {
+  color: #374151;
+  font-size: 0.92rem;
+}
+
+.gh-table tr:last-child td {
+  border-bottom: none;
 }
 
 .gh-table tr:hover {
   background-color: #f9fafb;
+  transition: background 0.2s ease;
 }
 
-/* Action Buttons */
-.action-buttons button {
-  margin-right: 0.4rem;
-  padding: 0.45rem 0.7rem;
+/* ====== Status Badge ====== */
+.status-badge {
+  display: inline-block;
+  padding: 0.3rem 0.6rem;
   border-radius: 6px;
-  font-size: 0.85rem;
-  cursor: pointer;
-  border: none;
-  transition: all 0.2s ease-in-out;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+.status-badge.active {
+  background-color: #dcfce7;
+  color: #166534;
+}
+.status-badge.maintenance {
+  background-color: #fef3c7;
+  color: #92400e;
 }
 
-.action-buttons button:nth-child(1) {
-  background-color: #f59e0b; /* Edit */
-  color: white;
-}
-
-.action-buttons button:nth-child(2) {
-  background-color: #10b981; /* Rooms */
-  color: white;
-}
-
-.action-buttons button:nth-child(3) {
-  background-color: #3b82f6; /* Toggle Maintenance */
-  color: white;
-}
-
-.action-buttons .delete-btn {
-  background-color: #ef4444; /* Delete */
-  color: white;
-}
-
-.action-buttons button:hover {
-  opacity: 0.9;
-}
-
-/* Modal - No changes */
-.modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.45);
+/* ====== Action Buttons ====== */
+.action-buttons {
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 120;
+  gap: 0.4rem;
 }
 
-.modal > div {
-  background: white;
+.action-buttons button {
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 6px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #ffffff;
+  font-size: 1.1rem;
+  position: relative;
+}
+
+/* Tooltips */
+.action-buttons button::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: -28px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #111827;
+  color: white;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  opacity: 0;
+  visibility: hidden;
+  white-space: nowrap;
+  transition: opacity 0.2s ease, bottom 0.2s ease;
+}
+
+.action-buttons button:hover::after {
+  opacity: 1;
+  visibility: visible;
+  bottom: -34px;
+}
+
+/* Individual Button Colors */
+.btn.edit {
+  background-color: #f59e0b;
+}
+.btn.edit:hover {
+  background-color: #d97706;
+}
+
+.btn.rooms {
+  background-color: #10b981;
+}
+.btn.rooms:hover {
+  background-color: #059669;
+}
+
+.btn.maintenance {
+  background-color: #3b82f6;
+}
+.btn.maintenance:hover {
+  background-color: #1d4ed8;
+}
+
+.btn-delete {
+  background-color: #ef4444;
+}
+.btn-delete:hover {
+  background-color: #dc2626;
+}
+
+/* ====== Empty State ====== */
+.no-data {
+  text-align: center;
+  color: #6b7280;
+  font-style: italic;
   padding: 2rem;
-  border-radius: 8px;
-  width: 100%;
-  max-width: 450px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* ====== Responsive ====== */
+@media (max-width: 992px) {
+  .gh-table {
+    font-size: 0.9rem;
+    min-width: 100%;
+  }
+
+  .action-buttons {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+
+  .action-buttons button {
+    width: 34px;
+    height: 34px;
+  }
+}
+
+@media (max-width: 600px) {
+  .gh-management-container {
+    padding: 1rem;
+  }
+
+  .gh-title {
+    text-align: center;
+  }
+
+  .gh-header {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .add-gh-btn {
+    width: 100%;
+  }
 }

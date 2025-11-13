@@ -10,39 +10,49 @@ const UsersList = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
 
-  const fetchUsers = async () => {
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+    const [totalUsers, setTotalUsers] = useState(0);
+  const limit = 10;
+
+  const fetchUsers = async (page = 1) => {
     try {
       setLoading(true);
       setErr(null);
 
-      const res = await axios.get('http://localhost:5000/api/admin/users');
+      const res = await axios.get(`http://localhost:5000/api/admin/users?page=${page}&limit=${limit}`);
+
       setUsers(Array.isArray(res.data?.users) ? res.data.users : []);
+      setTotalPages(res.data.totalPages || 1);
+      setCurrentPage(res.data.currentPage || 1);
+      setTotalUsers(res.data.totalUsers || 0);
     } catch (e) {
-      console.error('Error fetching users: ', e);
-      setErr('Failed to load users');
-    } finally { 
+      console.error("Error fetching users: ", e);
+      setErr("Failed to load users");
+    } finally {
       setLoading(false);
     }
   };
 
-//Soft Delete User
-const handleSoftDeleteUser = async (userId) => {
-  if (!window.confirm("Deactivate this user? They won't be able to log in.")) return;
+  //Soft Delete User
+  const handleSoftDeleteUser = async (userId) => {
+    if (!window.confirm("Deactivate this user? They won't be able to log in.")) return;
 
-  try {
-    await axios.patch(`http://localhost:5000/api/users/user/${userId}/deactivate`);
-    fetchUsers(); // refresh UI
-  } catch (error) {
-    console.error("Error toggling user active state:", error);
-    alert("Failed to update user status");
-  }
-};
+    try {
+      await axios.patch(`http://localhost:5000/api/users/${userId}/deactivate`);
+      fetchUsers(); // refresh UI
+    } catch (error) {
+      console.error("Error toggling user active state:", error);
+      alert("Failed to update user status");
+    }
+  };
 
 
   // Update user information
   const handleUpdateUser = async (updatedUser) => {
     try {
-      await axios.put(`http://localhost:5000/api/users/user/${selectedUser._id}`, updatedUser);
+      await axios.put(`http://localhost:5000/api/users/${selectedUser._id}`, updatedUser);
       alert("User updated successfully");
       setIsEditModalOpen(false);
       setSelectedUser(null);
@@ -53,7 +63,10 @@ const handleSoftDeleteUser = async (userId) => {
     }
   };
 
-  useEffect(() => { fetchUsers(); }, []);
+    // ✅ Trigger re-fetch when currentPage changes
+  useEffect(() => {
+    fetchUsers(currentPage);
+  }, [currentPage]);
 
   if (loading)
     return <div className="users-wrap admin-content"><p>Loading Users...</p></div>;
@@ -118,6 +131,27 @@ const handleSoftDeleteUser = async (userId) => {
             )}
           </tbody>
         </table>
+      </div>
+
+      {/* Pagination Controls */}
+      <div className="pagination-container">
+        <button
+          disabled={currentPage === 1}
+          onClick={() => setCurrentPage((prev) => prev - 1)}
+        >
+          ← Prev
+        </button>
+
+        <span className="page-info">
+          Page {currentPage} of {totalPages}
+        </span>
+
+        <button
+          disabled={currentPage === totalPages}
+          onClick={() => setCurrentPage((prev) => prev + 1)}
+        >
+          Next →
+        </button>
       </div>
 
       {isEditModalOpen && (

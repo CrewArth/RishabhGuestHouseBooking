@@ -55,6 +55,7 @@
 .profile-value {
   flex: 1;
   color: #495057;
+  text-align: justify;
 }
 
 /* Account Status Badge */
@@ -156,6 +157,7 @@
 .btn-edit:hover,
 .btn-update:hover {
   background-color: #1e40af;
+  color: #ffffff;
 }
 
 .btn-cancel {
@@ -165,7 +167,8 @@
 }
 
 .btn-cancel:hover {
-  background-color: #f3f4f6;
+  background-color: #860f0f;
+  color: #ffffff;
 }
 
 /* Responsive */

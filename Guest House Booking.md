@@ -109,3 +109,13 @@ let me explain you what we will be doing in nodemailer.
     2. Admin receives email for every new booking request.
     3. User receives email for every new booking request sent.
     4. When status changes from admin side, user will also receive mail regarding the latest status.
+
+
+## Issues to fix
+1. GH image not getting deleted from S3
+2. Not able to delete room and bed from admin panel✅
+3. fix minor ui bugs
+4. try adding auto refresh every 30 seconds in admin dashboard
+5. Fix Audit Logs Panel UI
+6. Add Pagination to Audit logs and users list in admin panel. ✅
+7. add loading effect when booking button is clicked from user side✅

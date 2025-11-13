@@ -105,6 +105,7 @@
   color: #4a5568;
   font-size: 0.95rem;
   margin-bottom: 1rem;
+  justify-content: center;
 }
 
 .location svg {
@@ -115,8 +116,10 @@
   color: #718096;
   font-size: 0.95rem;
   line-height: 1.5;
+  
   margin-bottom: 1.5rem;
 }
+
 
 /* ACTION BUTTON */
 .book-button {

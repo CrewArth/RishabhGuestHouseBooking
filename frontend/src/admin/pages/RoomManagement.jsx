@@ -3,6 +3,10 @@ import axios from 'axios';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import RoomFormModal from '../components/RoomFormModel';
 import '../styles/roomManagement.css';
+import { CiEdit } from "react-icons/ci";
+import { PiBedBold } from "react-icons/pi";
+import { PiHammer } from "react-icons/pi";
+import { MdOutlineDeleteForever } from "react-icons/md";
 
 const RoomManagement = () => {
   const [rooms, setRooms] = useState([]);
@@ -80,6 +84,7 @@ const RoomManagement = () => {
 
       await axios.delete(`http://localhost:5000/api/rooms/${roomId}`);
       fetchRooms();
+      alert('Room deleted sucessfully.');
     } catch (error) {
       console.error('Error deleting room:', error);
     }
@@ -121,28 +126,28 @@ const RoomManagement = () => {
                       setIsModalOpen(true);
                     }}
                   >
-                    Edit
-                  </button>
-
-                  <button
-                    onClick={() =>
-                      toggleRoomAvailability(room._id, room.isAvailable)
-                    }
-                  >
-                    Toggle Availability
+                    <b><CiEdit /></b>
                   </button>
 
                   <button
                     onClick={() => navigate(`/admin/beds?roomId=${room._id}`)}
                   >
-                    Beds
+                    <PiBedBold />
+                  </button>
+                  <button
+                    onClick={() =>
+                      toggleRoomAvailability(room._id, room.isAvailable)
+                    }
+                  >
+                    <b><PiHammer /></b>
+
                   </button>
 
                   <button
                     className="delete-btn"
                     onClick={() => deleteRoom(room._id)}
                   >
-                    Delete
+                    <b><MdOutlineDeleteForever /></b>
                   </button>
                 </td>
               </tr>

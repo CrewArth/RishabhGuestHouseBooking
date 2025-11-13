@@ -19,6 +19,8 @@ const BookingForm = () => {
   const [bedsLoading, setBedsLoading] = useState(false);
   const [roomsError, setRoomsError] = useState(null);
   const [bedsError, setBedsError] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+
 
   // NEW: Track unavailable rooms/beds
   const [unavailableRooms, setUnavailableRooms] = useState([]);
@@ -134,6 +136,8 @@ const BookingForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    setSubmitting(true); // ⬅️ START LOADING
+
     try {
       const bookingData = {
         guestHouseId: selectedGuestHouse?._id || selectedGuestHouse?.guestHouseId,
@@ -159,6 +163,8 @@ const BookingForm = () => {
     } catch (error) {
       console.error("Error submitting booking:", error);
       alert(error.response?.data?.message || "Server error submitting booking");
+    } finally {
+      setSubmitting(false); // ⬅️ STOP LOADING
     }
   };
 
@@ -175,7 +181,7 @@ const BookingForm = () => {
 
         {/* Step 1: Booking Details */}
         {step === 1 && (
-          <form className="booking-form" onSubmit={(e) => { e.preventDefault(); setStep(2)}}>
+          <form className="booking-form" onSubmit={(e) => { e.preventDefault(); setStep(2) }}>
             {selectedGuestHouse && (
               <div className="selected-guesthouse-info">
                 <h3>You Selected:</h3>
@@ -276,14 +282,25 @@ const BookingForm = () => {
 
               <div className="form-actions">
                 <button type="button" className="btn secondary" onClick={() => setStep(1)}>Back</button>
-                <button type="submit" className="btn primary">Send Request</button>
+                <button
+                  type="submit"
+                  className="btn primary submit-btn"
+                  disabled={submitting}
+                >
+                  {submitting ? (
+                    <div className="spinner"></div>
+                  ) : (
+                    "Send Request"
+                  )}
+                </button>
+
+
               </div>
             </div>
           </form>
         )}
       </div>
-
-      <Footer />
+      {/* <Footer /> */}
     </div>
   );
 };

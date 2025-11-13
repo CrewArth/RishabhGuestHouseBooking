@@ -3,13 +3,18 @@ import { AutoIncrementID } from '@typegoose/auto-increment';
 
 const guestHouseSchema = new mongoose.Schema({
   guestHouseId: { type: Number, unique: true },
+
   guestHouseName: { type: String, required: true, unique: true },
+
   location: {
     city: { type: String, required: true },
     state: { type: String, required: true }
   },
+
   image: { type: String },
+  
   description: { type: String },
+
   maintenance: { type: Boolean, default: false }
 }, { timestamps: true });
 

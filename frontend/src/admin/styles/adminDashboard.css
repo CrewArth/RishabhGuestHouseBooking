@@ -1,9 +1,9 @@
 /* Root styles */
 .admin-dashboard {
   padding: 20px 30px;
-  margin-top: 50px; /* Ensure it doesn't overlap with navbar */
+  margin-top: 30px; 
   background-color: #f9fafb;
-  min-height: calc(100vh - 80px);
+  min-height: calc(100vh - 100px);
   font-family: 'Inter', sans-serif;
 }
 

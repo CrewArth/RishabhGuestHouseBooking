@@ -2,6 +2,7 @@ import GuestHouse from '../models/GuestHouse.js';
 import Room from '../models/Room.js';
 import Bed from '../models/Bed.js';
 import { logAction } from '../utils/auditLogger.js';
+import { deleteFromS3 } from '../utils/s3Client.js';
 
 
 export const createGuestHouse = async (req, res) => {
@@ -109,22 +110,7 @@ export const deleteGuestHouse = async (req, res) => {
     }
 
     // 2️⃣ Delete image from AWS S3 (if exists)
-    if (guestHouse.image) {
-      try {
-        const key = guestHouse.image.split('.amazonaws.com/')[1]; // Extract file key
-        if (key) {
-          const params = {
-            Bucket: process.env.AWS_S3_BUCKET,
-            Key: key,
-          };
-
-          await s3.deleteObject(params).promise();
-          console.log(`🗑️ Deleted image from S3: ${key}`);
-        }
-      } catch (s3Error) {
-        console.warn("⚠️ Failed to delete image from S3:", s3Error.message);
-      }
-    }
+    await deleteFromS3(guestHouse.image);
 
     // 3️⃣ Get all rooms under guest house
     const rooms = await Room.find({ guestHouseId });

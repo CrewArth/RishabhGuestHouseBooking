@@ -7,7 +7,6 @@ import { logAction } from '../utils/auditLogger.js';
 const sendError = (res, status, message, details) =>
   res.status(status).json({ success: false, message, ...(details ? { details } : {}) });
 
-
 // Create Room 
 // POST /api/rooms
 export const createRoom = async (req, res) => {
@@ -174,6 +173,8 @@ export const setAvailability = async (req, res) => {
   }
 };
 
+// inside controller/roomController.js
+
 // DELETE /api/rooms/:id (soft delete)
 export const softDeleteRoom = async (req, res) => {
   try {
@@ -183,17 +184,22 @@ export const softDeleteRoom = async (req, res) => {
       { new: true }
     );
 
-    // ✅ Room Deleted
+    if (!room) return sendError(res, 404, 'Room not found');
+
+    
+    // ✅ Room Deleted (audit log)
     await logAction({
       action: 'ROOM_DELETED',
       entityType: 'Room',
-      entityId: roomId,
+      entityId: room._id, // pass the id, not the whole object
       performedBy: req.user?.email || 'Admin',
       details: {
-        message: 'Room deleted successfully',
+        message: 'Room archived (soft deleted)',
+        roomId: room._id.toString(),
       },
     });
-    if (!room) return sendError(res, 404, 'Room not found');
+    
+
     return res.json({ success: true, message: 'Room archived', room });
   } catch (err) {
     console.error('softDeleteRoom error:', err);
@@ -210,7 +216,9 @@ export const getRoomsByGuestHouse = async (req, res) => {
       return res.status(400).json({ error: "guestHouseId is required" });
     }
 
-    const rooms = await Room.find({ guestHouseId });
+    // FIX: Return only active rooms
+    const rooms = await Room.find({ guestHouseId, isActive: true });
+
     res.json({ success: true, rooms });
   } catch (error) {
     console.error("Error fetching rooms:", error);

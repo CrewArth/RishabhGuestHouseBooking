@@ -189,10 +189,33 @@ textarea {
 
   .booking-form {
     padding: 1.5rem;
+    
   }
 
   .step-indicator span {
     font-size: 0.875rem;
     padding: 0.5rem;
+  }
+}
+
+.submit-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 3px solid #fff;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
   }
 }

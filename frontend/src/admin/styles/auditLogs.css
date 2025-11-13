@@ -124,3 +124,32 @@
     color: #374151;
   }
 }
+
+.pagination-container {
+  margin-top: 16px;
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  align-items: center;
+}
+
+.pagination-container button {
+  padding: 6px 14px;
+  background-color: #2563eb;
+  border: none;
+  color: white;
+  font-size: 0.9rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.pagination-container button:disabled {
+  background-color: #9ca3af;
+  cursor: not-allowed;
+}
+
+.page-info {
+  font-size: 0.9rem;
+  color: #374151;
+}

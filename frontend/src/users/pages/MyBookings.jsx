@@ -8,10 +8,9 @@ const MyBookings = () => {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [user, setUser] = useState(null); // ✅ make it part of state
+  const [user, setUser] = useState(null);
 
   useEffect(() => {
-    // ✅ Parse user only once on mount
     const storedUser = JSON.parse(localStorage.getItem("user"));
     if (storedUser) {
       setUser(storedUser);
@@ -24,7 +23,6 @@ const MyBookings = () => {
   useEffect(() => {
     const fetchBookings = async () => {
       if (!user?._id) return;
-
       try {
         const res = await axios.get(
           `http://localhost:5000/api/bookings/my?userId=${user._id}`
@@ -39,13 +37,16 @@ const MyBookings = () => {
     };
 
     fetchBookings();
-  }, [user?._id]); // ✅ only run when userId is available
+  }, [user?._id]);
 
   if (loading)
     return (
       <>
         <Navbar />
-        <div className="my-bookings-container">Loading your bookings...</div>
+        <div className="page-content my-bookings-container">
+          Loading your bookings...
+        </div>
+        <Footer />
       </>
     );
 
@@ -53,14 +54,17 @@ const MyBookings = () => {
     return (
       <>
         <Navbar />
-        <div className="my-bookings-container error">{error}</div>
+        <div className="page-content my-bookings-container error">
+          {error}
+        </div>
+        <Footer />
       </>
     );
 
   return (
     <>
       <Navbar />
-      <div className="my-bookings-container">
+      <div className="page-content my-bookings-container">
         <h2>My Bookings</h2>
 
         {bookings.length === 0 ? (
@@ -108,4 +112,3 @@ const MyBookings = () => {
 };
 
 export default MyBookings;
-1
