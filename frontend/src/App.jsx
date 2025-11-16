@@ -17,12 +17,19 @@ import Bookings from './admin/pages/Bookings';
 import GuestHouseManagement from './admin/pages/GuestHouseManagement.jsx';
 import UsersList from './admin/pages/UsersList';
 
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+
 
 function App() {
   return (
+
+    <>
+    <ToastContainer position="top-right" autoClose={2500} />
+    
     <BrowserRouter>
       <Routes>
-
+        
         {/* ------------------ PUBLIC ROUTES ------------------ */}
         <Route path="/" element={<Homepage />} />
         <Route path="/signin" element={<LoginPage />} />
@@ -81,6 +88,7 @@ function App() {
 
       </Routes>
     </BrowserRouter>
+    </>
   );
 }
 

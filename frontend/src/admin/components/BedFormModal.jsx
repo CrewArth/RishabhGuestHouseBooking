@@ -1,18 +1,19 @@
+// src/components/BedFormModal.jsx
 import React, { useState, useEffect } from 'react';
 import '../styles/bedFormModal.css';
 
 const BedFormModal = ({ isOpen, onClose, onSubmit, initialData }) => {
   const [bedData, setBedData] = useState({
     bedNumber: '',
-    bedType: '',
   });
 
   useEffect(() => {
     if (initialData) {
       setBedData({
-        bedNumber: initialData.bedNumber || '',
-        bedType: initialData.bedType || '',
+        bedNumber: initialData.bedNumber || ''
       });
+    } else {
+      setBedData({ bedNumber: '' });
     }
   }, [initialData]);
 
@@ -23,8 +24,10 @@ const BedFormModal = ({ isOpen, onClose, onSubmit, initialData }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSubmit(bedData); // Pass data up to parent handler
-    onClose();         // Close the modal
+    if (!bedData.bedNumber) return alert('Please enter bed number');
+    // include bedType default when returning to parent
+    onSubmit({ ...bedData, bedType: 'single' });
+    onClose();
   };
 
   if (!isOpen) return null;
@@ -37,30 +40,7 @@ const BedFormModal = ({ isOpen, onClose, onSubmit, initialData }) => {
         <form onSubmit={handleSubmit} className="bed-form">
           <label>
             Bed Number
-            <input
-              type="number"
-              name="bedNumber"
-              value={bedData.bedNumber}
-              onChange={handleChange}
-              required
-              min="1"
-            />
-          </label>
-
-          <label>
-            Bed Type
-            <select
-              name="bedType"
-              value={bedData.bedType}
-              onChange={handleChange}
-              required
-            >
-              <option value="">Select Type</option>
-              <option value="single">Single</option>
-              <option value="double">Double</option>
-              <option value="suite">Suite</option>
-              
-            </select>
+            <input type="number" name="bedNumber" value={bedData.bedNumber} onChange={handleChange} required min="1" />
           </label>
 
           <div className="bed-form-buttons">

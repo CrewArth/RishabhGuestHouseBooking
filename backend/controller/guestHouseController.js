@@ -2,7 +2,8 @@ import GuestHouse from '../models/GuestHouse.js';
 import Room from '../models/Room.js';
 import Bed from '../models/Bed.js';
 import { logAction } from '../utils/auditLogger.js';
-import { deleteFromS3 } from '../utils/s3Client.js';
+import { deleteFromS3 } from "../utils/s3Client.js";
+
 
 
 export const createGuestHouse = async (req, res) => {
@@ -16,7 +17,7 @@ export const createGuestHouse = async (req, res) => {
       return res.status(400).json({ message: "Required Fields Missing" });
     }
 
-    const imageUrl = req.file ? req.file.location : null;
+    const imageUrl = req.optimizedImageUrl || null;
 
     const guestHouse = await GuestHouse.create({
       guestHouseName,
@@ -99,6 +100,7 @@ export const toggleMaintenanceMode = async (req, res) => {
   }
 };
 
+// Delete Guest House
 export const deleteGuestHouse = async (req, res) => {
   const guestHouseId = parseInt(req.params.guestHouseId, 10);
 
@@ -110,7 +112,10 @@ export const deleteGuestHouse = async (req, res) => {
     }
 
     // 2️⃣ Delete image from AWS S3 (if exists)
+    console.log("🟡 Calling deleteFromS3 for:", guestHouse.image);
     await deleteFromS3(guestHouse.image);
+    console.log("🟢 deleteFromS3 finished");
+
 
     // 3️⃣ Get all rooms under guest house
     const rooms = await Room.find({ guestHouseId });
@@ -173,9 +178,10 @@ export const updateGuestHouse = async (req, res) => {
       location,
     };
 
-    if (req.file) {
-      updateData.image = req.file.location; // S3 or multer-s3 file path
+    if (req.optimizedImageUrl) {
+      updateData.image = req.optimizedImageUrl;
     }
+
 
     // Update guest house
     const updatedGuestHouse = await GuestHouse.findOneAndUpdate(
@@ -204,5 +210,23 @@ export const updateGuestHouse = async (req, res) => {
   } catch (error) {
     console.error("Error updating Guest House:", error);
     res.status(500).json({ message: "Server error while updating Guest House" });
+  }
+};
+
+// Get single guest house by ID
+export const getGuestHouseById = async (req, res) => {
+  try {
+    const guestHouseId = parseInt(req.params.guestHouseId, 10);
+
+    const guestHouse = await GuestHouse.findOne({ guestHouseId });
+
+    if (!guestHouse) {
+      return res.status(404).json({ message: "Guest House not found" });
+    }
+
+    res.status(200).json({ success: true, guestHouse });
+  } catch (error) {
+    console.error("Error fetching guest house:", error);
+    res.status(500).json({ message: "Server error while fetching guest house" });
   }
 };

@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
-import '../styles/adminDashboard.css';
-import axios from 'axios';
+import React, { useEffect, useState } from "react";
+import "../styles/adminDashboard.css";
+import axios from "axios";
 
 const AdminDashboard = () => {
   const [stats, setStats] = useState({
@@ -10,25 +10,40 @@ const AdminDashboard = () => {
     rejectedBookings: 0,
     pendingBookings: 0,
     approvedBookings: 0,
-    todaysBookings: 0
+    todaysBookings: 0,
+    occupancyRate: 0,
   });
+
+  const [refreshing, setRefreshing] = useState(false);
 
   const fetchStats = async () => {
     try {
-      const res = await axios.get('http://localhost:5000/api/admin/summary');
+      setRefreshing(true);
+      const res = await axios.get("http://localhost:5000/api/admin/summary");
       setStats(res.data);
     } catch (err) {
       console.error("Error fetching admin stats: ", err);
+    } finally {
+      setRefreshing(false);
     }
   };
 
   useEffect(() => {
     fetchStats();
+
+    // Auto-refresh every 30 seconds
+    const interval = setInterval(fetchStats, 30000);
+
+    return () => clearInterval(interval);
   }, []);
 
   return (
     <div className="admin-dashboard">
       <h1 className="dashboard-title">Admin Dashboard</h1>
+
+      {refreshing && (
+        <p style={{ fontSize: "14px", color: "gray" }}>Refreshing…</p>
+      )}
 
       <div className="card-grid">
         <div className="dashboard-card">
@@ -66,18 +81,13 @@ const AdminDashboard = () => {
           <p>Occupancy Rate</p>
         </div>
 
-          <div className="dashboard-card">
+        <div className="dashboard-card">
           <h2 className="stat-number">{stats.todaysBookings}</h2>
           <p>Today's Booking</p>
         </div>
       </div>
-      
     </div>
-
-    
   );
 };
-
-
 
 export default AdminDashboard;

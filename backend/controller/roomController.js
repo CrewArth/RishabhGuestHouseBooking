@@ -25,10 +25,11 @@ export const createRoom = async (req, res) => {
     const room = await Room.create({
       guestHouseId,
       roomNumber,
-      roomType,
+      roomType: roomType || 'single', // default if missing from client
       roomCapacity,
       isAvailable
     });
+
 
     // ✅ Room Created
     await logAction({

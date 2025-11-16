@@ -103,81 +103,92 @@
   color: #92400e;
 }
 
-/* ====== Action Buttons ====== */
+/* ------------ Action Button Container ------------ */
 .action-buttons {
   display: flex;
-  justify-content: center;
+  gap: 10px;
   align-items: center;
-  gap: 0.4rem;
 }
 
-.action-buttons button {
-  width: 36px;
-  height: 36px;
-  border: none;
+/* ------------ Base Button Style ------------ */
+.btn,
+.btn-delete {
+  padding: 8px 14px;
+  font-size: 12px;
   border-radius: 6px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  border: none;
   cursor: pointer;
-  transition: all 0.2s ease;
+  font-weight: 500;
+  transition: 0.2s ease-in-out;
+  background: #e2e8f0;   /* Light gray */
+  color: #1e293b;        /* Slate text */
+}
+#delete-btn{
+  background-color: tomato;
   color: #ffffff;
-  font-size: 1.1rem;
+}
+
+/* Hover effect for all buttons */
+.btn:hover,
+.btn-delete:hover {
+  background: #cbd5e1;
+}
+
+/* ------------ Specific Button Colors ------------ */
+
+/* Edit Button */
+.btn.edit {
+  background: #3b82f6;     /* Blue */
+  color: white;
+}
+.btn.edit:hover {
+  background: #2563eb;
+}
+
+/* Toggle Button */
+.btn.maintenance {
+  background: #f59e0b;     /* Amber */
+  color: white;
+}
+.btn.maintenance:hover {
+  background: #d97706;
+}
+
+/* Delete Button */
+.btn-delete {
+  background: #ef4444;     /* Red */
+  color: white;
+}
+.btn-delete:hover {
+  background: #dc2626;
+}
+
+/* ------------ Tooltip (optional but clean) ------------ */
+.action-buttons button[data-tooltip] {
   position: relative;
 }
 
-/* Tooltips */
-.action-buttons button::after {
+.action-buttons button[data-tooltip]:hover::after {
   content: attr(data-tooltip);
   position: absolute;
-  bottom: -28px;
+  top: -28px;
   left: 50%;
   transform: translateX(-50%);
-  background-color: #111827;
+  background: #334155;
   color: white;
-  padding: 3px 8px;
+  padding: 4px 8px;
+  font-size: 12px;
   border-radius: 4px;
-  font-size: 0.75rem;
-  opacity: 0;
-  visibility: hidden;
   white-space: nowrap;
-  transition: opacity 0.2s ease, bottom 0.2s ease;
-}
-
-.action-buttons button:hover::after {
+  pointer-events: none;
   opacity: 1;
-  visibility: visible;
-  bottom: -34px;
 }
 
-/* Individual Button Colors */
-.btn.edit {
-  background-color: #f59e0b;
-}
-.btn.edit:hover {
-  background-color: #d97706;
+.action-buttons button[data-tooltip]::after {
+  opacity: 0;
+  transition: opacity 0.2s ease;
 }
 
-.btn.rooms {
-  background-color: #10b981;
-}
-.btn.rooms:hover {
-  background-color: #059669;
-}
-
-.btn.maintenance {
-  background-color: #3b82f6;
-}
-.btn.maintenance:hover {
-  background-color: #1d4ed8;
-}
-
-.btn-delete {
-  background-color: #ef4444;
-}
-.btn-delete:hover {
-  background-color: #dc2626;
-}
 
 /* ====== Empty State ====== */
 .no-data {

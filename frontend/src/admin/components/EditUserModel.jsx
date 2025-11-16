@@ -41,6 +41,7 @@ const EditUserModal = ({ user, onClose, onSubmit }) => {
   };
 
   if (!user) return null;
+  console.log(form);
 
   return (
     <div className="modal-backdrop">

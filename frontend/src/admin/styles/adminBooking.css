@@ -12,6 +12,7 @@
   align-items: flex-start;
   gap: 6px;
   margin-bottom: 18px;
+  align-items: center;
 }
 
 .page-header h1 {
@@ -37,6 +38,10 @@
   overflow: auto;
   max-height: calc(100vh - 220px); /* local scroll for table */
   padding: 8px;
+}
+
+.audit-action{
+  background-color: #059669;
 }
 
 .bookings-table {
@@ -137,8 +142,88 @@
   margin-top: 14px;
 }
 
+.filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 15px;
+}
+
+.filter-bar select {
+  padding: 6px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  background: white;
+  cursor: pointer;
+}
+
+.filter-bar label {
+  font-weight: 500;
+  color: #374151;
+  font-size: 14px;
+}
+
+
 /* Responsive */
 @media (max-width: 900px) {
   .bookings-table { min-width: 700px; }
   .detail-grid { grid-template-columns: 1fr; }
 }
+
+.modal-details {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 15px;
+  font-size: 15px;
+  color: #374151;
+}
+
+.modal-details p {
+  margin: 0;
+  line-height: 1.4;
+}
+
+.modal-details strong {
+  color: #111827;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+
+.modal-card {
+  background: white;
+  padding: 20px 25px;
+  border-radius: 10px;
+  width: 400px;
+  max-width: 90%;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+.modal-card h3 {
+  margin-top: 0;
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.modal-actions {
+  margin-top: 20px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: scale(1); }
+}
+  

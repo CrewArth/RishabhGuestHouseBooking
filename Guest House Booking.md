@@ -115,7 +115,20 @@ let me explain you what we will be doing in nodemailer.
 1. GH image not getting deleted from S3
 2. Not able to delete room and bed from admin panel✅
 3. fix minor ui bugs
-4. try adding auto refresh every 30 seconds in admin dashboard
-5. Fix Audit Logs Panel UI
+4. try adding auto refresh every 30 seconds in admin dashboard✅
+5. Fix Audit Logs Panel UI✅
 6. Add Pagination to Audit logs and users list in admin panel. ✅
 7. add loading effect when booking button is clicked from user side✅
+
+Todo for 14:
+1. Fix CSS for GuestHouse, Room n Bed Management page.✅
+2. In BookingMgmt, View Details does not display details.✅
+3. Not able to delete (soft del) user from usersList✅
+4. Look Console Error when opening Audit Log page✅
+5. Error while creating Bed.✅
+
+suggestion: Add Server message as toast message
+
+14 late date
+add standardiztion image during upload✅
+add toast to all.

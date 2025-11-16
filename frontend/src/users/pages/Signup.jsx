@@ -37,7 +37,7 @@ export default function SignupPage() {
     try {
       const res = await axios.post("http://localhost:5000/api/auth/signup", data);
       toast.success("Account created successfully!", { autoClose: 1200 });
-      
+
       setTimeout(() => {
         navigate("/signin");
       }, 1400);

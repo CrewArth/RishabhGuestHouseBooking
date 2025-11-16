@@ -2,18 +2,14 @@ import React, { useEffect, useState } from "react";
 import GuestHouseFormModal from "../components/GuestHouseFormModal";
 import axios from "axios";
 import "../styles/guestHouseManagement.css";
-import { useNavigate } from "react-router-dom";
-import { CiEdit } from "react-icons/ci";
-import { BiHomeCircle } from "react-icons/bi";
-import { PiHammer } from "react-icons/pi";
-import { MdOutlineDeleteForever } from "react-icons/md";
 
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const GuestHouseManagement = () => {
   const [guestHouses, setGuestHouses] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedGH, setSelectedGH] = useState(null);
-  const navigate = useNavigate();
 
   const fetchGuestHouses = async () => {
     try {
@@ -21,6 +17,7 @@ const GuestHouseManagement = () => {
       setGuestHouses(
         Array.isArray(response.data) ? response.data : response.data.guestHouses
       );
+
     } catch (err) {
       console.error("Error fetching guest houses:", err);
       setGuestHouses([]);
@@ -34,9 +31,11 @@ const GuestHouseManagement = () => {
   const handleAddGuestHouse = async (newGH) => {
     try {
       await axios.post("http://localhost:5000/api/guesthouses", newGH);
+      toast.success("Guest House created sucessfully")
       fetchGuestHouses();
     } catch (err) {
       console.error("Error adding guest house:", err);
+      toast.error("Error creating Guest House")
     }
   };
 
@@ -84,9 +83,7 @@ const GuestHouseManagement = () => {
     } catch (err) {
       console.error("Error deleting guest house:", err);
       setGuestHouses(prev);
-      alert(
-        err?.response?.data?.error || "Failed to delete. Check console for details."
-      );
+      toast.error(err?.response?.data?.error || "Failed to delete. Check console for details.")
     } finally {
       fetchGuestHouses();
     }
@@ -146,31 +143,25 @@ const GuestHouseManagement = () => {
       setIsModalOpen(true);
     }}
   >
-   <b><CiEdit /></b>
+  Edit
   </button>
 
-  <button
-    className="btn rooms"
-    data-tooltip="View Rooms"
-    onClick={() => navigate(`/admin/rooms?guestHouseId=${gh.guestHouseId}`)}
-  >
-    <b><BiHomeCircle /></b>
-  </button>
 
   <button
     className="btn maintenance"
     data-tooltip={gh.maintenance ? "Disable Maintenance" : "Enable Maintenance"}
     onClick={() => toggleMaintenance(gh.guestHouseId)}
   >
-    <b><PiHammer /></b>
+  Toggle
   </button>
 
   <button
+    id="delete-btn"
     className="btn-delete"
     data-tooltip="Delete"
     onClick={() => handleDeleteGuestHouse(gh.guestHouseId)}
   >
-    <b><MdOutlineDeleteForever /></b>
+Delete
   </button>
 </td>
 

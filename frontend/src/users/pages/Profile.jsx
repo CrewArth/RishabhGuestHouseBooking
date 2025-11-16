@@ -3,6 +3,7 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import '../styles/profile.css'
 import Navbar from '../../components/Navbar';
+import { toast } from 'react-toastify';
 
 const Profile = () => {
 
@@ -34,7 +35,6 @@ const Profile = () => {
         try {
             const response = await axios.put(`http://localhost:5000/api/users/${user._id}`, updatedUser);
 
-
             // Check if we have a valid response with user data
             if (response.data && response.data.user) {
                 const updatedData = response.data.user;
@@ -45,7 +45,7 @@ const Profile = () => {
                 setIsEditing(false);
 
                 // Show success message and navigate
-                alert("Profile updated successfully");
+                toast.success("Profile updated successfully")
                 navigate('/dashboard');
             } else {
                 console.error("Invalid response structure:", response.data);
@@ -53,7 +53,8 @@ const Profile = () => {
             }
         } catch (error) {
             console.error("Error updating profile:", error);
-            alert(error.response?.data?.message || "Failed to update profile. Please try again.");
+            // alert(error.response?.data?.message || "Failed to update profile. Please try again.");
+            toast.error(error.response?.data?.message || "Failed to update profile. Please try again.")
         }
     }
     if (!user) return null;

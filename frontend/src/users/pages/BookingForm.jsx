@@ -4,13 +4,13 @@ import '../styles/bookingform.css';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import axios from 'axios';
+import { toast } from 'react-toastify';
 
 const BookingForm = () => {
   const location = useLocation();
   const selectedGuestHouse = location.state?.guestHouse;
   const navigate = useNavigate();
 
-  // Fetch user from localStorage
   const storedUser = JSON.parse(localStorage.getItem('user')) || null;
 
   const [rooms, setRooms] = useState([]);
@@ -21,10 +21,10 @@ const BookingForm = () => {
   const [bedsError, setBedsError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
-
-  // NEW: Track unavailable rooms/beds
   const [unavailableRooms, setUnavailableRooms] = useState([]);
   const [unavailableBeds, setUnavailableBeds] = useState([]);
+
+  const [dateError, setDateError] = useState(''); // ✅ NEW error state
 
   const [formData, setFormData] = useState({
     checkInDate: '',
@@ -41,7 +41,7 @@ const BookingForm = () => {
 
   useEffect(() => {
     if (storedUser) {
-      setFormData((prev) => ({
+      setFormData(prev => ({
         ...prev,
         fullName: `${storedUser.firstName} ${storedUser.lastName}`,
         email: storedUser.email,
@@ -65,12 +65,36 @@ const BookingForm = () => {
     window.scrollTo(0, 0);
   }, []);
 
+  // ✅ Validate dates in real-time
+  const validateDates = (checkIn, checkOut) => {
+    if (checkIn && checkOut) {
+      if (new Date(checkOut) <= new Date(checkIn)) {
+        setDateError("Check-out date must be after Check-in date");
+        return false;
+      }
+    }
+    setDateError('');
+    return true;
+  };
+
+  // Modified handleChange to include validation
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
+
+    const updatedData = {
+      ...formData,
       [name]: value
-    }));
+    };
+
+    setFormData(updatedData);
+
+    // Run validation on each change
+    if (name === "checkInDate" || name === "checkOutDate") {
+      validateDates(
+        name === "checkInDate" ? value : formData.checkInDate,
+        name === "checkOutDate" ? value : formData.checkOutDate
+      );
+    }
 
     if (name === 'room') {
       fetchBeds(value);
@@ -106,7 +130,6 @@ const BookingForm = () => {
     }
   };
 
-  // ✅ Check room & bed availability
   const checkAvailability = async () => {
     try {
       if (!formData.checkInDate || !formData.checkOutDate || !selectedGuestHouse) return;
@@ -126,17 +149,22 @@ const BookingForm = () => {
     }
   };
 
-  // Auto-check availability whenever dates or guesthouse change
   useEffect(() => {
     if (formData.checkInDate && formData.checkOutDate && selectedGuestHouse) {
       checkAvailability();
     }
   }, [formData.checkInDate, formData.checkOutDate, selectedGuestHouse]);
 
+  // Function to perform booking from user side.
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    setSubmitting(true); // ⬅️ START LOADING
+    if (!validateDates(formData.checkInDate, formData.checkOutDate)) {
+      alert("Please fix date validation errors before submitting.");
+      return;
+    }
+
+    setSubmitting(true);
 
     try {
       const bookingData = {
@@ -155,16 +183,21 @@ const BookingForm = () => {
       const res = await axios.post("http://localhost:5000/api/bookings", bookingData);
 
       if (res.status === 201) {
-        alert("Booking request submitted successfully!");
-        navigate('/my-bookings');
+        // alert("Booking request submitted successfully!");
+        toast.success("Booking request submitted successfully!")
+        setTimeout(() => {
+          navigate('/my-bookings');
+        }, 2500);
+        
       } else {
-        alert(res.data?.message || "Failed to submit booking");
+        toast.error(res.data?.message || "Failed to submit booking")
       }
     } catch (error) {
       console.error("Error submitting booking:", error);
-      alert(error.response?.data?.message || "Server error submitting booking");
+      toast(error.response?.data?.message || "Server error submitting booking")
+      
     } finally {
-      setSubmitting(false); // ⬅️ STOP LOADING
+      setSubmitting(false);
     }
   };
 
@@ -173,15 +206,17 @@ const BookingForm = () => {
       <Navbar />
 
       <div className="booking-page-container">
-        {/* Step Indicator */}
         <div className="step-indicator">
           <span className={step === 1 ? 'active' : ''}>1. Booking Details</span>
           <span className={step === 2 ? 'active' : ''}>2. Personal Info</span>
         </div>
 
-        {/* Step 1: Booking Details */}
+        {/* STEP 1 */}
         {step === 1 && (
-          <form className="booking-form" onSubmit={(e) => { e.preventDefault(); setStep(2) }}>
+          <form className="booking-form" onSubmit={(e) => {
+            e.preventDefault();
+            if (!dateError) setStep(2);
+          }}>
             {selectedGuestHouse && (
               <div className="selected-guesthouse-info">
                 <h3>You Selected:</h3>
@@ -194,16 +229,34 @@ const BookingForm = () => {
 
             <div className="form-section step-form">
               <h2>Booking Details</h2>
-              <div className="form-grid">
 
+              <div className="form-grid">
                 <div className="form-control">
                   <label>Check-in Date <span>*</span></label>
-                  <input type="date" name="checkInDate" value={formData.checkInDate} onChange={handleChange} required />
+                  <input
+                    type="date"
+                    name="checkInDate"
+                    value={formData.checkInDate}
+                    onChange={handleChange}
+                    required
+                    className={dateError ? "error-input" : ""}
+                  />
                 </div>
 
                 <div className="form-control">
                   <label>Check-out Date <span>*</span></label>
-                  <input type="date" name="checkOutDate" value={formData.checkOutDate} onChange={handleChange} required />
+                  <input
+                    type="date"
+                    name="checkOutDate"
+                    value={formData.checkOutDate}
+                    onChange={handleChange}
+                    required
+                    className={dateError ? "error-input" : ""}
+                    min={formData.checkInDate ? new Date(new Date(formData.checkInDate).getTime() + 86400000)
+                      .toISOString()
+                      .split("T")[0]
+                      : ""}
+                  />
                 </div>
 
                 <div className="form-control">
@@ -219,7 +272,6 @@ const BookingForm = () => {
                       );
                     })}
                   </select>
-                  {roomsError && <small className="error">{roomsError}</small>}
                 </div>
 
                 <div className="form-control full-width">
@@ -235,19 +287,20 @@ const BookingForm = () => {
                       );
                     })}
                   </select>
-                  {bedsError && <small className="error">{bedsError}</small>}
                 </div>
               </div>
 
               <div className="form-actions">
                 <button type="button" className="btn secondary" onClick={() => window.history.back()}>Cancel</button>
-                <button type="submit" className="btn primary">Next</button>
+                <button type="submit" className="btn primary" disabled={!!dateError}>
+                  Next
+                </button>
               </div>
             </div>
           </form>
         )}
 
-        {/* Step 2: Personal Info */}
+        {/* STEP 2 */}
         {step === 2 && (
           <form className="booking-form" onSubmit={handleSubmit}>
             <div className="form-section step-form">
@@ -282,25 +335,15 @@ const BookingForm = () => {
 
               <div className="form-actions">
                 <button type="button" className="btn secondary" onClick={() => setStep(1)}>Back</button>
-                <button
-                  type="submit"
-                  className="btn primary submit-btn"
-                  disabled={submitting}
-                >
-                  {submitting ? (
-                    <div className="spinner"></div>
-                  ) : (
-                    "Send Request"
-                  )}
+
+                <button type="submit" className="btn primary submit-btn" disabled={submitting}>
+                  {submitting ? <div className="spinner"></div> : "Send Request"}
                 </button>
-
-
               </div>
             </div>
           </form>
         )}
       </div>
-      {/* <Footer /> */}
     </div>
   );
 };

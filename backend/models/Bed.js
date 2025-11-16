@@ -9,7 +9,7 @@ const bedSchema = new mongoose.Schema({
 
   bedNumber: {
     type: Number,
-    required: true,
+    required: true, 
   },
 
   bedType: {

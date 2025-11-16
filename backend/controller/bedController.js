@@ -11,6 +11,13 @@ export const createBed = async (req, res) => {
     const room = await Room.findById(roomId);
     if (!room) return res.status(404).json({ message: "Room Not Found!" });
 
+    // count active beds for this room
+    const activeBedsCount = await Bed.countDocuments({ roomId, isActive: true });
+
+    if (activeBedsCount >= room.roomCapacity) {
+      return res.status(400).json({ error: `Room capacity exceeded. Max capacity is ${room.roomCapacity}` });
+    }
+
     // Ensure bedNumber uniqueness per room
     const existingBed = await Bed.findOne({ roomId, bedNumber, isActive: true });
     if (existingBed) {
@@ -18,7 +25,7 @@ export const createBed = async (req, res) => {
     }
 
     // Create new bed
-    const bed = await Bed.create({ roomId, bedNumber, bedType });
+    const bed = await Bed.create({ roomId, bedNumber, bedType: bedType || 'single' });
 
     // ✅ Bed Created
     await logAction({

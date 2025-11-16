@@ -7,9 +7,11 @@ import "../styles/myBooking.css";
 const MyBookings = () => {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
   const [user, setUser] = useState(null);
 
+  // Load user from localStorage
   useEffect(() => {
     const storedUser = JSON.parse(localStorage.getItem("user"));
     if (storedUser) {
@@ -20,23 +22,39 @@ const MyBookings = () => {
     }
   }, []);
 
-  useEffect(() => {
-    const fetchBookings = async () => {
-      if (!user?._id) return;
-      try {
-        const res = await axios.get(
-          `http://localhost:5000/api/bookings/my?userId=${user._id}`
-        );
-        setBookings(res.data.bookings || []);
-      } catch (err) {
-        console.error("Error fetching bookings:", err);
-        setError("Failed to load your bookings.");
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchBookings = async (silent = false) => {
+    if (!user?._id) return;
 
-    fetchBookings();
+    try {
+      silent ? setRefreshing(true) : setLoading(true);
+
+      const res = await axios.get(
+        `http://localhost:5000/api/bookings/my?userId=${user._id}`
+      );
+
+      setBookings(res.data.bookings || []);
+    } catch (err) {
+      console.error("Error fetching bookings:", err);
+      setError("Failed to load your bookings.");
+    } finally {
+      silent ? setRefreshing(false) : setLoading(false);
+    }
+  };
+
+  // Load bookings when user ID becomes available
+  useEffect(() => {
+    if (user?._id) fetchBookings();
+  }, [user?._id]);
+
+  // 🔄 Auto-refresh every 10 seconds
+  useEffect(() => {
+    if (!user?._id) return;
+
+    const interval = setInterval(() => {
+      fetchBookings(true); // silent refresh
+    }, 10000);
+
+    return () => clearInterval(interval);
   }, [user?._id]);
 
   if (loading)
@@ -67,6 +85,10 @@ const MyBookings = () => {
       <div className="page-content my-bookings-container">
         <h2>My Bookings</h2>
 
+        {refreshing && (
+          <p style={{ fontSize: "13px", color: "gray" }}>Refreshing…</p>
+        )}
+
         {bookings.length === 0 ? (
           <p className="no-bookings">No bookings found.</p>
         ) : (
@@ -81,6 +103,7 @@ const MyBookings = () => {
                 <th>Status</th>
               </tr>
             </thead>
+
             <tbody>
               {bookings.map((b) => (
                 <tr key={b._id}>
@@ -97,6 +120,7 @@ const MyBookings = () => {
                   </td>
                   <td>{new Date(b.checkIn).toLocaleDateString("en-IN")}</td>
                   <td>{new Date(b.checkOut).toLocaleDateString("en-IN")}</td>
+
                   <td>
                     <span className={`status ${b.status}`}>{b.status}</span>
                   </td>
@@ -106,6 +130,7 @@ const MyBookings = () => {
           </table>
         )}
       </div>
+
       <Footer />
     </>
   );

@@ -1,24 +1,43 @@
 import express from 'express';
-import { createGuestHouse, getGuestHouses, toggleMaintenanceMode, deleteGuestHouse, updateGuestHouse } from '../controller/guestHouseController.js';
-import upload from '../middlewares/imageUpload.js';
+import {
+  createGuestHouse,
+  getGuestHouses,
+  toggleMaintenanceMode,
+  deleteGuestHouse,
+  getGuestHouseById,
+  updateGuestHouse
+} from '../controller/guestHouseController.js';
+
+import { upload, processAndUploadImage } from '../middlewares/imageUpload.js';
 
 const router = express.Router();
 
-//Route to create guest house
-router.post('/', upload.single('image'), createGuestHouse);
+// Create Guest House (with image optimization)
+router.post(
+  '/',
+  upload,                 // multer memory upload
+  processAndUploadImage,  // sharp → optimized → upload to S3
+  createGuestHouse
+);
 
-// Route to get all guest house
+// Get all Guest Houses
 router.get('/', getGuestHouses);
 
-// Toggle maintenance mode (PATCH)
+// Toggle Maintenance
 router.patch('/:guestHouseId/maintenance', toggleMaintenanceMode);
 
-// Route to Delete GH
+// Get Guest House by ID
+router.get('/:guestHouseId', getGuestHouseById);
+
+// Delete Guest House
 router.delete('/:guestHouseId', deleteGuestHouse);
 
-// To Upadte Guest House
-// Route to update guest house
-router.put('/:guestHouseId', upload.single('image'), updateGuestHouse);
-
+// Update Guest House (with image optimization)
+router.put(
+  '/:guestHouseId',
+  upload,
+  processAndUploadImage,
+  updateGuestHouse
+);
 
 export default router;

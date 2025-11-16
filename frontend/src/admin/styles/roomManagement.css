@@ -1,122 +1,139 @@
-.delete-btn {
-  padding: 5px 10px;
-  border: none;
-  background: transparent;
-  color: #ffffff;
-  font-weight: bold;
-  cursor: pointer;
-  transition: color 0.2s ease;
-}
-
-.delete-btn:hover {
-  color: #ffffff;
-}
-
-/* Reuse the same container structure from guestHouseManagement for consistency */
-
+/* ---------------------- GLOBAL CONTAINER ---------------------- */
 .gh-management-container {
-  padding: 1.5rem 2rem;
-  background-color: #f9fafb;
-  height: calc(100vh - 64px);
-  overflow: hidden;
+  padding: 24px;
+  background: #f8fafc;
+  min-height: 100vh;
+  font-family: "Inter", sans-serif;
+}
+
+/* ---------------------- HEADER ---------------------- */
+.gh-header {
   display: flex;
   flex-direction: column;
+  gap: 16px;
+  margin-bottom: 24px;
+  align-items: flex-start;
 }
 
 .gh-title {
-  font-size: 1.8rem;
+  font-size: 1.6rem;
+  color: #1e293b;
   font-weight: 600;
-  color: #1f2937;
-  margin-bottom: 1rem;
 }
 
-.gh-actions {
-  margin-bottom: 1rem;
+/* ----------------------- SELECT DROPDOWNS ---------------------- */
+.gh-header-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
 }
+
+.gh-select {
+  padding: 10px 14px;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  min-width: 240px;
+  background: white;
+  font-size: 15px;
+  transition: border 0.2s;
+}
+
+.gh-select:focus {
+  border-color: #2563eb;
+  outline: none;
+}
+
+/* ---------------------- BUTTONS ---------------------- */
 
 .add-gh-btn {
-  background-color: #2563eb;
-  border: none;
+  padding: 10px 16px;
+  background: #2563eb;
+  color: white;
+  font-size: 14px;
   border-radius: 6px;
-  padding: 0.6rem 1rem;
-  color: #ffffff;
-  font-weight: 500;
+  border: none;
   cursor: pointer;
-  transition: all 0.2s ease-in-out;
+  font-weight: 500;
+  transition: 0.2s ease;
 }
 
-.add-gh-btn:hover {
-  background-color: #1d4ed8;
-  transform: translateY(-2px);
+.add-gh-btn:disabled {
+  background: #94a3b8;
+  cursor: not-allowed;
 }
 
-/* Scrollable Table Area */
+.add-gh-btn:hover:not(:disabled) {
+  background: #1d4ed8;
+}
+
+/* ---------------------- TABLE ---------------------- */
 .gh-table-container {
-  background: #ffffff;
-  border-radius: 8px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
-  padding: 1rem;
-  overflow-y: auto;
-  flex: 1;
+  background: white;
+  padding: 16px;
+  border-radius: 10px;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.06);
+  overflow-x: auto;
 }
 
 .gh-table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 780px;
-}
-
-.gh-table th,
-.gh-table td {
-  padding: 0.85rem 1.2rem;
-  font-size: 0.95rem;
-  text-align: left;
-  border-bottom: 1px solid #e5e7eb;
-  color: #374151;
 }
 
 .gh-table th {
-  background-color: #f3f4f6;
+  text-align: left;
+  padding: 12px 14px;
+  background: #f1f5f9;
+  color: #334155;
   font-weight: 600;
-  color: #1f2937;
+  border-bottom: 1px solid #e2e8f0;
 }
 
-.gh-table tr:hover {
-  background-color: #f9fafb;
+.gh-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid #e2e8f0;
+  color: #334155;
+  font-size: 14px;
 }
 
-/* Action Buttons */
+.gh-table tbody tr:hover {
+  background: #f8fafc;
+}
+
+/* ---------------------- ACTION BUTTONS ---------------------- */
+.action-buttons {
+  display: flex;
+  gap: 10px;
+}
+
 .action-buttons button {
-  margin-right: 0.4rem;
-  padding: 0.45rem 0.7rem;
+  padding: 6px 10px;
   border-radius: 6px;
-  font-size: 0.85rem;
-  cursor: pointer;
   border: none;
-  transition: all 0.2s ease-in-out;
-}
-
-.action-buttons button:nth-child(1) {
-  background-color: #f59e0b; /* Edit */
-  color: white;
-}
-
-.action-buttons button:nth-child(2) {
-  background-color: #3b82f6; /* Toggle Availability */
-  color: white;
-}
-
-.action-buttons button:nth-child(3) {
-  background-color: #10b981; /* Beds */
-  color: white;
-}
-
-.action-buttons .delete-btn {
-  background-color: #ef4444; /* Delete */
-  color: white;
+  cursor: pointer;
+  background: #e2e8f0;
+  transition: background 0.2s ease;
+  font-size: 15px;
 }
 
 .action-buttons button:hover {
-  opacity: 0.9;
-  color: #000;
+  background: #cbd5e1;
+}
+
+.delete-btn {
+  background: #ef4444 !important;
+  color: white;
+}
+
+.delete-btn:hover {
+  background: #dc2626 !important;
+}
+
+/* ---------------------- RESPONSIVE ---------------------- */
+@media (max-width: 768px) {
+  .gh-header-controls {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }

@@ -26,7 +26,6 @@ export const getAdminSummary = async (req, res) => {
   const occupancyRate =
   totalBookings > 0 ? ((approvedBookings / totalBookings) * 100).toFixed(2) : 0;
 
-
     res.json({
       totalUsers,
       totalGuestHouses,
@@ -51,7 +50,7 @@ export const listUsers = async (req, res) => {
     const skip = (page - 1) * limit;
 
     // Fetch paginated users
-    const users = await User.find({}, "firstName lastName email isActive createdAt")
+    const users = await User.find({}, "firstName lastName email phone address isActive createdAt")
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)

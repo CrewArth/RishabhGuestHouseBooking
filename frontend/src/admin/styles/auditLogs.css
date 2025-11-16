@@ -98,6 +98,8 @@
   color: #6b7280;
 }
 
+
+
 /* ---------------------- Responsive Design ----------------------- */
 
 @media (max-width: 768px) {
@@ -152,4 +154,207 @@
 .page-info {
   font-size: 0.9rem;
   color: #374151;
+}
+
+/* ================== View Button ================== */
+.view-details-btn {
+  padding: 6px 12px;
+  background: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.view-details-btn:hover {
+  background: #1e40af;
+}
+
+/* ================== Modal Styles ================== */
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 20;
+}
+
+.modal-card {
+  background: white;
+  padding: 1.8rem;
+  width: 90%;
+  max-width: 550px;
+  border-radius: 10px;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+  animation: fadeIn 0.2s ease-in;
+}
+
+.modal-card h2 {
+  margin-bottom: 1rem;
+  text-align: center;
+  font-size: 1.4rem;
+  color: #1f2937;
+}
+
+.modal-details p {
+  margin: 6px 0;
+  font-size: 0.95rem;
+  color: #374151;
+}
+
+.details-box {
+  margin-top: 12px;
+  background: #f3f4f6;
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 0.85rem;
+  max-height: 250px;
+  overflow-y: auto;
+}
+
+.close-modal-btn {
+  margin-top: 1rem;
+  width: 100%;
+  padding: 10px;
+  background: #dc2626;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.close-modal-btn:hover {
+  background: #b91c1c;
+}
+
+/* Animation */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ---------------- Filter Bar ---------------- */
+
+.audit-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 16px 0;
+}
+
+.audit-filter-bar label {
+  font-weight: 600;
+  color: #374151;
+  font-size: 0.9rem;
+}
+
+.audit-filter-bar select {
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.audit-filter-bar select:focus {
+  outline: none;
+  border-color: #2563eb;
+}
+
+/* Mobile tweak */
+@media (max-width: 640px) {
+  .audit-filter-bar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+.view-details-btn {
+  padding: 6px 12px;
+  background-color: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: 0.2s ease-in-out;
+}
+
+.view-details-btn:hover {
+  background-color: #1d4ed8;
+}
+
+.audit-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+
+.audit-modal {
+  width: 90%;
+  max-width: 520px;
+  background: white;
+  border-radius: 10px;
+  padding: 1.5rem;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+.audit-modal h2 {
+  margin-bottom: 1rem;
+  color: #1f2937;
+}
+
+.audit-modal-content p {
+  margin: 0.4rem 0;
+  font-size: 0.95rem;
+  color: #374151;
+}
+
+.details-box {
+  background: #f3f4f6;
+  padding: 0.8rem;
+  border-radius: 6px;
+  margin-top: 0.5rem;
+}
+
+.details-box pre {
+  font-size: 0.85rem;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  margin: 0;
+}
+
+.audit-modal-actions {
+  text-align: right;
+  margin-top: 1rem;
+}
+
+.close-btn {
+  background: #6b7280;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+.close-btn:hover {
+  background: #4b5563;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.9); }
+  to   { opacity: 1; transform: scale(1); }
 }

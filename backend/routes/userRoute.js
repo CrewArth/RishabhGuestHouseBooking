@@ -10,7 +10,7 @@ router.put('/:id', updateUser);
 router.delete('/:id', deleteUser);
 
 // Soft Delete User
-router.patch('/user/:id/deactivate', async (req, res) => {
+router.patch('/:id/deactivate', async (req, res) => {
   try {
     const user = await User.findByIdAndUpdate(
       req.params.id,
