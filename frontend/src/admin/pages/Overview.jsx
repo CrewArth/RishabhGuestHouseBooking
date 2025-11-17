@@ -29,7 +29,7 @@ const AdminDashboard = () => {
   };
 
   useEffect(() => {
-    fetchStats();
+    fetchStats(); 
 
     // Auto-refresh every 30 seconds
     const interval = setInterval(fetchStats, 30000);

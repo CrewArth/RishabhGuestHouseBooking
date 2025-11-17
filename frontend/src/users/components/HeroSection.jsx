@@ -1,6 +1,6 @@
 import '../styles/hero.css'
 import { useNavigate } from 'react-router-dom';
-import herobg from '../../assets/hero-bg.png'
+import herobg from '../../assets/hero-bg.webp'
 
 const HeroSection = () => {
 
@@ -16,7 +16,6 @@ const HeroSection = () => {
     }
   }
 
-  
   return (
     <div className="hero-container">
       <div className="hero-content">

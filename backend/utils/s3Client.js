@@ -10,26 +10,27 @@ export const s3 = new S3Client({
   },
 });
 
-// 🔥 Universal URL-to-key extractor (works for all S3 URL formats)
+// Extract key ONLY if the URL belongs to your S3 bucket
 const extractS3Key = (url) => {
   if (!url) return null;
 
-  // Handles:
-  // 1. bucket.s3.region.amazonaws.com/<key>
-  // 2. s3.region.amazonaws.com/bucket/<key>
-  // 3. any URL ending with domain + /key
-  const parts = url.split(".amazonaws.com/");
-  if (parts.length < 2) return null;
+  const bucketBase = `${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_REGION}.amazonaws.com/`;
 
-  return parts[1]; // everything after amazonaws.com/
+  if (!url.includes(bucketBase)) {
+    console.warn("URL is not from S3 bucket → Skip deletion:", url);
+    return null;
+  }
+
+  return url.split(bucketBase)[1]; // return everything after the bucket prefix
 };
+
 
 export const deleteFromS3 = async (imageUrl) => {
   console.log("🟡 deleteFromS3 CALLED:", imageUrl);
-
+  
   if (!imageUrl) {
     console.log("⛔ No image URL, skipping...");
-    return;
+    return { success: true, skipped: true };
   }
 
   const key = extractS3Key(imageUrl);
@@ -37,11 +38,11 @@ export const deleteFromS3 = async (imageUrl) => {
 
   if (!key) {
     console.log("❌ Unable to extract S3 key from URL");
-    return;
+    return { success: false, error: "Invalid S3 URL format" };
   }
 
   const params = {
-    Bucket: process.env.AWS_S3_BUCKET_NAME,
+    Bucket: process.env.AWS_S3_BUCKET,
     Key: key,
   };
 
@@ -50,7 +51,10 @@ export const deleteFromS3 = async (imageUrl) => {
   try {
     await s3.send(new DeleteObjectCommand(params));
     console.log("🟢 S3 Deletion Successful:", key);
+    return { success: true, key };
   } catch (err) {
     console.error("🔥 S3 Delete Error:", err);
+    // S3 returns 204 even if file doesn't exist, but other errors should be caught
+    return { success: false, error: err.message };
   }
 };

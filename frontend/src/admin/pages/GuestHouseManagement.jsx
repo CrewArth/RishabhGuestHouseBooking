@@ -68,6 +68,7 @@ const GuestHouseManagement = () => {
         "Are you sure you want to delete this guest house and all related data?"
       )
     ) {
+
       return;
     }
 
@@ -80,6 +81,7 @@ const GuestHouseManagement = () => {
       await axios.delete(
         `http://localhost:5000/api/guesthouses/${guestHouseId}`
       );
+      toast.success("Guest House deleted sucessfully")
     } catch (err) {
       console.error("Error deleting guest house:", err);
       setGuestHouses(prev);
@@ -127,43 +129,42 @@ const GuestHouseManagement = () => {
                   </td>
                   <td>
                     <span
-                      className={`status-badge ${
-                        gh.maintenance ? "maintenance" : "active"
-                      }`}
+                      className={`status-badge ${gh.maintenance ? "maintenance" : "active"
+                        }`}
                     >
                       {gh.maintenance ? "🛠️ Inactive" : "✅ Active"}
                     </span>
                   </td>
                   <td className="action-buttons">
-  <button
-    className="btn edit"
-    data-tooltip="Edit"
-    onClick={() => {
-      setSelectedGH(gh);
-      setIsModalOpen(true);
-    }}
-  >
-  Edit
-  </button>
+                    <button
+                      className="btn edit"
+                      data-tooltip="Edit"
+                      onClick={() => {
+                        setSelectedGH(gh);
+                        setIsModalOpen(true);
+                      }}
+                    >
+                      Edit
+                    </button>
 
 
-  <button
-    className="btn maintenance"
-    data-tooltip={gh.maintenance ? "Disable Maintenance" : "Enable Maintenance"}
-    onClick={() => toggleMaintenance(gh.guestHouseId)}
-  >
-  Toggle
-  </button>
+                    <button
+                      className="btn maintenance"
+                      data-tooltip={gh.maintenance ? "Disable Maintenance" : "Enable Maintenance"}
+                      onClick={() => toggleMaintenance(gh.guestHouseId)}
+                    >
+                      Toggle
+                    </button>
 
-  <button
-    id="delete-btn"
-    className="btn-delete"
-    data-tooltip="Delete"
-    onClick={() => handleDeleteGuestHouse(gh.guestHouseId)}
-  >
-Delete
-  </button>
-</td>
+                    <button
+                      id="delete-btn"
+                      className="btn-delete"
+                      data-tooltip="Delete"
+                      onClick={() => handleDeleteGuestHouse(gh.guestHouseId)}
+                    >
+                      Delete
+                    </button>
+                  </td>
 
                 </tr>
               ))

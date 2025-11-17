@@ -156,7 +156,7 @@ export const deleteGuestHouse = async (req, res) => {
   }
 };
 
-
+// Guest House Update Code  
 export const updateGuestHouse = async (req, res) => {
   try {
     const { guestHouseId } = req.params;
