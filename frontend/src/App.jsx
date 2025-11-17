@@ -16,6 +16,7 @@ import Overview from './admin/pages/Overview';
 import Bookings from './admin/pages/Bookings';
 import GuestHouseManagement from './admin/pages/GuestHouseManagement.jsx';
 import UsersList from './admin/pages/UsersList';
+import NotFound from './components/NotFound';
 
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -86,6 +87,7 @@ function App() {
           <Route path="/admin/bookings" element={<Bookings />}/>
         </Route>  
 
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
     </>
