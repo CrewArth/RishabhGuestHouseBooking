@@ -1,8 +1,10 @@
 import User from '../models/User.js';
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 import { generateToken } from '../utils/jwt.js';
 import { sendEmail } from '../utils/emailService.js';
 import { welcomeEmail } from '../utils/emailTemplates/welcomeEmail.js';
+import { passwordResetEmail } from '../utils/emailTemplates/passwordReset.js';
 
 //Controller for Registering Users
 export const registerUser = async (req, res) => {
@@ -56,5 +58,86 @@ export const loginUser = async (req, res) => {
 
     } catch (error) {
         res.status(500).json({ message: error.message })
+    }
+}
+
+// Controller for Forgot Password
+export const forgotPassword = async (req, res) => {
+    try {
+        const { email } = req.body;
+
+        if (!email) {
+            return res.status(400).json({ message: "Email is required" });
+        }
+
+        const user = await User.findOne({ email });
+
+        if (!user) {
+            // respond success regardless for security
+            return res.status(200).json({ message: "If an account exists, password reset instructions were sent" });
+        }
+
+        const resetToken = crypto.randomBytes(32).toString('hex');
+        const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+
+        user.passwordResetToken = hashedToken;
+        user.passwordResetExpires = Date.now() + (15 * 60 * 1000); // 15 minutes
+        await user.save({ validateBeforeSave: false });
+
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+        const resetLink = `${frontendUrl}/reset-password?token=${resetToken}&email=${encodeURIComponent(email)}`;
+
+        try {
+            await sendEmail({
+                to: email,
+                subject: "Password Reset Instructions",
+                html: passwordResetEmail(user, resetLink)
+            });
+        } catch (emailErr) {
+            user.passwordResetToken = undefined;
+            user.passwordResetExpires = undefined;
+            await user.save({ validateBeforeSave: false });
+            console.error("Error sending reset email:", emailErr);
+            return res.status(500).json({ message: "Unable to send reset email right now" });
+        }
+
+        return res.status(200).json({ message: "If an account exists, password reset instructions were sent" });
+
+    } catch (error) {
+        console.error("Forgot password error:", error);
+        res.status(500).json({ message: "Server error while processing request" });
+    }
+}
+
+// Controller for Reset Password
+export const resetPassword = async (req, res) => {
+    try {
+        const { token, email, password } = req.body;
+
+        if (!token || !email || !password) {
+            return res.status(400).json({ message: "Token, email and password are required" });
+        }
+
+        const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
+        const user = await User.findOne({
+            email,
+            passwordResetToken: hashedToken,
+            passwordResetExpires: { $gt: Date.now() }
+        });
+
+        if (!user) {
+            return res.status(400).json({ message: "Invalid or expired token" });
+        }
+
+        user.password = password;
+        user.passwordResetToken = undefined;
+        user.passwordResetExpires = undefined;
+        await user.save();
+
+        return res.status(200).json({ message: "Password reset successful" });
+    } catch (error) {
+        console.error("Reset password error:", error);
+        res.status(500).json({ message: "Server error while resetting password" });
     }
 }

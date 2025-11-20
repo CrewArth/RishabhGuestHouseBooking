@@ -7,7 +7,7 @@ const NotFound = () => {
   return (
     <div className="notfound-wrapper">
       <div className="notfound-card">
-        <h1>404</h1>
+      <strong><h1>404</h1></strong>
         <h2>Page Not Found</h2>
         <p>
           The page you’re looking for doesn’t exist or has been moved. Please

@@ -51,7 +51,7 @@ const AuditLogs = () => {
   return (
     <div className="admin-content">
       <div className="audit-logs-header">
-        <h2>Audit Logs</h2>
+      <strong><h2>Audit Logs</h2></strong>
       </div>
 
       {/* Filter */}

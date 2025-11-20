@@ -17,6 +17,8 @@ import Bookings from './admin/pages/Bookings';
 import GuestHouseManagement from './admin/pages/GuestHouseManagement.jsx';
 import UsersList from './admin/pages/UsersList';
 import NotFound from './components/NotFound';
+import ForgotPassword from './users/pages/ForgotPassword';
+import ResetPassword from './users/pages/ResetPassword';
 
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -35,6 +37,8 @@ function App() {
         <Route path="/" element={<Homepage />} />
         <Route path="/signin" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
 
         {/* ------------------ USER PROTECTED ROUTES ------------------ */}
         <Route 

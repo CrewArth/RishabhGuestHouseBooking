@@ -11,7 +11,7 @@ const UsersList = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [statusFilter, setStatusFilter] = useState("all");
-
+  
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -41,19 +41,6 @@ const UsersList = () => {
     }
   };
 
-  // Soft delete user
-  const handleSoftDeleteUser = async (userId) => {
-    if (!window.confirm("Deactivate this user? They won't be able to log in.")) return;
-
-    try {
-      await axios.patch(`http://localhost:5000/api/users/${userId}/deactivate`);
-      toast.success("User deactivated successfully");
-      fetchUsers();
-    } catch (error) {
-      console.error("Error toggling user active state:", error);
-      toast.error("Failed to update user status");
-    }
-  };
 
   // Update user
   const handleUpdateUser = async (updatedUser) => {
@@ -70,6 +57,26 @@ const UsersList = () => {
       toast.error("Failed to update user");
     }
   };
+
+  const handleToggleUserStatus = async (user) => {
+    const confirmMsg = user.isActive
+      ? "Deactivate this user? They won't be able to log in."
+      : "Activate this user again?";
+
+    if (!window.confirm(confirmMsg)) return;
+
+    try {
+      const res = await axios.patch(`http://localhost:5000/api/users/${user._id}/toggle`);
+
+      toast.success(res.data.message);
+      fetchUsers();
+
+    } catch (error) {
+      console.error("Error toggling user active state:", error);
+      toast.error("Failed to update user status");
+    }
+  };
+
 
   // Re-fetch users when page changes
   useEffect(() => {
@@ -159,10 +166,11 @@ const UsersList = () => {
 
                       <button
                         className="btn-delete"
-                        onClick={() => handleSoftDeleteUser(user._id)}
+                        onClick={() => handleToggleUserStatus(user)}
                       >
-                        Delete
+                        {user.isActive ? "Deactivate" : "Activate"}
                       </button>
+
                     </td>
                   </tr>
                 ))

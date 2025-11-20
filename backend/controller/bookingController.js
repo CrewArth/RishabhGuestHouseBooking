@@ -242,3 +242,20 @@ export const checkAvailability = async (req, res) => {
     res.status(500).json({ message: "Server error while checking availability" });
   }
 };
+
+// 🟢 Get approved bookings for calendar (admin)
+export const getApprovedBookingsForCalendar = async (req, res) => {
+  try {
+    const bookings = await Booking.find({ status: "approved" })
+      .populate("userId", "firstName lastName email")
+      .populate("guestHouseId", "guestHouseName")
+      .populate("roomId", "roomNumber")
+      .populate("bedId", "bedNumber bedType")
+      .sort({ checkIn: 1 }); // Sort by check-in date
+
+    res.json({ bookings });
+  } catch (error) {
+    console.error("Error fetching approved bookings for calendar:", error);
+    res.status(500).json({ message: "Server error fetching calendar bookings" });
+  }
+};

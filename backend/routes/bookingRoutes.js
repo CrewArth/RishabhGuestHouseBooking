@@ -6,7 +6,8 @@ import {
   getMyBookings,
   approveBooking,
   rejectBooking,
-  checkAvailability
+  checkAvailability,
+  getApprovedBookingsForCalendar
 } from "../controller/bookingController.js";
 
 const router = express.Router();
@@ -26,6 +27,9 @@ router.patch("/:id/reject", rejectBooking);
 
 // To Check Room or Bed Availibility
 router.get("/availability", checkAvailability);
+
+// Get approved bookings for calendar (admin)
+router.get("/calendar", getApprovedBookingsForCalendar);
 
 
 export default router;

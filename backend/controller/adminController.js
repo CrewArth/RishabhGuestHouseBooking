@@ -42,6 +42,132 @@ export const getAdminSummary = async (req, res) => {
   }
 };
 
+const buildDateRange = (startDateParam, endDateParam, rangeParam) => {
+  const endDate = endDateParam ? new Date(endDateParam) : new Date();
+  if (Number.isNaN(endDate.getTime())) {
+    throw new Error("Invalid endDate");
+  }
+  endDate.setHours(23, 59, 59, 999);
+
+  let startDate;
+  if (startDateParam) {
+    startDate = new Date(startDateParam);
+    if (Number.isNaN(startDate.getTime())) {
+      throw new Error("Invalid startDate");
+    }
+  } else {
+    const days = parseInt(rangeParam, 10) || 30;
+    startDate = new Date(endDate);
+    startDate.setDate(startDate.getDate() - (days - 1));
+  }
+  startDate.setHours(0, 0, 0, 0);
+
+  return { startDate, endDate };
+};
+
+export const getBookingsPerDay = async (req, res) => {
+  try {
+    const { startDate, endDate } = buildDateRange(
+      req.query.startDate,
+      req.query.endDate,
+      req.query.range
+    );
+
+    const matchStage = {
+      createdAt: { $gte: startDate, $lte: endDate },
+    };
+
+    if (req.query.status && req.query.status !== "all") {
+      matchStage.status = req.query.status;
+    }
+
+    const bookingsPerDay = await Booking.aggregate([
+      { $match: matchStage },
+      {
+        $group: {
+          _id: {
+            $dateToString: {
+              format: "%Y-%m-%d",
+              date: "$createdAt",
+            },
+          },
+          totalBookings: { $sum: 1 },
+        },
+      },
+      { $sort: { _id: 1 } },
+      {
+        $project: {
+          _id: 0,
+          date: "$_id",
+          totalBookings: 1,
+        },
+      },
+    ]);
+
+    res.json({ range: { startDate, endDate }, data: bookingsPerDay });
+  } catch (error) {
+    console.error("Error fetching bookings per day:", error);
+    res.status(400).json({ error: error.message || "Unable to fetch data" });
+  }
+};
+
+export const getTopGuestHouses = async (req, res) => {
+  try {
+    const { startDate, endDate } = buildDateRange(
+      req.query.startDate,
+      req.query.endDate,
+      req.query.range
+    );
+
+    const limit = Math.min(parseInt(req.query.limit, 10) || 5, 20);
+
+    const matchStage = {
+      createdAt: { $gte: startDate, $lte: endDate },
+    };
+
+    if (req.query.status && req.query.status !== "all") {
+      matchStage.status = req.query.status;
+    }
+
+    const topGuestHouses = await Booking.aggregate([
+      { $match: matchStage },
+      {
+        $group: {
+          _id: "$guestHouseId",
+          bookingCount: { $sum: 1 },
+        },
+      },
+      { $sort: { bookingCount: -1 } },
+      { $limit: limit },
+      {
+        $lookup: {
+          from: "guesthouses",
+          localField: "_id",
+          foreignField: "_id",
+          as: "guestHouse",
+        },
+      },
+      { $unwind: "$guestHouse" },
+      {
+        $project: {
+          guestHouseId: "$_id",
+          guestHouseName: "$guestHouse.guestHouseName",
+          bookingCount: 1,
+          location: "$guestHouse.location",
+        },
+      },
+    ]);
+
+    res.json({
+      range: { startDate, endDate },
+      data: topGuestHouses,
+    });
+  } catch (error) {
+    console.error("Error fetching top guest houses:", error);
+    res.status(400).json({ error: error.message || "Unable to fetch data" });
+  }
+};
+
 // 🧾 GET /api/admin/users?page=1&limit=10
 export const listUsers = async (req, res) => {
   try {
