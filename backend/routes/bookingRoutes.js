@@ -7,7 +7,8 @@ import {
   approveBooking,
   rejectBooking,
   checkAvailability,
-  getApprovedBookingsForCalendar
+  getApprovedBookingsForCalendar,
+  exportDailyBookings
 } from "../controller/bookingController.js";
 
 const router = express.Router();
@@ -20,6 +21,9 @@ router.get("/my", getMyBookings);
 
 // Admin fetches all bookings
 router.get("/", getAllBookings);
+
+// Admin exports bookings by day
+router.get("/export/daily", exportDailyBookings);
 
 // Admin approves / rejects booking
 router.patch("/:id/approve", approveBooking);

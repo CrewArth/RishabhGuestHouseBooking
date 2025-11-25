@@ -97,8 +97,8 @@ const Profile = () => {
                             </div>
 
                             <div className="profile-buttons">
-                                <button onClick={() => setIsEditing(false)} className="btn btn-cancel">Cancel</button>
-                                <button onClick={handleUpdate} className="btn btn-update">Save Changes</button>
+                                <button onClick={() => setIsEditing(false)} className="profile-btn profile-btn-cancel">Cancel</button>
+                                <button onClick={handleUpdate} className="profile-btn profile-btn-update">Save Changes</button>
                             </div>
                         </div>
                     ) : (
@@ -136,10 +136,10 @@ const Profile = () => {
                             </div>
 
                             <div className="profile-buttons">
-                                <button onClick={() => navigate(-1)} className="btn btn-back">
+                                <button onClick={() => navigate(-1)} className="profile-btn profile-btn-back">
                                     ← Back
                                 </button>
-                                <button onClick={() => setIsEditing(true)} className="btn btn-edit">
+                                <button onClick={() => setIsEditing(true)} className="profile-btn profile-btn-edit">
                                     Edit Profile
                                 </button>
                             </div>

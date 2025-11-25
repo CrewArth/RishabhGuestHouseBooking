@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import "../styles/adminBooking.css";
+import { FaFileExcel } from "react-icons/fa";
 
 const Bookings = () => {
   const [bookings, setBookings] = useState([]);
@@ -10,6 +11,10 @@ const Bookings = () => {
   const [selected, setSelected] = useState(null);
   const [actionLoadingId, setActionLoadingId] = useState(null);
   const [statusFilter, setStatusFilter] = useState("all");
+  const [exportDate, setExportDate] = useState(() =>
+    new Date().toISOString().slice(0, 10)
+  );
+  const [isExporting, setIsExporting] = useState(false);
 
 
   const fetchBookings = async (silent = false) => {
@@ -49,6 +54,36 @@ const Bookings = () => {
     return date.toLocaleDateString("en-IN");
   };
 
+  const handleExport = async () => {
+    try {
+      setIsExporting(true);
+      const response = await axios.get(
+        "http://localhost:5000/api/bookings/export/daily",
+        {
+          params: { date: exportDate },
+          responseType: "blob",
+        }
+      );
+
+      const blob = new Blob([response.data], {
+        type: "text/csv;charset=utf-8;",
+      });
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = downloadUrl;
+      link.setAttribute("download", `bookings-${exportDate}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(downloadUrl);
+    } catch (err) {
+      console.error("Error exporting bookings:", err);
+      alert("Failed to export bookings for this day.");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   const handleAction = async (id, action, currentStatus) => {
     if (currentStatus !== "pending") {
       alert("This booking has already been processed.");
@@ -80,9 +115,26 @@ const Bookings = () => {
     <div className="admin-content admin-bookings-page">
       <div className="page-header">
         <div className="bk-title">
-        <h2>Booking Requests</h2>
+          <h2>Booking Requests</h2>
         </div>
-       
+        <div className="booking-export-wrapper">
+          <input
+            type="date"
+            className="booking-export-date"
+            value={exportDate}
+            onChange={(e) => setExportDate(e.target.value)}
+          />
+          <button
+            className="booking-export-btn"
+            onClick={handleExport}
+            disabled={isExporting || !exportDate}
+          >
+            <span className="export-icon" aria-hidden="true">
+              <FaFileExcel />
+            </span>
+            {isExporting ? "Generating..." : "Export"}
+          </button>
+        </div>
       </div>
 
       <div className="filter-bar">

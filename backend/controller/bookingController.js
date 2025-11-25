@@ -9,7 +9,6 @@ import { bookingRequest } from "../utils/emailTemplates/bookingRequest.js";
 import { bookingStatusUpdate } from "../utils/emailTemplates/bookingStatusUpdate.js";
 
 
-
 // 🟢 Create a new booking (user)
 export const createBooking = async (req, res) => {
   try {
@@ -90,6 +89,86 @@ export const getAllBookings = async (req, res) => {
   } catch (error) {
     console.error("Error fetching all bookings:", error);
     res.status(500).json({ message: "Server error fetching bookings" });
+  }
+};
+
+export const exportDailyBookings = async (req, res) => {
+  try {
+    const { date } = req.query;
+
+    if (!date) {
+      return res.status(400).json({ success: false, error: "date query parameter is required (YYYY-MM-DD)" });
+    }
+
+    const startOfDay = new Date(`${date}T00:00:00.000Z`);
+    const endOfDay = new Date(`${date}T23:59:59.999Z`);
+
+    const bookings = await Booking.find({
+      createdAt: { $gte: startOfDay, $lte: endOfDay }
+    })
+      .populate("userId", "firstName lastName email phone")
+      .populate("guestHouseId", "guestHouseName")
+      .populate("roomId", "roomNumber")
+      .populate("bedId", "bedNumber bedType")
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const headers = [
+      "Applied On",
+      "Status",
+      "Guest House",
+      "User Name",
+      "User Email",
+      "User Phone",
+      "Check In",
+      "Check Out",
+      "Room",
+      "Bed",
+      "Special Requests"
+    ];
+
+    const escapeValue = (value) => {
+      if (value === null || value === undefined) return '""';
+      const stringValue = typeof value === 'object'
+        ? JSON.stringify(value)
+        : String(value);
+      return `"${stringValue.replace(/"/g, '""')}"`;
+    };
+
+    const rows = bookings.map((b) => [
+      escapeValue(new Date(b.createdAt).toISOString()),
+      escapeValue(b.status),
+      escapeValue(b.guestHouseId?.guestHouseName || ""),
+      escapeValue(`${b.userId?.firstName || ""} ${b.userId?.lastName || ""}`.trim()),
+      escapeValue(b.userId?.email || ""),
+      escapeValue(b.userId?.phone || ""),
+      escapeValue(new Date(b.checkIn).toISOString()),
+      escapeValue(new Date(b.checkOut).toISOString()),
+      escapeValue(b.roomId?.roomNumber ? `Room ${b.roomId.roomNumber}` : ""),
+      escapeValue(
+        b.bedId?.bedNumber
+          ? `Bed ${b.bedId.bedNumber} (${b.bedId.bedType})`
+          : ""
+      ),
+      escapeValue(b.specialRequests || ""),
+    ]);
+
+    const csvContent = [
+      headers.join(","),
+      ...rows.map((row) => row.join(",")),
+    ].join("\n");
+
+    res.setHeader("Content-Type", "text/csv");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="bookings-${date}.csv"`
+    );
+    return res.status(200).send(csvContent);
+  } catch (error) {
+    console.error("Error exporting daily bookings:", error);
+    return res
+      .status(500)
+      .json({ success: false, error: "Server error while exporting bookings" });
   }
 };
 

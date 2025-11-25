@@ -129,6 +129,8 @@ const MyBookings = () => {
             </tbody>
           </table>
         )}
+
+        
       </div>
 
       <Footer />

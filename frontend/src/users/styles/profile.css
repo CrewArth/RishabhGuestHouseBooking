@@ -137,7 +137,7 @@
   margin-top: 1.5rem;
 }
 
-.btn {
+.profile-btn {
   padding: 0.75rem 1.6rem;
   font-weight: 600;
   border-radius: 0.5rem;
@@ -147,30 +147,39 @@
   border: none;
 }
 
-.btn-edit,
-.btn-update {
+.profile-btn-edit,
+.profile-btn-update {
   background-color: #2563eb;
   color: #ffffff;
   box-shadow: 0 4px 10px rgba(37, 99, 235, 0.2);
 }
 
-.btn-edit:hover,
-.btn-update:hover {
+.profile-btn-edit:hover,
+.profile-btn-update:hover {
   background-color: #1e40af;
   color: #ffffff;
 }
 
-.btn-cancel {
+.profile-btn-cancel {
   background-color: #ffffff;
   border: 2px solid #d1d5db;
   color: #4b5563;
 }
 
-.btn-cancel:hover {
+.profile-btn-cancel:hover {
   background-color: #860f0f;
   color: #ffffff;
 }
 
+.profile-btn-back {
+  background-color: #e5e7eb;
+  color: #374151;
+  border: 1px solid #d1d5db;
+}
+
+.profile-btn-back:hover {
+  background-color: #d1d5db;
+}
 /* Responsive */
 @media (max-width: 768px) {
   .profile-card {
@@ -199,7 +208,7 @@
     gap: 0.75rem;
   }
 
-  .btn {
+  .profile-btn {
     width: 100%;
   }
 }

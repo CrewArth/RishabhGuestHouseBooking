@@ -134,3 +134,7 @@ suggestion: Add Server message as toast message✅
 add standardiztion image during upload✅
 add toast to all.✅
 display server errors on ui, currently visible on console only.
+
+Updates to make: 24/11
+Export Functionality in admin panel.
+Add .rishabhsoft.in in email validation: Only employees whose mail has this in the end would only be able to register.

@@ -60,10 +60,10 @@ const UsersList = () => {
 
   const handleToggleUserStatus = async (user) => {
     const confirmMsg = user.isActive
-      ? "Deactivate this user? They won't be able to log in."
-      : "Activate this user again?";
+    //   ? "Deactivate this user? They won't be able to log in."
+    //   : "Activate this user again?";
 
-    if (!window.confirm(confirmMsg)) return;
+    // if (!window.confirm(confirmMsg)) return;
 
     try {
       const res = await axios.patch(`http://localhost:5000/api/users/${user._id}/toggle`);

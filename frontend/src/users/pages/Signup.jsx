@@ -11,10 +11,17 @@ import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import '../styles/signup.css';
 
+const COMPANY_EMAIL_SUFFIX = "@rishabhsoft.in";
+
 const schema = yup.object({
   firstName: yup.string().required("First name is required"),
   lastName: yup.string().required("Last name is required"),
-  email: yup.string().email("Invalid email format").required("Email is required"),
+  email: yup.string()
+    .email("Invalid email format")
+    .required("Email is required")
+    .test("company-domain", `Email must end with ${COMPANY_EMAIL_SUFFIX}`, (value) =>
+      value ? value.toLowerCase().endsWith(COMPANY_EMAIL_SUFFIX) : false
+    ),
   phone: yup.string().required("Phone number is required"),
   address: yup.string().required("Address is required"),
   password: yup.string().min(6, "Password must be at least 6 characters").required("Password is required"),

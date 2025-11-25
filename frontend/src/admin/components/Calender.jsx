@@ -3,11 +3,13 @@ import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import axios from 'axios';
 import '../styles/calendar.css';
+import '../styles/adminBooking.css';
 
 export default function Calendar() {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [selectedBooking, setSelectedBooking] = useState(null);
 
   useEffect(() => {
     fetchApprovedBookings();
@@ -57,20 +59,28 @@ export default function Calendar() {
 
   const handleEventClick = (clickInfo) => {
     const { extendedProps, title } = clickInfo.event;
-    const checkInDate = new Date(extendedProps.checkIn).toLocaleDateString();
-    const checkOutDate = new Date(extendedProps.checkOut).toLocaleDateString();
     
-    alert(
-      `Booking Details:\n\n` +
-      `Guest: ${title}\n` +
-      `Email: ${extendedProps.email}\n` +
-      `Guest House: ${extendedProps.guestHouse}\n` +
-      `Room: ${extendedProps.room}\n` +
-      `Bed: ${extendedProps.bed} (${extendedProps.bedType})\n` +
-      `Check-in: ${checkInDate}\n` +
-      `Check-out: ${checkOutDate}`
-    );
-    
+    setSelectedBooking({
+      guest: title,
+      email: extendedProps.email,
+      guestHouse: extendedProps.guestHouse,
+      room: extendedProps.room,
+      bed: extendedProps.bed,
+      bedType: extendedProps.bedType,
+      checkIn: extendedProps.checkIn,
+      checkOut: extendedProps.checkOut,
+    });
+  };
+
+  const formatDate = (dateStr) => {
+    if (!dateStr) return "—";
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return "Invalid Date";
+    return date.toLocaleDateString("en-IN", {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
   };
 
   if (loading) {
@@ -90,23 +100,52 @@ export default function Calendar() {
   }
 
   return (
-    <div className="calendar-container">
-      <div className="calendar-wrapper">
-        <FullCalendar
-          plugins={[dayGridPlugin]}
-          initialView="dayGridMonth"
-          events={events}
-          eventClick={handleEventClick}
-          headerToolbar={{
-            left: 'prev,next today',
-            center: 'title',
-            right: 'dayGridMonth'
-          }}
-          height="auto"
-          eventContent={renderEventContent}
-        />
+    <>
+      <div className="calendar-container">
+        <div className="calendar-wrapper">
+          <FullCalendar
+            plugins={[dayGridPlugin]}
+            initialView="dayGridMonth"
+            events={events}
+            eventClick={handleEventClick}
+            headerToolbar={{
+              left: 'prev,next today',
+              center: 'title',
+              right: 'dayGridMonth'
+            }}
+            height="auto"
+            eventContent={renderEventContent}
+          />
+        </div>
       </div>
-    </div>
+
+      {/* Booking Details Modal */}
+      {selectedBooking && (
+        <div className="modal-backdrop" onClick={() => setSelectedBooking(null)}>
+          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+            <h3>Booking Details</h3>
+
+            <div className="modal-details">
+              <p><strong>Guest:</strong> {selectedBooking.guest}</p>
+              <p><strong>Email:</strong> {selectedBooking.email}</p>
+              <p><strong>Guest House:</strong> {selectedBooking.guestHouse}</p>
+              <p><strong>Room:</strong> {selectedBooking.room !== 'N/A' ? `Room ${selectedBooking.room}` : 'N/A'}</p>
+              <p><strong>Bed:</strong> {
+                selectedBooking.bed !== 'N/A' 
+                  ? `Bed ${selectedBooking.bed} (${selectedBooking.bedType})` 
+                  : 'N/A'
+              }</p>
+              <p><strong>Check-in:</strong> {formatDate(selectedBooking.checkIn)}</p>
+              <p><strong>Check-out:</strong> {formatDate(selectedBooking.checkOut)}</p>
+            </div>
+
+            <div className="modal-actions">
+              <button className="btn" onClick={() => setSelectedBooking(null)}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 

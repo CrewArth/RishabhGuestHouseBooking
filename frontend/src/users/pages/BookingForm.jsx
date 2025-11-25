@@ -181,10 +181,11 @@ const BookingForm = () => {
       };
 
       const res = await axios.post("http://localhost:5000/api/bookings", bookingData);
-
+        
+      console.log(res.data);
       if (res.status === 201) {
         // alert("Booking request submitted successfully!");
-        toast.success("Booking request submitted successfully!")
+        toast.success("Booking request submitted successfully!", { autoClose: 1200 });
         setTimeout(() => {
           navigate('/my-bookings');
         }, 2500);
