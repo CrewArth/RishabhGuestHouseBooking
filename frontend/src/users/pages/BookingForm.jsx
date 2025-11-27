@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import '../styles/bookingform.css';
 import Navbar from '../../components/Navbar';
-import Footer from '../../components/Footer';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 
