@@ -66,6 +66,20 @@ const BookingForm = () => {
 
   // ✅ Validate dates in real-time
   const validateDates = (checkIn, checkOut) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Reset time to compare dates only
+    
+    if (checkIn) {
+      const checkInDate = new Date(checkIn);
+      checkInDate.setHours(0, 0, 0, 0);
+      
+      // Check if check-in date is in the past
+      if (checkInDate < today) {
+        setDateError("Check-in date cannot be in the past. Please select today or a future date.");
+        return false;
+      }
+    }
+    
     if (checkIn && checkOut) {
       if (new Date(checkOut) <= new Date(checkIn)) {
         setDateError("Check-out date must be after Check-in date");
@@ -187,7 +201,7 @@ const BookingForm = () => {
         toast.success("Booking request submitted successfully!", { autoClose: 1200 });
         setTimeout(() => {
           navigate('/my-bookings');
-        }, 2500);
+        }, 1200);
         
       } else {
         toast.error(res.data?.message || "Failed to submit booking")
@@ -240,7 +254,11 @@ const BookingForm = () => {
                     onChange={handleChange}
                     required
                     className={dateError ? "error-input" : ""}
+                    min={new Date().toISOString().split("T")[0]}
                   />
+                  {dateError && dateError.includes("past") && (
+                    <span className="error-message">{dateError}</span>
+                  )}
                 </div>
 
                 <div className="form-control">
@@ -255,8 +273,11 @@ const BookingForm = () => {
                     min={formData.checkInDate ? new Date(new Date(formData.checkInDate).getTime() + 86400000)
                       .toISOString()
                       .split("T")[0]
-                      : ""}
+                      : new Date().toISOString().split("T")[0]}
                   />
+                  {dateError && dateError.includes("Check-out") && (
+                    <span className="error-message">{dateError}</span>
+                  )}
                 </div>
 
                 <div className="form-control">

@@ -1,6 +1,7 @@
 // controllers/bookingController.js
 import Booking from "../models/Booking.js";
 import Bed from "../models/Bed.js";
+import Room from "../models/Room.js";
 import { logAction } from "../utils/auditLogger.js";
 import { sendEmail } from '../utils/emailService.js';
 import User from '../models/User.js';
@@ -14,24 +15,31 @@ export const createBooking = async (req, res) => {
   try {
     const { guestHouseId, roomId, bedId, checkIn, checkOut } = req.body;
     const userId = req.user?._id || req.body.userId;
-    
-    // ✅ Fetch User & Admin Emails
-    const user = await User.findById(userId);
-    const adminEmail = process.env.ADMIN_EMAIL || "arthvala7@gmail.com";
-    const guestHouse = await GuestHouse.findById(req.body.guestHouseId);
 
     if (!guestHouseId || !roomId || !bedId || !checkIn || !checkOut) {
       return res.status(400).json({ message: "All fields are required" });
     }
 
-    // Check if bed is already booked for overlapping dates
-    const overlap = await Booking.findOne({
-      bedId,
-      status: "approved",
-      $or: [
-        { checkIn: { $lte: new Date(checkOut) }, checkOut: { $gte: new Date(checkIn) } },
-      ],
-    });
+    // Parallelize database queries for better performance
+    const [user, guestHouse, overlap] = await Promise.all([
+      User.findById(userId),
+      GuestHouse.findById(guestHouseId),
+      Booking.findOne({
+        bedId,
+        status: "approved",
+        $or: [
+          { checkIn: { $lte: new Date(checkOut) }, checkOut: { $gte: new Date(checkIn) } },
+        ],
+      })
+    ]);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (!guestHouse) {
+      return res.status(404).json({ message: "Guest house not found" });
+    }
 
     if (overlap) {
       return res.status(400).json({ message: "This bed is already booked for the selected dates" });
@@ -53,21 +61,24 @@ export const createBooking = async (req, res) => {
     // ✅ Save it in MongoDB
     await newBooking.save();
 
-    await sendEmail({
+    // Send response immediately
+    res.status(201).json({ message: "Booking request submitted", newBooking });
+
+    // Fire-and-forget: Send email asynchronously (don't block response)
+    sendEmail({
       to: user.email,
       subject: "📅 Booking Request Submitted",
       html: bookingRequest(user, newBooking, guestHouse),
-    });
+    }).catch(err => console.error("Email send error:", err));
 
-    await logAction({
+    // Fire-and-forget: Log action asynchronously (don't block response)
+    logAction({
       action: "BOOKING_CREATED",
       entityType: "Booking",
       entityId: newBooking._id,
       performedBy: req.user?.email || "User",
       details: { guestHouseId, roomId, bedId, checkIn, checkOut },
-    });
-
-    res.status(201).json({ message: "Booking request submitted", newBooking });
+    }).catch(err => console.error("Audit log error:", err));
 
   } catch (error) {
     console.error("Error creating booking:", error);
@@ -92,6 +103,7 @@ export const getAllBookings = async (req, res) => {
   }
 };
 
+//Exporting Daily Bookings
 export const exportDailyBookings = async (req, res) => {
   try {
     const { date } = req.query;
@@ -292,9 +304,22 @@ export const checkAvailability = async (req, res) => {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
+    // Find the GuestHouse to get both _id (ObjectId) and guestHouseId (Number)
+    const guestHouse = await GuestHouse.findOne({
+      $or: [
+        { _id: guestHouseId },
+        { guestHouseId: parseInt(guestHouseId, 10) }
+      ]
+    });
+
+    if (!guestHouse) {
+      return res.status(404).json({ message: "Guest house not found" });
+    }
+
     // Find all APPROVED bookings overlapping the requested date range
+    // Use guestHouse._id since Booking.guestHouseId is ObjectId
     const overlappingBookings = await Booking.find({
-      guestHouseId,
+      guestHouseId: guestHouse._id,
       status: "approved",
       $or: [
         {
@@ -306,14 +331,47 @@ export const checkAvailability = async (req, res) => {
       .populate("roomId", "roomNumber")
       .populate("bedId", "bedNumber bedType");
 
-    // Extract unavailable room & bed IDs
-    const unavailableRooms = [
-      ...new Set(overlappingBookings.map(b => b.roomId?._id.toString())),
-    ];
-
+    // Extract unavailable bed IDs (beds that are booked)
     const unavailableBeds = [
       ...new Set(overlappingBookings.map(b => b.bedId?._id.toString())),
     ];
+
+    // Get all rooms for this guest house (using guestHouseId as Number)
+    const rooms = await Room.find({ 
+      guestHouseId: guestHouse.guestHouseId, 
+      isActive: true 
+    });
+
+    // For each room, check if ALL beds are booked
+    const unavailableRooms = [];
+    
+    for (const room of rooms) {
+      // Get all active beds for this room
+      const totalBeds = await Bed.countDocuments({ 
+        roomId: room._id, 
+        isActive: true 
+      });
+
+      if (totalBeds === 0) {
+        // No beds in room, skip it
+        continue;
+      }
+
+      // Count how many beds in this room are booked for the date range
+      const bookedBedsInRoom = overlappingBookings.filter(
+        booking => booking.roomId?._id.toString() === room._id.toString()
+      );
+
+      // Get unique booked bed IDs for this room
+      const bookedBedIds = new Set(
+        bookedBedsInRoom.map(b => b.bedId?._id.toString())
+      );
+
+      // Room is unavailable only if ALL beds are booked
+      if (bookedBedIds.size >= totalBeds) {
+        unavailableRooms.push(room._id.toString());
+      }
+    }
 
     res.json({ unavailableRooms, unavailableBeds });
   } catch (error) {

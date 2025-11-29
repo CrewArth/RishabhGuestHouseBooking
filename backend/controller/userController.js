@@ -48,9 +48,34 @@ export const updateUser = async (req, res) => {
     res.json({ user: updatedUser });
   } catch (error) {
     console.error("Update User Error: ", error);
+    
+    // Handle duplicate key error (MongoDB error code 11000)
+    if (error.code === 11000) {
+      const field = Object.keys(error.keyPattern || {})[0];
+      let message = `${field} is already taken`;
+      
+      // Provide more specific messages
+      if (field === 'phone') {
+        message = "Phone number is already taken. Please use a different phone number.";
+      } else if (field === 'email') {
+        message = "Email is already taken. Please use a different email address.";
+      }
+      
+      return res.status(400).json({ message });
+    }
+    
+    // Handle validation errors
+    if (error.name === 'ValidationError') {
+      const validationErrors = Object.values(error.errors).map(err => err.message);
+      return res.status(400).json({ 
+        message: validationErrors.join(', ') || "Validation error occurred"
+      });
+    }
+    
+    // Handle other errors
     res
       .status(500)
-      .json({ message: "Server not Available while updating user." });
+      .json({ message: error.message || "Server error while updating user." });
   }
 };
 

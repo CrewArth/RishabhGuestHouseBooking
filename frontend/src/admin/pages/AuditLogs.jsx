@@ -200,7 +200,10 @@ const AuditLogs = () => {
         <label>Filter by Entity:</label>
         <select
           value={filterType}
-          onChange={(e) => setFilterType(e.target.value)}
+          onChange={(e) => {
+            setFilterType(e.target.value);
+            setCurrentPage(1); // Reset to first page when filter changes
+          }}
         >
           <option value="all">All</option>
           <option value="GuestHouse">Guest House</option>

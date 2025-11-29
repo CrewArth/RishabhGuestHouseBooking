@@ -46,12 +46,13 @@ export const processAndUploadImage = async (req, res, next) => {
 
     // 4️⃣ Attach final URL to request
     req.optimizedImageUrl = `https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_REGION}.amazonaws.com/${fileName}`;
+    /* This image URL is later used to store in MongoDB database.  */
 
-    console.log("🟢 Optimized image uploaded:", req.optimizedImageUrl);
+    console.log("Optimized image uploaded:", req.optimizedImageUrl);
 
     next();
   } catch (err) {
-    console.error("🔥 Image optimization failed:", err);
+    console.error("Image optimization failed:", err);
     return res.status(500).json({ message: "Image processing failed" });
   }
 };

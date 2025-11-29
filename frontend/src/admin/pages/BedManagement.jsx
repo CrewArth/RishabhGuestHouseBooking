@@ -234,7 +234,7 @@ const BedManagement = () => {
             {beds.length > 0 ? beds.map(b => (
               <tr key={b._id}>
                 <td>{b.bedNumber}</td>
-                <td>{b.isAvailable ? '✅ Available' : '❌ Under Maintanence'}</td>
+                <td>{b.isAvailable ? '✅ Available' : '❌ Booked'}</td>
                 <td>
                   <button className="btn-edit" onClick={() => { setSelectedBed(b); setIsModalOpen(true); }}>Edit</button>
                   <button className="btn-warning" onClick={() => toggleAvailability(b._id, b.isAvailable)}>Toggle</button>

@@ -65,14 +65,28 @@ export const logAction = async ({ action, entityType, entityId, performedBy = "S
     }
 
     if (entityType === "User") {
-      const user = await User.findById(entityId);
-      if (user) {
+      // If details already contain user info (name, email, phone), use it instead of querying
+      if (details.name && details.email) {
         enriched.userDetails = {
-          name: `${user.firstName} ${user.lastName}`,
-          email: user.email,
-          phone: user.phone,
-          isActive: user.isActive
+          name: details.name,
+          email: details.email,
+          phone: details.phone,
+          isActive: details.isActive !== undefined ? details.isActive : true
         };
+      } else if (details.userDetails) {
+        // If userDetails object is already provided, use it
+        enriched.userDetails = details.userDetails;
+      } else {
+        // Only query if details are not provided
+        const user = await User.findById(entityId);
+        if (user) {
+          enriched.userDetails = {
+            name: `${user.firstName} ${user.lastName}`,
+            email: user.email,
+            phone: user.phone,
+            isActive: user.isActive
+          };
+        }
       }
     }
 

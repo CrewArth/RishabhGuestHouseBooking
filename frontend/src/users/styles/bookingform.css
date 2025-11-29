@@ -101,6 +101,21 @@ body {
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
 }
 
+/* Error Styles */
+.form-control input.error-input,
+.form-control select.error-input,
+.form-control textarea.error-input {
+  border-color: #ef4444; /* red-500 */
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
+}
+
+.error-message {
+  color: #ef4444; /* red-500 */
+  font-size: 0.875rem; /* text-sm */
+  margin-top: 0.25rem; /* mt-1 */
+  display: block;
+}
+
 textarea {
   resize: none;
 }

@@ -6,15 +6,16 @@ import * as yup from "yup";
 import { useEffect, useState } from "react";
 import { ToastContainer, toast } from "react-toastify";
 import 'react-toastify/dist/ReactToastify.css';
-
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import '../styles/login.css';
 
+// Email Validation Schema
 const schema = yup.object({
   email: yup.string().email("Invalid Email Format").required("Email is required"),
   password: yup.string().min(6, "Password must be at least 6 characters").required("Password is required"),
 }).required();
+
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);

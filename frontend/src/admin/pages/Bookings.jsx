@@ -96,10 +96,10 @@ const Bookings = () => {
 
     try {
       setActionLoadingId(id);
-
+      
       await axios.patch(`http://localhost:5000/api/bookings/${id}/${action}`);
-      await fetchBookings();
       toast.success(`Booking ${action === "approve" ? "approved" : "rejected"} successfully.`);
+      await fetchBookings();
     } catch (err) {
       console.error(`Error ${action} booking:`, err);
       toast.error("Action failed. Check server logs.");
@@ -204,7 +204,7 @@ const Bookings = () => {
         className="btn success small"
         disabled={actionLoadingId === b._id}
       >
-        {actionLoadingId === b._id ? "..." : "Approve"}
+        {actionLoadingId === b._id ? "loading..." : "Approve"}
       </button>
 
       <button
@@ -212,7 +212,7 @@ const Bookings = () => {
         className="btn danger small"
         disabled={actionLoadingId === b._id}
       >
-        {actionLoadingId === b._id ? "..." : "Reject"}
+        {actionLoadingId === b._id ? "loading..." : "Reject"}
       </button>
     </>
   )}

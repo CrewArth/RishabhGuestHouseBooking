@@ -10,14 +10,15 @@ const auditLogSchema = new mongoose.Schema(
         'MAINTENANCE_TOGGLED',
         'ROOM_CREATED', 'ROOM_UPDATED', 'ROOM_DELETED', 'ROOM_AVAILABILITY_TOGGLED',
         'BED_CREATED', 'BED_UPDATED', 'BED_DELETED', 'BED_AVAILABILITY_TOGGLED',
-        'BOOKING_CREATED', 'BOOKING_APPROVED', 'BOOKING_REJECTED'
+        'BOOKING_CREATED', 'BOOKING_APPROVED', 'BOOKING_REJECTED', 'USER_REGISTERED',
+        'USER_UPDATED', 'USER_DELETED', 'USER_DEACTIVATED', 'USER_ACTIVATED', 
       ]
     },
 
     entityType: {
       type: String,
       required: true,
-      enum: ['Booking','GuestHouse', 'Room', 'Bed']
+      enum: ['Booking','GuestHouse', 'Room', 'Bed', 'User']
     },
 
     entityId: {

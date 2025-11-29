@@ -13,12 +13,12 @@ export const registerUser = async (req, res) => {
         //Get the Response Data
         const { firstName, lastName, email, phone, address, password } = req.body;
 
-        const allowedEmailSuffix = '@rishabhsoft.in';
-        if (!email || !email.toLowerCase().endsWith(allowedEmailSuffix)) {
-            return res.status(400).json({
-                message: "Only rishabhsoft.in email addresses are allowed to register."
-            });
-        }
+        // const allowedEmailSuffix = '@rishabhsoft.in';
+        // if (!email || !email.toLowerCase().endsWith(allowedEmailSuffix)) {
+        //     return res.status(400).json({
+        //         message: "Only rishabhsoft.in email addresses are allowed to register."
+        //     });  
+        // }
 
         //Check for Existing User
         const existingUser = await User.findOne({ email });
@@ -30,13 +30,24 @@ export const registerUser = async (req, res) => {
         const newUser = new User({ firstName, lastName, email, phone, address, password });
         await newUser.save(); // pre-save will hash password
 
-        await sendEmail({
+        // Generate token immediately (don't wait for email/audit log)
+        const token = generateToken(newUser);
+        
+        // Send response immediately
+        res.status(201).json({
+            user: newUser,
+            token
+        });
+
+        // Fire-and-forget: Send email asynchronously (don't block response)
+        sendEmail({
             to: newUser.email,
             subject: "🎉 Welcome to Rishabh Guest House",
             html: welcomeEmail(newUser),
-        })
+        }).catch(err => console.error("Email send error:", err));
 
-        await logAction({
+        // Fire-and-forget: Log action asynchronously (don't block response)
+        logAction({
           action: "USER_REGISTERED",
           entityType: "User",
           entityId: newUser._id,
@@ -46,13 +57,7 @@ export const registerUser = async (req, res) => {
             email: newUser.email,
             phone: newUser.phone,
           },
-        });
-
-        const token = generateToken(newUser);
-        res.status(201).json({
-            user: newUser,
-            token
-        })
+        }).catch(err => console.error("Audit log error:", err));
     } catch (error) {
         res.status(500).json({
             message: error.message

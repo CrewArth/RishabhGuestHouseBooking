@@ -132,7 +132,7 @@ const GuestHouseManagement = () => {
                       className={`status-badge ${gh.maintenance ? "maintenance" : "active"
                         }`}
                     >
-                      {gh.maintenance ? "🛠️ Inactive" : "✅ Active"}
+                      {gh.maintenance ? "Under Maintanence" : "Active"}
                     </span>
                   </td>
                   <td className="action-buttons">

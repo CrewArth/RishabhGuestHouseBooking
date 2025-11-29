@@ -19,6 +19,11 @@ import UsersList from './admin/pages/UsersList';
 import NotFound from './components/NotFound';
 import ForgotPassword from './users/pages/ForgotPassword';
 import ResetPassword from './users/pages/ResetPassword';
+import AboutUs from './commonPages/AboutUs';
+import ContactUs from './commonPages/ContactUs';
+import TermsAndPolicy from './commonPages/TermsAndPolicy';
+import FAQ from './commonPages/FAQ';
+import ScrollToTop from './components/ScrollToTop';
 
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -31,6 +36,7 @@ function App() {
     <ToastContainer position="top-right" autoClose={2500} />
     
     <BrowserRouter>
+      <ScrollToTop />
       <Routes>
         
         {/* ------------------ PUBLIC ROUTES ------------------ */}
@@ -39,6 +45,10 @@ function App() {
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/about" element={<AboutUs />} />
+        <Route path="/contact" element={<ContactUs />} />
+        <Route path="/terms" element={<TermsAndPolicy />} />
+        <Route path="/faq" element={<FAQ />} />
 
         {/* ------------------ USER PROTECTED ROUTES ------------------ */}
         <Route 

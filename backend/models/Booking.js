@@ -45,4 +45,12 @@ const bookingSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// Indexes for performance optimization
+// Compound index for overlap checking query (bedId + status + date range)
+bookingSchema.index({ bedId: 1, status: 1, checkIn: 1, checkOut: 1 });
+// Index for user bookings lookup
+bookingSchema.index({ userId: 1, createdAt: -1 });
+// Index for guest house bookings
+bookingSchema.index({ guestHouseId: 1, createdAt: -1 });
+
 export default mongoose.model("Booking", bookingSchema);

@@ -11,6 +11,7 @@ const Profile = () => {
     const [user, setUser] = useState(null);
     const [isEditing, setIsEditing] = useState(false);
     const [updatedUser, setUpdatedUser] = useState({});
+    const [phoneError, setPhoneError] = useState('');
 
     useEffect(() => {
         const storedUser = localStorage.getItem("user");
@@ -21,19 +22,67 @@ const Profile = () => {
         }
         const userData = JSON.parse(storedUser);
         setUser(userData);
-        setUpdatedUser(userData);
+        // Convert phone number to string for form handling (phone comes as number from backend)
+        setUpdatedUser({
+            ...userData,
+            phone: userData.phone ? String(userData.phone) : ''
+        });
     }, [navigate]);
 
     const handleInputChange = (e) => {
-        setUpdatedUser({
-            ...updatedUser,
-            [e.target.name]: e.target.value,
-        });
+        const { name, value } = e.target;
+        
+        // Real-time phone validation
+        if (name === 'phone') {
+            // Remove any non-numeric characters
+            const numericValue = value.replace(/\D/g, '');
+            
+            // Limit to 10 digits
+            const limitedValue = numericValue.slice(0, 10);
+            
+            // Validate phone number
+            if (limitedValue.length === 0) {
+                setPhoneError('');
+            } else if (limitedValue.length < 10) {
+                setPhoneError('Phone number must be 10 digits');
+            } else {
+                setPhoneError('');
+            }
+            
+            setUpdatedUser({
+                ...updatedUser,
+                [name]: limitedValue,
+            });
+        } else {
+            setUpdatedUser({
+                ...updatedUser,
+                [name]: value,
+            });
+        }
     };
 
     const handleUpdate = async () => {
+        // Validate phone before submission
+        // Convert phone to string for validation (handle both string and number)
+        const phoneStr = updatedUser.phone ? String(updatedUser.phone) : '';
+        
+        if (phoneStr && phoneStr.length !== 10) {
+            setPhoneError('Phone number must be exactly 10 digits');
+            toast.error('Please enter a valid 10-digit phone number');
+            return;
+        }
+
+        // Clear phone error if valid
+        setPhoneError('');
+
         try {
-            const response = await axios.put(`http://localhost:5000/api/users/${user._id}`, updatedUser);
+            // Convert phone to number for backend (since backend expects Number type)
+            const submitData = {
+                ...updatedUser,
+                phone: updatedUser.phone ? parseInt(updatedUser.phone, 10) : updatedUser.phone
+            };
+
+            const response = await axios.put(`http://localhost:5000/api/users/${user._id}`, submitData);
 
             // Check if we have a valid response with user data
             if (response.data && response.data.user) {
@@ -45,7 +94,7 @@ const Profile = () => {
                 setIsEditing(false);
 
                 // Show success message and navigate
-                toast.success("Profile updated successfully")
+                toast.success("Profile updated successfully");
                 navigate('/dashboard');
             } else {
                 console.error("Invalid response structure:", response.data);
@@ -53,8 +102,22 @@ const Profile = () => {
             }
         } catch (error) {
             console.error("Error updating profile:", error);
-            // alert(error.response?.data?.message || "Failed to update profile. Please try again.");
-            toast.error(error.response?.data?.message || "Failed to update profile. Please try again.")
+            
+            // Extract and display backend error message
+            let errorMessage = "Failed to update profile. Please try again.";
+            
+            if (error.response?.data) {
+                // Handle different error formats
+                if (error.response.data.message) {
+                    errorMessage = error.response.data.message;
+                } else if (error.response.data.error) {
+                    errorMessage = error.response.data.error;
+                } else if (typeof error.response.data === 'string') {
+                    errorMessage = error.response.data;
+                }
+            }
+            
+            toast.error(errorMessage);
         }
     }
     if (!user) return null;
@@ -88,7 +151,18 @@ const Profile = () => {
 
                             <div className="profile-row">
                                 <label>Phone:</label>
-                                <input type="tel" name="phone" value={updatedUser.phone} onChange={handleInputChange} />
+                                <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                                    <input 
+                                        type="tel" 
+                                        name="phone" 
+                                        value={updatedUser.phone || ''} 
+                                        onChange={handleInputChange}
+                                        maxLength={10}
+                                        placeholder="Enter 10-digit phone number"
+                                        className={phoneError ? 'error-input' : ''}
+                                    />
+                                    {phoneError && <span className="error-message">{phoneError}</span>}
+                                </div>
                             </div>
 
                             <div className="profile-row">
@@ -97,7 +171,15 @@ const Profile = () => {
                             </div>
 
                             <div className="profile-buttons">
-                                <button onClick={() => setIsEditing(false)} className="profile-btn profile-btn-cancel">Cancel</button>
+                                <button onClick={() => {
+                                    setIsEditing(false);
+                                    setPhoneError('');
+                                    // Reset to original user data with phone as string
+                                    setUpdatedUser({
+                                        ...user,
+                                        phone: user.phone ? String(user.phone) : ''
+                                    });
+                                }} className="profile-btn profile-btn-cancel">Cancel</button>
                                 <button onClick={handleUpdate} className="profile-btn profile-btn-update">Save Changes</button>
                             </div>
                         </div>
@@ -139,7 +221,14 @@ const Profile = () => {
                                 <button onClick={() => navigate(-1)} className="profile-btn profile-btn-back">
                                     ← Back
                                 </button>
-                                <button onClick={() => setIsEditing(true)} className="profile-btn profile-btn-edit">
+                                <button onClick={() => {
+                                    // Ensure phone is string when entering edit mode
+                                    setUpdatedUser({
+                                        ...user,
+                                        phone: user.phone ? String(user.phone) : ''
+                                    });
+                                    setIsEditing(true);
+                                }} className="profile-btn profile-btn-edit">
                                     Edit Profile
                                 </button>
                             </div>
