@@ -25,11 +25,7 @@ const HeroSection = () => {
           <button className="hero-button" onClick={navigateSignin}>Book Now</button>
         </div>
         <div className="hero-icon">
-          {/* <FaHome /> */}
-
-            
-                  <img src={herobg} alt="Rishabh Software Logo" id='nav-logo' width="500px" draggable='false'/>
-             
+            <img src={herobg} alt="Rishabh Software Logo" id='nav-logo' width="500px" draggable='false'/>
         </div>
       </div>
     </div>

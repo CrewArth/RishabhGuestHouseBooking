@@ -187,3 +187,95 @@ export const softDeleteBed = async (req, res) => {
     return res.status(500).json({ error: 'Server error while deleting bed' });
   }
 };
+
+// Auto-create beds based on room capacity
+export const autoCreateBeds = async (req, res) => {
+  try {
+    const { roomId, bedType = 'single' } = req.body;
+
+    if (!roomId) {
+      return res.status(400).json({ error: 'roomId is required' });
+    }
+
+    // Check if Room Exists
+    const room = await Room.findById(roomId);
+    if (!room) {
+      return res.status(404).json({ error: 'Room not found' });
+    }
+
+    // Get existing active beds for this room
+    const existingBeds = await Bed.find({ roomId, isActive: true }).sort({ bedNumber: 1 });
+    const existingBedsCount = existingBeds.length;
+
+    // Check if room is already at capacity
+    if (existingBedsCount >= room.roomCapacity) {
+      return res.status(400).json({ 
+        error: `Room is already at full capacity (${room.roomCapacity} beds). Cannot create more beds.` 
+      });
+    }
+
+    // Calculate how many beds need to be created
+    const bedsToCreate = room.roomCapacity - existingBedsCount;
+
+    // Find the next available bed number
+    let nextBedNumber = 1;
+    if (existingBeds.length > 0) {
+      // Get the highest bed number and increment
+      const maxBedNumber = Math.max(...existingBeds.map(b => b.bedNumber));
+      nextBedNumber = maxBedNumber + 1;
+    }
+
+    // Create beds array
+    const bedsToInsert = [];
+    for (let i = 0; i < bedsToCreate; i++) {
+      bedsToInsert.push({
+        roomId,
+        bedNumber: nextBedNumber + i,
+        bedType,
+        isAvailable: true,
+        isActive: true,
+      });
+    }
+
+    // Insert all beds
+    const createdBeds = await Bed.insertMany(bedsToInsert);
+
+    // Log action for each bed created
+    for (const bed of createdBeds) {
+      await logAction({
+        action: 'BED_CREATED',
+        entityType: 'Bed',
+        entityId: bed._id,
+        performedBy: req.user?.email || 'Admin',
+        details: {
+          roomId: bed.roomId,
+          bedNumber: bed.bedNumber,
+          bedType: bed.bedType,
+          autoCreated: true,
+        },
+      });
+    }
+
+    // Fetch all beds for the room and return
+    const allBeds = await Bed.find({ roomId, isActive: true }).sort({ bedNumber: 1 });
+
+    return res.status(201).json({
+      success: true,
+      message: `Successfully created ${bedsToCreate} bed(s)`,
+      createdCount: bedsToCreate,
+      beds: allBeds,
+    });
+
+  } catch (error) {
+    console.error('Error auto-creating beds:', error);
+    
+    // Handle duplicate key error (bed number conflict)
+    if (error.code === 11000) {
+      return res.status(400).json({ 
+        error: 'Bed number conflict. Some beds may have been created. Please refresh and try again.' 
+      });
+    }
+
+    return res.status(500).json({ error: 'Server error while auto-creating beds' });
+  }
+};

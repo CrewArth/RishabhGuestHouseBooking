@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import "../styles/adminBooking.css";
 import { FaFileExcel } from "react-icons/fa";
+import { toast } from "react-toastify";
 
 const Bookings = () => {
   const [bookings, setBookings] = useState([]);
@@ -76,9 +77,10 @@ const Bookings = () => {
       link.click();
       link.remove();
       window.URL.revokeObjectURL(downloadUrl);
+      toast.success("Bookings exported successfully.");
     } catch (err) {
       console.error("Error exporting bookings:", err);
-      alert("Failed to export bookings for this day.");
+      toast.error("Failed to export bookings for this day.");
     } finally {
       setIsExporting(false);
     }
@@ -86,7 +88,7 @@ const Bookings = () => {
 
   const handleAction = async (id, action, currentStatus) => {
     if (currentStatus !== "pending") {
-      alert("This booking has already been processed.");
+      toast.info("This booking has already been processed.");
       return;
     }
 
@@ -97,9 +99,10 @@ const Bookings = () => {
 
       await axios.patch(`http://localhost:5000/api/bookings/${id}/${action}`);
       await fetchBookings();
+      toast.success(`Booking ${action === "approve" ? "approved" : "rejected"} successfully.`);
     } catch (err) {
       console.error(`Error ${action} booking:`, err);
-      alert("Action failed. Check server logs.");
+      toast.error("Action failed. Check server logs.");
     } finally {
       setActionLoadingId(null);
     }

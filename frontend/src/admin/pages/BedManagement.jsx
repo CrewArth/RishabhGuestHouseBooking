@@ -141,6 +141,50 @@ const BedManagement = () => {
     }
   };
 
+  const handleAutoCreateBeds = async () => {
+    console.log("Workingss")
+    // toast.success("Toast is working...")
+    if (!selectedRoom) {
+      toast.error('Please select a room first');
+      return;
+    }
+
+    const room = rooms.find(r => String(r._id) === String(selectedRoom));
+    if (!room) {
+      toast.error('Room not found');
+      return;
+    }
+
+    const existingBedsCount = beds.filter(b => b.isActive).length;
+    const bedsToCreate = room.roomCapacity - existingBedsCount;
+
+    if (bedsToCreate <= 0) {
+      toast.warning(`Room is already at full capacity (${room.roomCapacity} beds)`);
+      return;
+    }
+
+    // if (!window.confirm(
+    //   `This will create ${bedsToCreate} bed(s) for Room ${room.roomNumber}.\n` +
+    //   `Beds will be numbered incrementally starting from ${beds.length > 0 ? Math.max(...beds.map(b => b.bedNumber)) + 1 : 1}.\n\n` +
+    //   `Continue?`
+    // )) {
+    //   return;
+    // }
+
+    try {
+      const res = await axios.post('http://localhost:5000/api/beds/auto-create', {
+        roomId: selectedRoom,
+        bedType: 'single' // default bed type
+      });
+
+      toast.success(res.data.message || `Successfully created ${bedsToCreate} bed(s)`);
+      fetchBedsForRoom(selectedRoom);
+    } catch (err) {
+      console.error('Error auto-creating beds', err);
+      toast.error(err?.response?.data?.error || 'Failed to auto-create beds');
+    }
+  };
+
   return (
     <div className="admin-content">
       <div className="rm-title">
@@ -163,6 +207,15 @@ const BedManagement = () => {
             if (!selectedRoom) return alert('Please select room first');
             setIsModalOpen(true);
           }} className="btn-primary">Add New Bed</button>
+
+          <button 
+            onClick={handleAutoCreateBeds}
+            className="btn-primary"
+            style={{ backgroundColor: '#16a34a' }}
+            disabled={!selectedRoom}
+          >
+            Auto Create Beds
+          </button>
 
           <button onClick={() => navigate(-1)} className="btn-secondary">Back</button>
         </div>

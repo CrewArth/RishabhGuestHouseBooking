@@ -48,8 +48,8 @@ const TopGuestHousesChart = ({ data = [], loading, rangeLabel }) => {
     <div className="metrics-card">
       <div className="chart-header">
         <div>
-          <p className="chart-label">Most booked guest houses</p>
-          <h3>Guest House Leaderboard</h3>
+          <p className="chart-label"></p>
+          <h3>Most Booked Guest Houses</h3>
         </div>
         {rangeLabel && <span className="chart-range">{rangeLabel}</span>}
       </div>

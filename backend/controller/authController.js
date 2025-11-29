@@ -5,6 +5,7 @@ import { generateToken } from '../utils/jwt.js';
 import { sendEmail } from '../utils/emailService.js';
 import { welcomeEmail } from '../utils/emailTemplates/welcomeEmail.js';
 import { passwordResetEmail } from '../utils/emailTemplates/passwordReset.js';
+import { logAction } from '../utils/auditLogger.js';
 
 //Controller for Registering Users
 export const registerUser = async (req, res) => {
@@ -34,6 +35,18 @@ export const registerUser = async (req, res) => {
             subject: "🎉 Welcome to Rishabh Guest House",
             html: welcomeEmail(newUser),
         })
+
+        await logAction({
+          action: "USER_REGISTERED",
+          entityType: "User",
+          entityId: newUser._id,
+          performedBy: newUser.email,
+          details: {
+            name: `${newUser.firstName} ${newUser.lastName}`.trim(),
+            email: newUser.email,
+            phone: newUser.phone,
+          },
+        });
 
         const token = generateToken(newUser);
         res.status(201).json({

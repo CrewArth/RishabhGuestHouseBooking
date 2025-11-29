@@ -63,14 +63,14 @@ const GuestHouseManagement = () => {
   };
 
   const handleDeleteGuestHouse = async (guestHouseId) => {
-    if (
-      !window.confirm(
-        "Are you sure you want to delete this guest house and all related data?"
-      )
-    ) {
+    // if (
+    //   !window.confirm(
+    //     "Are you sure you want to delete this guest house and all related data?"
+    //   )
+    // ) {
 
-      return;
-    }
+    //   return;
+    // }
 
     const prev = guestHouses;
     setGuestHouses((list) =>

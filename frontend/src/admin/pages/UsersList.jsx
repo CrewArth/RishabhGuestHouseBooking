@@ -101,7 +101,7 @@ const UsersList = () => {
     <div className="admin-content">
       <div className="users-header">
         <h1>All Users</h1>
-        <span className="count">Total: {users.length}</span>
+        {/* <span className="count">Total: {users.length}</span> */}
       </div>
 
       {/* Filter Bar */}
