@@ -2,10 +2,24 @@
 import User from '../models/User.js';
 import GuestHouse from '../models/GuestHouse.js';
 import Booking from '../models/Booking.js';
+import { cache } from '../utils/redisClient.js';
 
-// 🧠 Fetch Dashboard Summary (LIVE STATS)
+// 🧠 Fetch Dashboard Summary (LIVE STATS) - with Redis caching
 export const getAdminSummary = async (req, res) => {
   try {
+    const cacheKey = 'admin:dashboard:summary';
+    
+    // Try to get from cache first
+    const cachedSummary = await cache.get(cacheKey);
+    
+    if (cachedSummary) {
+      console.log('✅ Admin dashboard summary served from Redis cache');
+      return res.json(cachedSummary);
+    }
+
+    // Cache miss - fetch from database
+    console.log('🟡 Cache miss - fetching dashboard stats from database');
+    
     // Count users and guest houses
     const totalUsers = await User.countDocuments();
     const totalGuestHouses = await GuestHouse.countDocuments();
@@ -23,10 +37,10 @@ export const getAdminSummary = async (req, res) => {
       createdAt: { $gte: today }
     });
 
-  const occupancyRate =
-  totalBookings > 0 ? ((approvedBookings / totalBookings) * 100).toFixed(2) : 0;
+    const occupancyRate =
+      totalBookings > 0 ? ((approvedBookings / totalBookings) * 100).toFixed(2) : 0;
 
-    res.json({
+    const summary = {
       totalUsers,
       totalGuestHouses,
       totalBookings,
@@ -35,7 +49,13 @@ export const getAdminSummary = async (req, res) => {
       rejectedBookings,
       todaysBookings,
       occupancyRate
-    });
+    };
+
+    // Store in cache for 30 seconds (matches frontend refresh interval)
+    await cache.set(cacheKey, summary, 30);
+    console.log('✅ Dashboard summary cached in Redis');
+
+    res.json(summary);
   } catch (error) {
     console.error("Error in admin summary:", error);
     res.status(500).json({ error: "Server error while fetching dashboard stats" });

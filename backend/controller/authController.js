@@ -6,6 +6,7 @@ import { sendEmail } from '../utils/emailService.js';
 import { welcomeEmail } from '../utils/emailTemplates/welcomeEmail.js';
 import { passwordResetEmail } from '../utils/emailTemplates/passwordReset.js';
 import { logAction } from '../utils/auditLogger.js';
+import { cache } from '../utils/redisClient.js';
 
 //Controller for Registering Users
 export const registerUser = async (req, res) => {
@@ -58,6 +59,9 @@ export const registerUser = async (req, res) => {
             phone: newUser.phone,
           },
         }).catch(err => console.error("Audit log error:", err));
+
+        // Fire-and-forget: Invalidate admin dashboard cache
+        cache.delete('admin:dashboard:summary').catch(err => console.error("Cache invalidation error:", err));
     } catch (error) {
         res.status(500).json({
             message: error.message

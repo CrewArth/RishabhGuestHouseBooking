@@ -8,6 +8,7 @@ import User from '../models/User.js';
 import GuestHouse from '../models/GuestHouse.js';
 import { bookingRequest } from "../utils/emailTemplates/bookingRequest.js";
 import { bookingStatusUpdate } from "../utils/emailTemplates/bookingStatusUpdate.js";
+import { cache } from '../utils/redisClient.js';
 
 
 // 🟢 Create a new booking (user)
@@ -60,6 +61,15 @@ export const createBooking = async (req, res) => {
 
     // ✅ Save it in MongoDB
     await newBooking.save();
+
+    // Invalidate availability cache for this guest house and date range
+    // Delete all availability cache keys for this guest house
+    await cache.deletePattern(`availability:${guestHouseId}:*`);
+    console.log('🗑️  Invalidated availability cache (booking created)');
+
+    // Invalidate admin dashboard cache
+    await cache.delete('admin:dashboard:summary');
+    console.log('🗑️  Invalidated admin dashboard cache');
 
     // Send response immediately
     res.status(201).json({ message: "Booking request submitted", newBooking });
@@ -201,7 +211,7 @@ export const getMyBookings = async (req, res) => {
   }
 };
 
-// 🟢 Approve booking
+// 🟢 Approve booking (Optimized for performance)
 export const approveBooking = async (req, res) => {
   try {
     const { id } = req.params;
@@ -210,40 +220,49 @@ export const approveBooking = async (req, res) => {
     const booking = await Booking.findById(id);
     if (!booking) return res.status(404).json({ message: "Booking not found" });
 
-    // 2️⃣ Fetch related user and guest house
-    const user = await User.findById(booking.userId);
-    const guestHouse = await GuestHouse.findById(booking.guestHouseId);
+    // 2️⃣ Parallelize: Fetch user and guest house simultaneously
+    const [user, guestHouse] = await Promise.all([
+      User.findById(booking.userId),
+      GuestHouse.findById(booking.guestHouseId)
+    ]);
 
-    // 3️⃣ Update booking status
-    booking.status = "approved";
-    await booking.save();
-
-    // 4️⃣ Mark bed as unavailable
-    await Bed.findByIdAndUpdate(booking.bedId, { isAvailable: false });
-
-    // 5️⃣ Send email notification to user
-    try {
-      await sendEmail({
-        to: user.email,
-        subject: "✅ Booking Approved",
-        html: bookingStatusUpdate(user, booking, guestHouse, "approved"),
-      });
-      console.log(`📧 Approval email sent to ${user.email}`);
-    } catch (emailErr) {
-      console.error("❌ Failed to send approval email:", emailErr);
+    if (!user || !guestHouse) {
+      return res.status(404).json({ message: "User or Guest House not found" });
     }
 
-    // 6️⃣ Log audit action
-    await logAction({
+    // 3️⃣ Update booking status and bed availability in parallel
+    const [updatedBooking] = await Promise.all([
+      Booking.findByIdAndUpdate(id, { status: "approved" }, { new: true }),
+      Bed.findByIdAndUpdate(booking.bedId, { isAvailable: false })
+    ]);
+
+    // 4️⃣ Send response immediately (don't wait for email/audit/cache)
+    res.json({ message: "Booking approved successfully", booking: updatedBooking });
+
+    // 5️⃣ Fire-and-forget: Send email asynchronously (non-blocking)
+    sendEmail({
+      to: user.email,
+      subject: "✅ Booking Approved",
+      html: bookingStatusUpdate(user, updatedBooking, guestHouse, "approved"),
+    }).catch(err => console.error("❌ Failed to send approval email:", err));
+
+    // 6️⃣ Fire-and-forget: Log audit action asynchronously (non-blocking)
+    logAction({
       action: "BOOKING_APPROVED",
       entityType: "Booking",
-      entityId: booking._id,
+      entityId: updatedBooking._id,
       performedBy: req.user?.email || "Admin",
       details: { status: "approved" },
-    });
+    }).catch(err => console.error("❌ Audit log error:", err));
 
-    // 7️⃣ Respond to client
-    res.json({ message: "Booking approved successfully", booking });
+    // 7️⃣ Fire-and-forget: Invalidate caches asynchronously (non-blocking)
+    Promise.all([
+      cache.deletePattern(`availability:${booking.guestHouseId}:*`),
+      cache.delete('admin:dashboard:summary')
+    ]).then(() => {
+      console.log('🗑️  Invalidated availability and dashboard cache (booking approved)');
+    }).catch(err => console.error("❌ Cache invalidation error:", err));
+
   } catch (error) {
     console.error("Error approving booking:", error);
     res.status(500).json({ message: "Server error approving booking" });
@@ -251,42 +270,59 @@ export const approveBooking = async (req, res) => {
 };
 
 
-// 🟠 Reject booking
+// 🟠 Reject booking (Optimized for performance)
 export const rejectBooking = async (req, res) => {
   try {
     const { id } = req.params;
 
+    // 1️⃣ Fetch booking first
     const booking = await Booking.findById(id);
     if (!booking) return res.status(404).json({ message: "Booking not found" });
 
-    const user = await User.findById(booking.userId);
-    const guestHouse = await GuestHouse.findById(booking.guestHouseId);
+    // 2️⃣ Parallelize: Fetch user and guest house simultaneously
+    const [user, guestHouse] = await Promise.all([
+      User.findById(booking.userId),
+      GuestHouse.findById(booking.guestHouseId)
+    ]);
 
-    // Update status
-    booking.status = "rejected";
-    await booking.save();
-
-    // Send rejection email
-    try {
-      await sendEmail({
-        to: user.email,
-        subject: "❌ Booking Rejected",
-        html: bookingStatusUpdate(user, booking, guestHouse, "rejected"),
-      });
-      console.log(`📧 Rejection email sent to ${user.email}`);
-    } catch (emailErr) {
-      console.error("❌ Failed to send rejection email:", emailErr);
+    if (!user || !guestHouse) {
+      return res.status(404).json({ message: "User or Guest House not found" });
     }
 
-    await logAction({
+    // 3️⃣ Update booking status
+    const updatedBooking = await Booking.findByIdAndUpdate(
+      id, 
+      { status: "rejected" }, 
+      { new: true }
+    );
+
+    // 4️⃣ Send response immediately (don't wait for email/audit/cache)
+    res.json({ message: "Booking rejected successfully", booking: updatedBooking });
+
+    // 5️⃣ Fire-and-forget: Send rejection email asynchronously (non-blocking)
+    sendEmail({
+      to: user.email,
+      subject: "❌ Booking Rejected",
+      html: bookingStatusUpdate(user, updatedBooking, guestHouse, "rejected"),
+    }).catch(err => console.error("❌ Failed to send rejection email:", err));
+
+    // 6️⃣ Fire-and-forget: Log audit action asynchronously (non-blocking)
+    logAction({
       action: "BOOKING_REJECTED",
       entityType: "Booking",
-      entityId: booking._id,
+      entityId: updatedBooking._id,
       performedBy: req.user?.email || "Admin",
       details: { status: "rejected" },
-    });
+    }).catch(err => console.error("❌ Audit log error:", err));
 
-    res.json({ message: "Booking rejected successfully", booking });
+    // 7️⃣ Fire-and-forget: Invalidate caches asynchronously (non-blocking)
+    Promise.all([
+      cache.deletePattern(`availability:${booking.guestHouseId}:*`),
+      cache.delete('admin:dashboard:summary')
+    ]).then(() => {
+      console.log('🗑️  Invalidated availability and dashboard cache (booking rejected)');
+    }).catch(err => console.error("❌ Cache invalidation error:", err));
+
   } catch (error) {
     console.error("Error rejecting booking:", error);
     res.status(500).json({ message: "Server error rejecting booking" });
@@ -295,7 +331,7 @@ export const rejectBooking = async (req, res) => {
 
 
 
-// 🟢 Check Room & Bed Availability for selected Guest House and Date Range
+// 🟢 Check Room & Bed Availability for selected Guest House and Date Range (with Redis caching)
 export const checkAvailability = async (req, res) => {
   try {
     const { guestHouseId, checkIn, checkOut } = req.query;
@@ -303,6 +339,20 @@ export const checkAvailability = async (req, res) => {
     if (!guestHouseId || !checkIn || !checkOut) {
       return res.status(400).json({ message: "Missing required fields" });
     }
+
+    // Create cache key from parameters
+    const cacheKey = `availability:${guestHouseId}:${checkIn}:${checkOut}`;
+    
+    // Try to get from cache first
+    const cachedResult = await cache.get(cacheKey);
+    
+    if (cachedResult) {
+      console.log('✅ Availability served from Redis cache');
+      return res.json(cachedResult);
+    }
+
+    // Cache miss - fetch from database
+    console.log('🟡 Cache miss - calculating availability from database');
 
     // Find the GuestHouse to get both _id (ObjectId) and guestHouseId (Number)
     const guestHouse = await GuestHouse.findOne({
@@ -373,7 +423,13 @@ export const checkAvailability = async (req, res) => {
       }
     }
 
-    res.json({ unavailableRooms, unavailableBeds });
+    const result = { unavailableRooms, unavailableBeds };
+
+    // Store in cache for 2 minutes (120 seconds) - short TTL for real-time accuracy
+    await cache.set(cacheKey, result, 120);
+    console.log('✅ Availability cached in Redis');
+
+    res.json(result);
   } catch (error) {
     console.error("Error checking availability:", error);
     res.status(500).json({ message: "Server error while checking availability" });
