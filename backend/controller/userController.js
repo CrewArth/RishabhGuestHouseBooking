@@ -19,6 +19,7 @@ const getTrackedDetails = (payload = {}) => {
     }
     return acc;
   }, {});
+  
 };
 
 const performer = (req) => req.user?.email || "Admin";

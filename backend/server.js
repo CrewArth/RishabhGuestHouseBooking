@@ -11,6 +11,8 @@ import bedRoutes from './routes/bedRoutes.js';
 import auditLogRoutes  from './routes/auditLogRoutes.js';
 import adminSummary from './routes/adminRoutes.js';
 import bookingRoutes from './routes/bookingRoutes.js';
+import contactRoutes from './routes/contactRoutes.js';
+
 
 // Load .env file
 dotenv.config();
@@ -52,6 +54,9 @@ app.use('/api/users', userRoutes);
 
 // For Booking Route [ADMIN + USER]
 app.use('/api/bookings', bookingRoutes);
+
+// Contact Form Route [PUBLIC]
+app.use('/api/contact', contactRoutes);
 
 // Start Server
 app.listen(process.env.PORT_NUMBER || 5000, () => {

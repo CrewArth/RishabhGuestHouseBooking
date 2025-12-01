@@ -6,7 +6,6 @@ import { deleteFromS3 } from "../utils/s3Client.js";
 import { cache } from '../utils/redisClient.js';
 
 
-
 export const createGuestHouse = async (req, res) => {
   try {
     const { guestHouseName, description } = req.body;

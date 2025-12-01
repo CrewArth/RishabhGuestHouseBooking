@@ -1,4 +1,4 @@
-# 🏨 Guest House Booking System
+# Guest House Booking System
 
 A comprehensive web application for managing guest house bookings, rooms, and beds with separate interfaces for users and administrators. Built with MERN stack (MongoDB, Express.js, React, Node.js) with Redis caching for optimal performance.
 

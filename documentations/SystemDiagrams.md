@@ -233,413 +233,179 @@ Attributes:
 
 ## Class Diagram
 
-### Backend Controllers (Classes)
+### Controllers
 
-#### 1. AuthController
+#### AuthController
 ```
-Class: AuthController
-Location: backend/controller/authController.js
-
 Methods:
-  + registerUser(req, res): Promise<void>
-    - Description: Register a new user
-    - Parameters: req.body { firstName, lastName, email, phone, address, password }
-    - Returns: { user, token }
-    - Side Effects: Sends welcome email, logs USER_REGISTERED action
-
-  + loginUser(req, res): Promise<void>
-    - Description: Authenticate user and generate JWT token
-    - Parameters: req.body { email, password }
-    - Returns: { user, token }
-
-  + forgotPassword(req, res): Promise<void>
-    - Description: Generate password reset token and send email
-    - Parameters: req.body { email }
-    - Returns: { message }
-    - Side Effects: Generates reset token, sends password reset email
-
-  + resetPassword(req, res): Promise<void>
-    - Description: Reset user password using token
-    - Parameters: req.body { token, email, password }
-    - Returns: { message }
+  + registerUser
+  + loginUser
+  + forgotPassword
+  + resetPassword
 ```
 
-#### 2. UserController
+#### UserController
 ```
-Class: UserController
-Location: backend/controller/userController.js
-
 Methods:
-  + updateUser(req, res): Promise<void>
-    - Description: Update user profile information
-    - Parameters: req.params.id, req.body { firstName, lastName, email, phone, address }
-    - Returns: { user }
-    - Side Effects: Logs USER_UPDATED action
-
-  + deleteUser(req, res): Promise<void>
-    - Description: Permanently delete a user
-    - Parameters: req.params.id
-    - Returns: { success, message }
-    - Side Effects: Logs USER_DELETED action
-
-  + deactivateUser(req, res): Promise<void>
-    - Description: Deactivate a user account
-    - Parameters: req.params.id
-    - Returns: { message, user }
-    - Side Effects: Logs USER_DEACTIVATED action
-
-  + toggleUserStatus(req, res): Promise<void>
-    - Description: Toggle user active/inactive status
-    - Parameters: req.params.id
-    - Returns: { message, user }
-    - Side Effects: Logs USER_ACTIVATED or USER_DEACTIVATED action
+  + updateUser
+  + deleteUser
+  + deactivateUser
+  + toggleUserStatus
 ```
 
-#### 3. GuestHouseController
+#### GuestHouseController
 ```
-Class: GuestHouseController
-Location: backend/controller/guestHouseController.js
-
 Methods:
-  + createGuestHouse(req, res): Promise<void>
-    - Description: Create a new guest house
-    - Parameters: req.body { guestHouseName, location, description, image }
-    - Returns: { message, guestHouse }
-    - Side Effects: Logs GUESTHOUSE_CREATED action, uploads image to S3
-
-  + getGuestHouses(req, res): Promise<void>
-    - Description: Get all guest houses
-    - Returns: [guestHouse]
-
-  + getGuestHouseById(req, res): Promise<void>
-    - Description: Get a single guest house by ID
-    - Parameters: req.params.guestHouseId
-    - Returns: { success, guestHouse }
-
-  + updateGuestHouse(req, res): Promise<void>
-    - Description: Update guest house information
-    - Parameters: req.params.guestHouseId, req.body { guestHouseName, location, description, image }
-    - Returns: { message, guestHouse }
-    - Side Effects: Logs GUESTHOUSE_UPDATED action
-
-  + deleteGuestHouse(req, res): Promise<void>
-    - Description: Delete guest house and cascade delete rooms/beds
-    - Parameters: req.params.guestHouseId
-    - Returns: { success, message }
-    - Side Effects: Deletes image from S3, deletes all rooms and beds, logs GUESTHOUSE_DELETED action
-
-  + toggleMaintenanceMode(req, res): Promise<void>
-    - Description: Toggle maintenance mode for guest house
-    - Parameters: req.params.guestHouseId
-    - Returns: { message, guestHouse }
-    - Side Effects: Logs MAINTENANCE_TOGGLED action
+  + createGuestHouse
+  + getGuestHouses
+  + getGuestHouseById
+  + updateGuestHouse
+  + deleteGuestHouse
+  + toggleMaintenanceMode
 ```
 
-#### 4. RoomController
+#### RoomController
 ```
-Class: RoomController
-Location: backend/controller/roomController.js
-
 Methods:
-  + createRoom(req, res): Promise<void>
-    - Description: Create a new room in a guest house
-    - Parameters: req.body { guestHouseId, roomNumber, roomType, roomCapacity, isAvailable }
-    - Returns: { success, message, room }
-    - Side Effects: Logs ROOM_CREATED action
-
-  + listRooms(req, res): Promise<void>
-    - Description: Get paginated list of rooms with filters
-    - Parameters: req.query { guestHouseId, roomType, isAvailable, isActive, page, limit, sort, order }
-    - Returns: { success, page, limit, total, pages, items }
-
-  + getRoomById(req, res): Promise<void>
-    - Description: Get a single room by ID
-    - Parameters: req.params.id
-    - Returns: { success, room }
-
-  + updateRoom(req, res): Promise<void>
-    - Description: Update room information
-    - Parameters: req.params.id, req.body { roomNumber, roomType, roomCapacity, isAvailable }
-    - Returns: { success, message, room }
-    - Side Effects: Logs ROOM_UPDATED action
-
-  + setAvailability(req, res): Promise<void>
-    - Description: Toggle room availability
-    - Parameters: req.params.id, req.body { isAvailable }
-    - Returns: { success, message, room }
-    - Side Effects: Logs ROOM_AVAILABILITY_TOGGLED action
-
-  + softDeleteRoom(req, res): Promise<void>
-    - Description: Soft delete a room (set isActive to false)
-    - Parameters: req.params.id
-    - Returns: { success, message, room }
-    - Side Effects: Logs ROOM_DELETED action
-
-  + getRoomsByGuestHouse(req, res): Promise<void>
-    - Description: Get all active rooms for a guest house
-    - Parameters: req.query.guestHouseId
-    - Returns: { success, rooms }
+  + createRoom
+  + listRooms
+  + getRoomById
+  + updateRoom
+  + setAvailability
+  + softDeleteRoom
+  + getRoomsByGuestHouse
 ```
 
-#### 5. BedController
+#### BedController
 ```
-Class: BedController
-Location: backend/controller/bedController.js
-
 Methods:
-  + createBed(req, res): Promise<void>
-    - Description: Create a new bed in a room
-    - Parameters: req.body { roomId, bedNumber, bedType }
-    - Returns: { success, message, beds }
-    - Side Effects: Logs BED_CREATED action, validates room capacity
-
-  + listBedsByRoom(req, res): Promise<void>
-    - Description: Get all active beds for a room
-    - Parameters: req.query.roomId
-    - Returns: { success, beds }
-
-  + updateBed(req, res): Promise<void>
-    - Description: Update bed information
-    - Parameters: req.params.id, req.body { bedNumber, bedType, isAvailable }
-    - Returns: { success, message, beds }
-    - Side Effects: Logs BED_UPDATED action
-
-  + toggleAvailability(req, res): Promise<void>
-    - Description: Toggle bed availability
-    - Parameters: req.params.id, req.body { isAvailable }
-    - Returns: { success, message, bed }
-    - Side Effects: Logs BED_AVAILABILITY_TOGGLED action
-
-  + softDeleteBed(req, res): Promise<void>
-    - Description: Soft delete a bed (set isActive to false)
-    - Parameters: req.params.id
-    - Returns: { success, message, beds }
-    - Side Effects: Logs BED_DELETED action
-
-  + autoCreateBeds(req, res): Promise<void>
-    - Description: Automatically create beds based on room capacity
-    - Parameters: req.body { roomId, bedType }
-    - Returns: { success, message, createdCount, beds }
-    - Side Effects: Creates multiple beds, logs BED_CREATED for each
+  + createBed
+  + listBedsByRoom
+  + updateBed
+  + toggleAvailability
+  + softDeleteBed
+  + autoCreateBeds
 ```
 
-#### 6. BookingController
+#### BookingController
 ```
-Class: BookingController
-Location: backend/controller/bookingController.js
-
 Methods:
-  + createBooking(req, res): Promise<void>
-    - Description: Create a new booking request
-    - Parameters: req.body { guestHouseId, roomId, bedId, checkIn, checkOut, fullName, phone, address, specialRequests }
-    - Returns: { message, newBooking }
-    - Side Effects: Validates bed availability, sends booking confirmation email, logs BOOKING_CREATED action
-
-  + getAllBookings(req, res): Promise<void>
-    - Description: Get all bookings (admin only)
-    - Returns: { bookings }
-    - Populates: userId, guestHouseId, roomId, bedId
-
-  + getMyBookings(req, res): Promise<void>
-    - Description: Get bookings for current user
-    - Parameters: req.user._id or req.query.userId
-    - Returns: { bookings }
-    - Populates: guestHouseId, roomId, bedId
-
-  + approveBooking(req, res): Promise<void>
-    - Description: Approve a booking request
-    - Parameters: req.params.id
-    - Returns: { message, booking }
-    - Side Effects: Updates bed availability, sends approval email, logs BOOKING_APPROVED action
-
-  + rejectBooking(req, res): Promise<void>
-    - Description: Reject a booking request
-    - Parameters: req.params.id
-    - Returns: { message, booking }
-    - Side Effects: Sends rejection email, logs BOOKING_REJECTED action
-
-  + checkAvailability(req, res): Promise<void>
-    - Description: Check room and bed availability for date range
-    - Parameters: req.query { guestHouseId, checkIn, checkOut }
-    - Returns: { unavailableRooms, unavailableBeds }
-
-  + getApprovedBookingsForCalendar(req, res): Promise<void>
-    - Description: Get approved bookings for calendar view
-    - Returns: { bookings }
-    - Populates: userId, guestHouseId, roomId, bedId
-
-  + exportDailyBookings(req, res): Promise<void>
-    - Description: Export bookings for a specific date as CSV
-    - Parameters: req.query.date (YYYY-MM-DD)
-    - Returns: CSV file download
+  + createBooking
+  + getAllBookings
+  + getMyBookings
+  + approveBooking
+  + rejectBooking
+  + checkAvailability
+  + getApprovedBookingsForCalendar
+  + exportDailyBookings
 ```
 
-#### 7. AdminController
+#### AdminController
 ```
-Class: AdminController
-Location: backend/controller/adminController.js
-
 Methods:
-  + getAdminSummary(req, res): Promise<void>
-    - Description: Get dashboard statistics
-    - Returns: { totalUsers, totalGuestHouses, totalBookings, approvedBookings, pendingBookings, rejectedBookings, todaysBookings, occupancyRate }
-
-  + getBookingsPerDay(req, res): Promise<void>
-    - Description: Get booking statistics per day for date range
-    - Parameters: req.query { startDate, endDate, range, status }
-    - Returns: { range: { startDate, endDate }, data: [{ date, totalBookings }] }
-
-  + getTopGuestHouses(req, res): Promise<void>
-    - Description: Get top guest houses by booking count
-    - Parameters: req.query { startDate, endDate, range, limit, status }
-    - Returns: { range: { startDate, endDate }, data: [{ guestHouseId, guestHouseName, bookingCount, location }] }
-
-  + listUsers(req, res): Promise<void>
-    - Description: Get paginated list of all users
-    - Parameters: req.query { page, limit }
-    - Returns: { users, totalUsers, totalPages, currentPage }
+  + getAdminSummary
+  + getBookingsPerDay
+  + getTopGuestHouses
+  + listUsers
 ```
 
-#### 8. AuditLogController
+#### AuditLogController
 ```
-Class: AuditLogController
-Location: backend/controller/auditLogController.js
-
 Methods:
-  + getAuditLogs(req, res): Promise<void>
-    - Description: Get paginated audit logs with optional filtering
-    - Parameters: req.query { page, limit, entityType }
-    - Returns: { success, logs, totalLogs, totalPages, currentPage }
-
-  + exportDailyAuditLogs(req, res): Promise<void>
-    - Description: Export audit logs for a specific date as CSV
-    - Parameters: req.query.date (YYYY-MM-DD)
-    - Returns: CSV file download
+  + getAuditLogs
+  + exportDailyAuditLogs
 ```
 
 ### Utility Classes
 
-#### 9. AuditLogger (Utility)
+#### AuditLogger
 ```
-Class: AuditLogger
-Location: backend/utils/auditLogger.js
+Methods:
+  + logAction
+```
+
+#### EmailService
+```
+Methods:
+  + sendEmail
+```
+
+### Models
+
+#### User
+```
+Attributes:
+  + firstName: String
+  + lastName: String
+  + email: String
+  + phone: Number
+  + address: String
+  + role: String
+  + password: String
+  + isActive: Boolean
+  + passwordResetToken: String
+  + passwordResetExpires: Date
 
 Methods:
-  + logAction(options): Promise<void>
-    - Description: Log an action to audit log
-    - Parameters: { action, entityType, entityId, performedBy, details }
-    - Returns: Promise<void>
-    - Side Effects: Creates AuditLog entry, enriches with entity details if needed
+  + save()
 ```
 
-#### 10. EmailService (Utility)
+#### GuestHouse
 ```
-Class: EmailService
-Location: backend/utils/emailService.js
-
-Methods:
-  + sendEmail(options): Promise<void>
-    - Description: Send email using Nodemailer
-    - Parameters: { to, subject, html }
-    - Returns: Promise<void>
-```
-
-### Models (Mongoose Schemas)
-
-#### 11. User Model
-```
-Class: User (Mongoose Model)
-Location: backend/models/User.js
-
-Properties:
-  - firstName: String
-  - lastName: String
-  - email: String
-  - phone: Number
-  - address: String
-  - role: String
-  - password: String
-  - isActive: Boolean
-  - passwordResetToken: String
-  - passwordResetExpires: Date
-
-Methods:
-  + save(): Promise<User>
-    - Pre-save hook: Hashes password with bcrypt if modified
+Attributes:
+  + guestHouseId: Number
+  + guestHouseName: String
+  + location: Object
+  + image: String
+  + description: String
+  + maintenance: Boolean
 ```
 
-#### 12. GuestHouse Model
+#### Room
 ```
-Class: GuestHouse (Mongoose Model)
-Location: backend/models/GuestHouse.js
-
-Properties:
-  - guestHouseId: Number (auto-increment)
-  - guestHouseName: String
-  - location: Object { city, state }
-  - image: String
-  - description: String
-  - maintenance: Boolean
-
-Plugins:
-  - AutoIncrementID: Auto-generates guestHouseId
+Attributes:
+  + guestHouseId: Number
+  + roomNumber: Number
+  + roomType: String
+  + isAvailable: Boolean
+  + roomCapacity: Number
+  + isActive: Boolean
 ```
 
-#### 13. Room Model
+#### Bed
 ```
-Class: Room (Mongoose Model)
-Location: backend/models/Room.js
-
-Properties:
-  - guestHouseId: Number
-  - roomNumber: Number
-  - roomType: String
-  - isAvailable: Boolean
-  - roomCapacity: Number
-  - isActive: Boolean
-
-Indexes:
-  - Unique: (guestHouseId, roomNumber)
+Attributes:
+  + roomId: ObjectId
+  + bedNumber: Number
+  + bedType: String
+  + isAvailable: Boolean
+  + isActive: Boolean
 ```
 
-#### 14. Bed Model
+#### Booking
 ```
-Class: Bed (Mongoose Model)
-Location: backend/models/Bed.js
-
-Properties:
-  - roomId: ObjectId
-  - bedNumber: Number
-  - bedType: String
-  - isAvailable: Boolean
-  - isActive: Boolean
-
-Indexes:
-  - Unique: (roomId, bedNumber)
+Attributes:
+  + userId: ObjectId
+  + guestHouseId: ObjectId
+  + roomId: ObjectId
+  + bedId: ObjectId
+  + checkIn: Date
+  + checkOut: Date
+  + status: String
+  + fullName: String
+  + phone: String
+  + address: String
+  + specialRequests: String
 ```
 
-#### 15. Booking Model
+#### AuditLog
 ```
-Class: Booking (Mongoose Model)
-Location: backend/models/Booking.js
-
-Properties:
-  - userId: ObjectId
-  - guestHouseId: ObjectId
-  - roomId: ObjectId
-  - bedId: ObjectId
-  - checkIn: Date
-  - checkOut: Date
-  - status: String
-  - fullName: String
-  - phone: String
-  - address: String
-  - specialRequests: String
-
-Indexes:
-  - Compound: (bedId, status, checkIn, checkOut)
-  - (userId, createdAt)
-  - (guestHouseId, createdAt)
+Attributes:
+  + action: String
+  + entityType: String
+  + entityId: Mixed
+  + performedBy: String
+  + details: Mixed
 ```
 
 ---

@@ -54,7 +54,7 @@ export const getAdminSummary = async (req, res) => {
     // Store in cache for 30 seconds (matches frontend refresh interval)
     await cache.set(cacheKey, summary, 30);
     console.log('✅ Dashboard summary cached in Redis');
-
+    
     res.json(summary);
   } catch (error) {
     console.error("Error in admin summary:", error);

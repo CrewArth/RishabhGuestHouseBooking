@@ -34,20 +34,20 @@ export const registerUser = async (req, res) => {
         // Generate token immediately (don't wait for email/audit log)
         const token = generateToken(newUser);
         
-        // Send response immediately
+        // Send response
         res.status(201).json({
             user: newUser,
             token
         });
 
-        // Fire-and-forget: Send email asynchronously (don't block response)
+        // Send email asynchronously (don't block response)
         sendEmail({
             to: newUser.email,
-            subject: "🎉 Welcome to Rishabh Guest House",
+            subject: "Welcome to Rishabh Guest House",
             html: welcomeEmail(newUser),
         }).catch(err => console.error("Email send error:", err));
 
-        // Fire-and-forget: Log action asynchronously (don't block response)
+        // Log action asynchronously (don't block response)
         logAction({
           action: "USER_REGISTERED",
           entityType: "User",
@@ -60,7 +60,7 @@ export const registerUser = async (req, res) => {
           },
         }).catch(err => console.error("Audit log error:", err));
 
-        // Fire-and-forget: Invalidate admin dashboard cache
+        // Invalidate admin dashboard cache
         cache.delete('admin:dashboard:summary').catch(err => console.error("Cache invalidation error:", err));
     } catch (error) {
         res.status(500).json({
