@@ -2,6 +2,7 @@ import axios from "axios";
 import { useEffect, useState } from "react";
 import "../styles/usersList.css";
 import EditUserModal from "../components/EditUserModel";
+import CreateUserModal from "../components/CreateUserModal";
 import { toast } from "react-toastify";
 
 const UsersList = () => {
@@ -9,6 +10,7 @@ const UsersList = () => {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [statusFilter, setStatusFilter] = useState("all");
   
@@ -115,6 +117,12 @@ const UsersList = () => {
           <option value="active">Active</option>
           <option value="inactive">Inactive</option>
         </select>
+        <button
+          className="btn-create-user"
+          onClick={() => setIsCreateModalOpen(true)}
+        >
+          Create User
+        </button>
       </div>
 
       {/* Table */}
@@ -212,6 +220,17 @@ const UsersList = () => {
           user={selectedUser}
           onClose={() => setIsEditModalOpen(false)}
           onSubmit={handleUpdateUser}
+        />
+      )}
+
+      {/* Create User Modal */}
+      {isCreateModalOpen && (
+        <CreateUserModal
+          onClose={() => setIsCreateModalOpen(false)}
+          onSuccess={() => {
+            fetchUsers(currentPage);
+            setIsCreateModalOpen(false);
+          }}
         />
       )}
     </div>

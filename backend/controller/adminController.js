@@ -3,8 +3,33 @@ import User from '../models/User.js';
 import GuestHouse from '../models/GuestHouse.js';
 import Booking from '../models/Booking.js';
 import { cache } from '../utils/redisClient.js';
+import { sendEmail } from '../utils/emailService.js';
+import { adminCreatedUserEmail } from '../utils/emailTemplates/adminCreatedUser.js';
+import { logAction } from '../utils/auditLogger.js';
 
-// 🧠 Fetch Dashboard Summary (LIVE STATS) - with Redis caching
+// Generate random alphanumeric password
+const generateRandomPassword = (length = 10) => {
+  const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  const lowercase = 'abcdefghijklmnopqrstuvwxyz';
+  const numbers = '0123456789';
+  const allChars = uppercase + lowercase + numbers;
+  
+  let password = '';
+  // Ensure at least one character from each type
+  password += uppercase[Math.floor(Math.random() * uppercase.length)];
+  password += lowercase[Math.floor(Math.random() * lowercase.length)];
+  password += numbers[Math.floor(Math.random() * numbers.length)];
+  
+  // Fill the rest randomly
+  for (let i = password.length; i < length; i++) {
+    password += allChars[Math.floor(Math.random() * allChars.length)];
+  }
+  
+  // Shuffle the password to randomize positions
+  return password.split('').sort(() => Math.random() - 0.5).join('');
+};
+
+// Fetch Dashboard Summary (LIVE STATS) - with Redis caching
 export const getAdminSummary = async (req, res) => {
   try {
     const cacheKey = 'admin:dashboard:summary';
@@ -12,7 +37,9 @@ export const getAdminSummary = async (req, res) => {
     // Try to get from cache first
     const cachedSummary = await cache.get(cacheKey);
     
-    if (cachedSummary) {
+    // console.log(cachedSummary);
+    
+    if (cachedSummary) {  
       console.log('✅ Admin dashboard summary served from Redis cache');
       return res.json(cachedSummary);
     }
@@ -214,5 +241,135 @@ export const listUsers = async (req, res) => {
   } catch (err) {
     console.error("listUsers error:", err);
     return res.status(500).json({ error: "Server error while fetching users" });
+  }
+};
+
+// ✨ POST /api/admin/users - Create user by admin
+export const createUserByAdmin = async (req, res) => {
+  try {
+    const { firstName, lastName, email, phone, address } = req.body;
+
+    // Validate required fields
+    if (!firstName || !lastName || !email || !phone) {
+      return res.status(400).json({ 
+        error: "First name, last name, email, and phone are required." 
+      });
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ 
+        error: "Please provide a valid email address." 
+      });
+    }
+
+    // Check if user already exists
+    const existingUser = await User.findOne({ 
+      $or: [{ email }, { phone: Number(phone) }] 
+    });
+
+    if (existingUser) {
+      if (existingUser.email === email) {
+        return res.status(400).json({ 
+          error: "User with this email already exists." 
+        });
+      }
+      if (existingUser.phone === Number(phone)) {
+        return res.status(400).json({ 
+          error: "User with this phone number already exists." 
+        });
+      }
+    }
+
+    // Generate random password
+    const randomPassword = generateRandomPassword(10);
+
+    // Create new user
+    const newUser = new User({
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+      email: email.trim().toLowerCase(),
+      phone: Number(phone),
+      address: address ? address.trim() : "",
+      password: randomPassword, // Will be hashed by pre-save hook
+      role: "user",
+      isActive: true,
+    });
+
+    await newUser.save();
+
+    // Get admin email from request (if available) or use "Admin"
+    const performerEmail = req.user?.email || "Admin";
+
+    // Send response immediately
+    res.status(201).json({
+      message: "User created successfully. Credentials sent to email.",
+      user: {
+        _id: newUser._id,
+        firstName: newUser.firstName,
+        lastName: newUser.lastName,
+        email: newUser.email,
+        phone: newUser.phone,
+        address: newUser.address,
+        role: newUser.role,
+        isActive: newUser.isActive,
+        createdAt: newUser.createdAt,
+        updatedAt: newUser.updatedAt,
+      },
+    });
+
+    // Send email asynchronously (don't block response)
+    sendEmail({
+      to: newUser.email,
+      subject: "Your Rishabh Guest House Account Credentials",
+      html: adminCreatedUserEmail(newUser, randomPassword),
+    }).catch(err => {
+      console.error("❌ Email send error for admin-created user:", err);
+    });
+
+    // Log action asynchronously (don't block response)
+    logAction({
+      action: "USER_REGISTERED",
+      entityType: "User",
+      entityId: newUser._id,
+      performedBy: performerEmail,
+      details: {
+        name: `${newUser.firstName} ${newUser.lastName}`.trim(),
+        email: newUser.email,
+        phone: newUser.phone,
+        createdByAdmin: true,
+      },
+    }).catch(err => {
+      console.error("❌ Audit log error:", err);
+    });
+
+    // Invalidate admin dashboard cache
+    cache.delete('admin:dashboard:summary').catch(err => {
+      console.error("❌ Cache invalidation error:", err);
+    });
+
+  } catch (error) {
+    console.error("Error creating user by admin:", error);
+    
+    // Handle duplicate key error (MongoDB unique constraint)
+    if (error.code === 11000) {
+      const field = Object.keys(error.keyPattern)[0];
+      return res.status(400).json({
+        error: `User with this ${field} already exists.`
+      });
+    }
+
+    // Handle validation errors
+    if (error.name === 'ValidationError') {
+      const messages = Object.values(error.errors).map(err => err.message);
+      return res.status(400).json({
+        error: messages.join(", ")
+      });
+    }
+
+    return res.status(500).json({
+      error: "Server error while creating user."
+    });
   }
 };

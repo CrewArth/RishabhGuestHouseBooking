@@ -21,6 +21,29 @@ A comprehensive web application for managing guest house bookings, rooms, and be
 
 ---
 
+
+In Signin, Employee cannot redirect to signin page again. we can create a new protected route, 
+Make sure to check PPT, 
+axios requests,
+What are hooks in react
+UseEffect Lifecycle
+Do not speak everything in ppt details, just give overview
+how can we implement redis caching in pagination, what would be the key,
+In which response you got the token,
+The process of JWT and what would you do when the refresh token gets expire, how is the process
+Outlet,
+
+
+
+
+
+
+
+
+
+
+
+
 ## ✨ Features
 
 ### User Features

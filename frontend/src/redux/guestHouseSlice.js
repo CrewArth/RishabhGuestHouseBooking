@@ -7,7 +7,7 @@ const API_BASE = 'http://localhost:5000';
 export const fetchGuestHouses = createAsyncThunk(
   'guestHouses/fetchAll',
   async (_, { rejectWithValue }) => {
-    try {
+    try { 
       const res = await axios.get(`${API_BASE}/api/guesthouses`);
       // Your API returns either an array or {guestHouses:[...]} — normalize it:
       const data = Array.isArray(res.data) ? res.data : (res.data.guestHouses || []);

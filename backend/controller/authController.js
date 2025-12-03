@@ -116,21 +116,25 @@ export const forgotPassword = async (req, res) => {
         const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
         const resetLink = `${frontendUrl}/reset-password?token=${resetToken}&email=${encodeURIComponent(email)}`;
 
-        try {
-            await sendEmail({
-                to: email,
-                subject: "Password Reset Instructions",
-                html: passwordResetEmail(user, resetLink)
-            });
-        } catch (emailErr) {
-            user.passwordResetToken = undefined;
-            user.passwordResetExpires = undefined;
-            await user.save({ validateBeforeSave: false });
-            console.error("Error sending reset email:", emailErr);
-            return res.status(500).json({ message: "Unable to send reset email right now" });
-        }
+        // Send response immediately (don't wait for email)
+        res.status(200).json({ message: "If an account exists, password reset instructions were sent" });
 
-        return res.status(200).json({ message: "If an account exists, password reset instructions were sent" });
+        // Send email asynchronously (fire-and-forget)
+        sendEmail({
+            to: email,
+            subject: "Password Reset Instructions",
+            html: passwordResetEmail(user, resetLink)
+        }).catch(async (emailErr) => {
+            // If email fails, clean up the token to prevent dangling reset tokens
+            console.error("Error sending reset email:", emailErr);
+            try {
+                user.passwordResetToken = undefined;
+                user.passwordResetExpires = undefined;
+                await user.save({ validateBeforeSave: false });
+            } catch (saveErr) {
+                console.error("Error cleaning up reset token:", saveErr);
+            }
+        });
 
     } catch (error) {
         console.error("Forgot password error:", error);

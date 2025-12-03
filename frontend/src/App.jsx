@@ -77,6 +77,8 @@ function App() {
         />
         <Route 
           path="/profile" 
+
+          
           element={
             <ProtectedRoute>
               <Profile />
