@@ -186,33 +186,23 @@ redis-cli ping
 Create `backend/.env` file:
 
 ```env
-# Server Configuration
-PORT_NUMBER=5000
+DATABASE_URL = ""
+DATABASE_NAME = ""
+PORT_NUMBER = ""
+JWT_SECRET = ""
+JWT_EXPIRES_IN= ""
 
-# MongoDB Connection
-MONGODB_URI=your_mongodb_connection_string
+AWS_ACCESS_KEY_ID= ""
+AWS_SECRET_ACCESS_KEY= ""
+AWS_REGION= ""
+AWS_S3_BUCKET= ""
 
-# JWT Configuration
-JWT_SECRET=your_jwt_secret_key
-JWT_EXPIRES_IN=7d
+EMAIL_USER= ""
+EMAIL_PASS= ""
 
-# Email Configuration (Gmail)
-EMAIL_USER=your_email@gmail.com
-EMAIL_PASS=your_gmail_app_password
-
-# AWS S3 Configuration
-AWS_REGION=us-east-1
-AWS_S3_BUCKET=your-bucket-name
-AWS_ACCESS_KEY_ID=your_access_key_id
-AWS_SECRET_ACCESS_KEY=your_secret_access_key
-
-# Redis Configuration
-REDIS_HOST=localhost
-REDIS_PORT=6379
-REDIS_PASSWORD=
-
-# Frontend URL (for password reset links)
-FRONTEND_URL=http://localhost:5173
+REDIS_HOST= ""
+REDIS_PORT= ""
+REDIS_PASSWORD= ""
 ```
 
 ### 8. Start the Application
