@@ -3,6 +3,7 @@ import SignupPage from './users/pages/Signup';
 import LoginPage from './users/pages/Login';
 import Homepage from './users/pages/Homepage';
 import ProtectedRoute from './users/routes/ProtectedRoute';
+import PublicRoute from './users/routes/PublicRoute';
 import Dashboard from './users/pages/Dashboard';
 import ProtectedAdminRoute from './admin/routes/ProtectedAdminRoute';
 import AdminDashboard from './admin/pages/AdminDashboard';
@@ -41,8 +42,22 @@ function App() {
         
         {/* ------------------ PUBLIC ROUTES ------------------ */}
         <Route path="/" element={<Homepage />} />
-        <Route path="/signin" element={<LoginPage />} />
-        <Route path="/signup" element={<SignupPage />} />
+        <Route 
+          path="/signin" 
+          element={
+            <PublicRoute>
+              <LoginPage />
+            </PublicRoute>
+          } 
+        />
+        <Route 
+          path="/signup" 
+          element={
+            <PublicRoute>
+              <SignupPage />
+            </PublicRoute>
+          } 
+        />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/about" element={<AboutUs />} />
