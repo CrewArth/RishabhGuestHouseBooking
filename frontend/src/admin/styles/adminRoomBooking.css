@@ -1,0 +1,176 @@
+.admin-room-booking-page {
+  min-height: 100vh;
+  background: #f8fafc;
+}
+
+.admin-room-booking-content {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 104px 24px 48px;
+}
+
+.admin-room-booking-heading {
+  margin-bottom: 24px;
+}
+
+.admin-room-booking-heading h1,
+.admin-room-booking-form h2 {
+  margin: 0;
+  color: #1f2937;
+}
+
+.admin-room-booking-heading p,
+.admin-room-booking-section-header p {
+  margin: 8px 0 0;
+  color: #64748b;
+}
+
+.admin-room-booking-form {
+  display: grid;
+  gap: 20px;
+}
+
+.admin-room-booking-form section {
+  padding: 24px;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 4px 15px rgba(15, 23, 42, 0.06);
+}
+
+.admin-room-booking-form h2 {
+  margin-bottom: 18px;
+  font-size: 1.2rem;
+}
+
+.admin-room-booking-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.admin-room-booking-form label {
+  display: grid;
+  gap: 7px;
+  color: #374151;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.admin-room-booking-form label span {
+  color: #dc2626;
+}
+
+.admin-room-booking-form input,
+.admin-room-booking-form select,
+.admin-room-booking-form textarea {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 7px;
+  color: #1f2937;
+  font: inherit;
+}
+
+.admin-room-booking-form textarea {
+  resize: vertical;
+}
+
+.admin-room-booking-form input:focus,
+.admin-room-booking-form select:focus,
+.admin-room-booking-form textarea:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.admin-room-booking-form small {
+  overflow: hidden;
+  color: #64748b;
+  font-weight: 400;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-room-booking-full-width {
+  grid-column: 1 / -1;
+}
+
+.admin-room-booking-section-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.admin-room-booking-family-row {
+  display: grid;
+  grid-template-columns: 2fr 1.5fr 100px auto;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.admin-room-booking-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.admin-room-booking-actions button,
+.admin-room-booking-secondary,
+.admin-room-booking-remove {
+  border: 0;
+  border-radius: 7px;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+}
+
+.admin-room-booking-actions button {
+  padding: 11px 18px;
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.admin-room-booking-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.admin-room-booking-secondary {
+  padding: 9px 14px;
+  background: #e2e8f0;
+  color: #334155;
+}
+
+.admin-room-booking-remove {
+  padding: 9px 12px;
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+@media (max-width: 850px) {
+  .admin-room-booking-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .admin-room-booking-content {
+    padding: 88px 16px 32px;
+  }
+
+  .admin-room-booking-form section {
+    padding: 18px;
+  }
+
+  .admin-room-booking-grid,
+  .admin-room-booking-family-row {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-room-booking-section-header {
+    flex-direction: column;
+  }
+}

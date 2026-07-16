@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
-import axios from "axios";
 import "../styles/myBooking.css";
+import api from "../../utils/api";
 
 const MyBookings = () => {
   const [bookings, setBookings] = useState([]);
@@ -28,9 +28,7 @@ const MyBookings = () => {
     try {
       silent ? setRefreshing(true) : setLoading(true);
 
-      const res = await axios.get(
-        `http://localhost:5000/api/bookings/my?userId=${user._id}`
-      );
+      const res = await api.get(`/api/bookings/my?userId=${user._id}`);
 
       setBookings(res.data.bookings || []);
     } catch (err) {

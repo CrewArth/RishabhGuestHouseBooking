@@ -66,7 +66,7 @@ export const submitContactForm = async (req, res) => {
     });
 
     // Fire-and-forget: Get all admin emails and send notification
-    User.find({ role: 'admin', isActive: true })
+    User.find({ role: { $in: ['SUPER_ADMIN', 'admin'] }, isActive: true })
       .select('email')
       .then(admins => {
         if (admins.length === 0) {

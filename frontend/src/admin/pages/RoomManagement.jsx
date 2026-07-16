@@ -1,10 +1,10 @@
 // src/pages/RoomManagement.jsx
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
 import { useSearchParams } from 'react-router-dom';
 import RoomFormModal from '../components/RoomFormModel';
 import '../styles/roomManagement.css';
 import { toast } from 'react-toastify';
+import api from '../../utils/api';
 
 const RoomManagement = () => {
   const [rooms, setRooms] = useState([]);
@@ -21,7 +21,7 @@ const RoomManagement = () => {
   // Load list of guest houses for dropdown
   const fetchGuestHouses = async () => {
     try {
-      const res = await axios.get('http://localhost:5000/api/guesthouses');
+      const res = await api.get('/api/guesthouses');
       setGuestHouses(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error('Error fetching guest houses:', err);
@@ -35,7 +35,7 @@ const RoomManagement = () => {
       return;
     }
     try {
-      const res = await axios.get(`http://localhost:5000/api/guesthouses/${id}`);
+      const res = await api.get(`/api/guesthouses/${id}`);
       setGuestHouse(res.data.guestHouse || null);
     } catch (err) {
       console.error('Error fetching guest house:', err);
@@ -50,9 +50,7 @@ const RoomManagement = () => {
     }
     try {
       setLoading(true);
-      const response = await axios.get(
-        `http://localhost:5000/api/rooms/by-guesthouse?guestHouseId=${ghId}`
-      );
+      const response = await api.get(`/api/rooms/by-guesthouse?guestHouseId=${ghId}`);
       setRooms(response.data.rooms || []);
     } catch (error) {
       console.log('Error fetching rooms:', error);
@@ -94,7 +92,7 @@ const RoomManagement = () => {
         roomType: newRoom.roomType || 'single',
         guestHouseId: Number(selectedGHId),
       };
-      await axios.post('http://localhost:5000/api/rooms', payload);
+      await api.post('/api/rooms', payload);
       toast.success("Room created sucessfully")
       fetchRooms(selectedGHId);
     } catch (error) {
@@ -105,8 +103,8 @@ const RoomManagement = () => {
 
   const handleEditRoom = async (updatedRoom) => {
     try {
-      await axios.put(
-        `http://localhost:5000/api/rooms/${selectedRoom._id}`,
+      await api.put(
+        `/api/rooms/${selectedRoom._id}`,
         {
           ...updatedRoom,
           // ensure roomType remains in payload server-side; keep unchanged if not provided
@@ -122,8 +120,8 @@ const RoomManagement = () => {
 
   const toggleRoomAvailability = async (roomId, currentStatus) => {
     try {
-      await axios.patch(
-        `http://localhost:5000/api/rooms/${roomId}/availability`,
+      await api.patch(
+        `/api/rooms/${roomId}/availability`,
         {
           isAvailable: !currentStatus,
         }
@@ -138,7 +136,7 @@ const RoomManagement = () => {
     try {
       const confirmDelete = window.confirm('Are you sure you want to delete this room?');
       if (!confirmDelete) return;
-      await axios.delete(`http://localhost:5000/api/rooms/${roomId}`);
+      await api.delete(`/api/rooms/${roomId}`);
       toast.success("Room deleted sucessfully")
       fetchRooms(selectedGHId);
     } catch (error) {

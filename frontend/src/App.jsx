@@ -1,35 +1,46 @@
+import { Suspense } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import SignupPage from './users/pages/Signup';
-import LoginPage from './users/pages/Login';
-import Homepage from './users/pages/Homepage';
+import lazyLoad from './utils/lazyLoad';
 import ProtectedRoute from './users/routes/ProtectedRoute';
-import Dashboard from './users/pages/Dashboard';
 import ProtectedAdminRoute from './admin/routes/ProtectedAdminRoute';
-import AdminDashboard from './admin/pages/AdminDashboard';
-import BookingForm from './users/pages/BookingForm';
-import MyBookings from './users/pages/MyBookings';
-import Profile from './users/pages/Profile';
-import AddRooms from './admin/pages/RoomManagement.jsx';
-import AddBeds from './admin/pages/BedManagement.jsx';
-import AuditLogs from './admin/pages/AuditLogs';
-import Overview from './admin/pages/Overview';
-import Bookings from './admin/pages/Bookings';
-import GuestHouseManagement from './admin/pages/GuestHouseManagement.jsx';
-import UsersList from './admin/pages/UsersList';
-import NotFound from './components/NotFound';
-import ForgotPassword from './users/pages/ForgotPassword';
-import ResetPassword from './users/pages/ResetPassword';
-import AboutUs from './commonPages/AboutUs';
-import ContactUs from './commonPages/ContactUs';
-import TermsAndPolicy from './commonPages/TermsAndPolicy';
-import FAQ from './commonPages/FAQ';
+const LoginPage = lazyLoad(() => import('./users/pages/Login'));
+const AdminDashboard = lazyLoad(() => import('./admin/pages/AdminDashboard'));
+const AdminUserDashboard = lazyLoad(() => import('./admin/pages/AdminUserDashboard'));
+const AdminRoomBooking = lazyLoad(() => import('./admin/pages/AdminRoomBooking'));
+const Profile = lazyLoad(() => import('./users/pages/Profile'));
+const AddRooms = lazyLoad(() => import('./admin/pages/RoomManagement.jsx'));
+const AddBeds = lazyLoad(() => import('./admin/pages/BedManagement.jsx'));
+const AuditLogs = lazyLoad(() => import('./admin/pages/AuditLogs'));
+const Overview = lazyLoad(() => import('./admin/pages/Overview'));
+const Bookings = lazyLoad(() => import('./admin/pages/Bookings'));
+const GuestHouseManagement = lazyLoad(() => import('./admin/pages/GuestHouseManagement.jsx'));
+const UsersList = lazyLoad(() => import('./admin/pages/UsersList'));
+const NotFound = lazyLoad(() => import('./components/NotFound'));
+const ForgotPassword = lazyLoad(() => import('./users/pages/ForgotPassword'));
+const ResetPassword = lazyLoad(() => import('./users/pages/ResetPassword'));
+const AboutUs = lazyLoad(() => import('./commonPages/AboutUs'));
+const ContactUs = lazyLoad(() => import('./commonPages/ContactUs'));
+const TermsAndPolicy = lazyLoad(() => import('./commonPages/TermsAndPolicy'));
+const FAQ = lazyLoad(() => import('./commonPages/FAQ'));
 import ScrollToTop from './components/ScrollToTop';
+import { Navigate } from 'react-router-dom';
+import { getAuthenticatedRedirectPath } from './utils/auth';
 
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 
 function App() {
+  const RootRedirect = () => {
+    const redirectPath = getAuthenticatedRedirectPath();
+
+    if (redirectPath) {
+      return <Navigate to={redirectPath} replace />;
+    }
+
+    return <LoginPage />;
+  };
+
   return (
 
     <>
@@ -37,12 +48,27 @@ function App() {
     
     <BrowserRouter>
       <ScrollToTop />
-      <Routes>
+      <Suspense
+        fallback={
+          <div
+            style={{
+              minHeight: '100vh',
+              display: 'grid',
+              placeItems: 'center',
+              fontSize: '1rem',
+              color: '#334155',
+            }}
+          >
+            Loading...
+          </div>
+        }
+      >
+        <Routes>
         
         {/* ------------------ PUBLIC ROUTES ------------------ */}
-        <Route path="/" element={<Homepage />} />
+        <Route path="/" element={<RootRedirect />} />
         <Route path="/signin" element={<LoginPage />} />
-        <Route path="/signup" element={<SignupPage />} />
+        <Route path="/signup" element={<Navigate to="/signin" replace />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/about" element={<AboutUs />} />
@@ -51,30 +77,25 @@ function App() {
         <Route path="/faq" element={<FAQ />} />
 
         {/* ------------------ USER PROTECTED ROUTES ------------------ */}
-        <Route 
-          path="/dashboard" 
+        <Route path="/dashboard" element={<Navigate to="/admin/dashboard" replace />} />
+        <Route
+          path="/admin/dashboard"
           element={
             <ProtectedRoute>
-              <Dashboard />
+              <AdminUserDashboard />
             </ProtectedRoute>
           }
         />
-        <Route 
-          path="/booking" 
+        <Route
+          path="/admin/book-room"
           element={
             <ProtectedRoute>
-              <BookingForm />
+              <AdminRoomBooking />
             </ProtectedRoute>
           }
         />
-        <Route 
-          path="/my-bookings" 
-          element={
-            <ProtectedRoute>
-              <MyBookings />
-            </ProtectedRoute>
-          }
-        />
+        <Route path="/booking" element={<Navigate to="/admin/book-room" replace />} />
+        <Route path="/my-bookings" element={<Navigate to="/admin/dashboard" replace />} />
         <Route 
           path="/profile" 
 
@@ -94,17 +115,18 @@ function App() {
             </ProtectedAdminRoute>
           }
         >
-          <Route path="/admin/users" element={<UsersList />} />
-          <Route path="/admin/dashboard" element={<Overview />} />
-          <Route path="/admin/guesthouses" element={<GuestHouseManagement />} />
-          <Route path="/admin/rooms" element={<AddRooms />} />
-          <Route path="/admin/beds" element={<AddBeds />} />
-          <Route path="/admin/audits" element={<AuditLogs />} />
-          <Route path="/admin/bookings" element={<Bookings />}/>
+          <Route path="/super-admin/users" element={<UsersList />} />
+          <Route path="/super-admin/dashboard" element={<Overview />} />
+          <Route path="/super-admin/guesthouses" element={<GuestHouseManagement />} />
+          <Route path="/super-admin/rooms" element={<AddRooms />} />
+          <Route path="/super-admin/beds" element={<AddBeds />} />
+          <Route path="/super-admin/audits" element={<AuditLogs />} />
+          <Route path="/super-admin/bookings" element={<Bookings />}/>
         </Route>  
 
         <Route path="*" element={<NotFound />} />
-      </Routes>
+        </Routes>
+      </Suspense>
     </BrowserRouter>
     </>
   );

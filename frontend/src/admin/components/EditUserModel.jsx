@@ -46,7 +46,7 @@ const EditUserModal = ({ user, onClose, onSubmit }) => {
   return (
     <div className="modal-backdrop">
       <div className="modal">
-        <h2>Edit User</h2>
+        <h2>Edit Admin</h2>
         <p className="subtitle">Editing: {user.email}</p>
 
         <form className="modal-form" onSubmit={handleSubmit}>

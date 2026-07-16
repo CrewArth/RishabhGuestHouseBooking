@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { toast } from 'react-toastify';
-import axios from 'axios';
 import './contactUs.css';
+import api from '../utils/api';
 
 const ContactUs = () => {
   const [formData, setFormData] = useState({
@@ -85,7 +85,7 @@ const ContactUs = () => {
     setIsSubmitting(true);
 
     try {
-      const response = await axios.post('http://localhost:5000/api/contact/submit', {
+      const response = await api.post('/api/contact/submit', {
         firstName: formData.firstName.trim(),
         lastName: formData.lastName.trim(),
         email: formData.email.trim(),

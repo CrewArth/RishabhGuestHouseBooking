@@ -1,14 +1,19 @@
 import { Navigate } from "react-router-dom";
+import { getStoredToken, getStoredUser, normalizeRole } from "../../utils/auth";
 
 export default function ProtectedAdminRoute({children}){
-    const token = localStorage.getItem("token");
-    const user = JSON.parse(localStorage.getItem("user"));
+    const token = getStoredToken();
+    const user = getStoredUser();
+    const role = normalizeRole(user?.role);
 
-    
-    if(user.role === "admin"){
-        return children;
-    }else{
-        return <Navigate to="/" /> 
+    if (!token) {
+        return <Navigate to="/signin" replace />;
     }
+
+    if (role === "SUPER_ADMIN") {
+        return children;
+    }
+
+    return <Navigate to="/dashboard" replace />;
 
 }

@@ -1,17 +1,19 @@
-import React from "react";
-import { Navigate, replace } from "react-router-dom";
+import { Navigate } from "react-router-dom";
+import { getRedirectPathForRole, getStoredToken, getStoredUser, normalizeRole } from "../../utils/auth";
 
 function ProtectedRoute({children}){
+    const token = getStoredToken();
+    const role = normalizeRole(getStoredUser()?.role);
 
-    //Get the Token
-    const token = localStorage.getItem('token'); 
-    
-    //If no Token -> Redirect to Signin
-    if(!token){ 
+    if (!token) {
         return <Navigate to="/signin" replace />;
-    }else{
-        return children;
     }
+
+    if (role === "SUPER_ADMIN") {
+        return <Navigate to={getRedirectPathForRole(role)} replace />;
+    }
+
+    return children;
 }
 
 export default ProtectedRoute;

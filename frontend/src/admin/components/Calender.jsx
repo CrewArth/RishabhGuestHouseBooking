@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
-import axios from 'axios';
 import '../styles/calendar.css';
 import '../styles/adminBooking.css';
+import api from '../../utils/api';
 
 export default function Calendar() {
   const [events, setEvents] = useState([]);
@@ -19,7 +19,7 @@ export default function Calendar() {
     try {
       setLoading(true);
       setError(null);
-      const response = await axios.get('http://localhost:5000/api/bookings/calendar');
+      const response = await api.get('/api/bookings/calendar');
       
       // Transform bookings into FullCalendar events
       const calendarEvents = response.data.bookings.map((booking) => {

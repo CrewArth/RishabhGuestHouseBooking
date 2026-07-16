@@ -2,51 +2,14 @@
 import User from '../models/User.js';
 import GuestHouse from '../models/GuestHouse.js';
 import Booking from '../models/Booking.js';
-import { cache } from '../utils/redisClient.js';
 import { sendEmail } from '../utils/emailService.js';
 import { adminCreatedUserEmail } from '../utils/emailTemplates/adminCreatedUser.js';
 import { logAction } from '../utils/auditLogger.js';
+import { normalizeUser } from '../utils/roles.js';
 
-// Generate random alphanumeric password
-const generateRandomPassword = (length = 10) => {
-  const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-  const lowercase = 'abcdefghijklmnopqrstuvwxyz';
-  const numbers = '0123456789';
-  const allChars = uppercase + lowercase + numbers;
-  
-  let password = '';
-  // Ensure at least one character from each type
-  password += uppercase[Math.floor(Math.random() * uppercase.length)];
-  password += lowercase[Math.floor(Math.random() * lowercase.length)];
-  password += numbers[Math.floor(Math.random() * numbers.length)];
-  
-  // Fill the rest randomly
-  for (let i = password.length; i < length; i++) {
-    password += allChars[Math.floor(Math.random() * allChars.length)];
-  }
-  
-  // Shuffle the password to randomize positions
-  return password.split('').sort(() => Math.random() - 0.5).join('');
-};
-
-// Fetch Dashboard Summary (LIVE STATS) - with Redis caching
+// Fetch Dashboard Summary (LIVE STATS)
 export const getAdminSummary = async (req, res) => {
   try {
-    const cacheKey = 'admin:dashboard:summary';
-    
-    // Try to get from cache first
-    const cachedSummary = await cache.get(cacheKey);
-    
-    // console.log(cachedSummary);
-    
-    if (cachedSummary) {  
-      console.log('✅ Admin dashboard summary served from Redis cache');
-      return res.json(cachedSummary);
-    }
-
-    // Cache miss - fetch from database
-    console.log('🟡 Cache miss - fetching dashboard stats from database');
-    
     // Count users and guest houses
     const totalUsers = await User.countDocuments();
     const totalGuestHouses = await GuestHouse.countDocuments();
@@ -78,10 +41,6 @@ export const getAdminSummary = async (req, res) => {
       occupancyRate
     };
 
-    // Store in cache for 30 seconds (matches frontend refresh interval)
-    await cache.set(cacheKey, summary, 30);
-    console.log('✅ Dashboard summary cached in Redis');
-    
     res.json(summary);
   } catch (error) {
     console.error("Error in admin summary:", error);
@@ -247,12 +206,18 @@ export const listUsers = async (req, res) => {
 // ✨ POST /api/admin/users - Create user by admin
 export const createUserByAdmin = async (req, res) => {
   try {
-    const { firstName, lastName, email, phone, address } = req.body;
+    const { firstName, lastName, email, phone, address, password } = req.body;
 
     // Validate required fields
-    if (!firstName || !lastName || !email || !phone) {
+    if (!firstName || !lastName || !email || !phone || !password) {
       return res.status(400).json({ 
-        error: "First name, last name, email, and phone are required." 
+        error: "First name, last name, email, phone, and password are required." 
+      });
+    }
+
+    if (String(password).length < 6) {
+      return res.status(400).json({
+        error: "Password must be at least 6 characters long.",
       });
     }
 
@@ -282,18 +247,15 @@ export const createUserByAdmin = async (req, res) => {
       }
     }
 
-    // Generate random password
-    const randomPassword = generateRandomPassword(10);
-
-    // Create new user
+    // Create new admin account
     const newUser = new User({
       firstName: firstName.trim(),
       lastName: lastName.trim(),
       email: email.trim().toLowerCase(),
       phone: Number(phone),
       address: address ? address.trim() : "",
-      password: randomPassword, // Will be hashed by pre-save hook
-      role: "user",
+      password,
+      role: "ADMIN",
       isActive: true,
     });
 
@@ -304,26 +266,17 @@ export const createUserByAdmin = async (req, res) => {
 
     // Send response immediately
     res.status(201).json({
-      message: "User created successfully. Credentials sent to email.",
+      message: "Admin account created successfully.",
       user: {
-        _id: newUser._id,
-        firstName: newUser.firstName,
-        lastName: newUser.lastName,
-        email: newUser.email,
-        phone: newUser.phone,
-        address: newUser.address,
-        role: newUser.role,
-        isActive: newUser.isActive,
-        createdAt: newUser.createdAt,
-        updatedAt: newUser.updatedAt,
+        ...normalizeUser(newUser.toObject()),
       },
     });
 
     // Send email asynchronously (don't block response)
     sendEmail({
       to: newUser.email,
-      subject: "Your Rishabh Guest House Account Credentials",
-      html: adminCreatedUserEmail(newUser, randomPassword),
+      subject: "Your Rishabh Guest House Account Has Been Created",
+      html: adminCreatedUserEmail(newUser),
     }).catch(err => {
       console.error("❌ Email send error for admin-created user:", err);
     });
@@ -342,11 +295,6 @@ export const createUserByAdmin = async (req, res) => {
       },
     }).catch(err => {
       console.error("❌ Audit log error:", err);
-    });
-
-    // Invalidate admin dashboard cache
-    cache.delete('admin:dashboard:summary').catch(err => {
-      console.error("❌ Cache invalidation error:", err);
     });
 
   } catch (error) {

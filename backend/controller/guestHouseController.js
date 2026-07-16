@@ -3,7 +3,6 @@ import Room from '../models/Room.js';
 import Bed from '../models/Bed.js';
 import { logAction } from '../utils/auditLogger.js';
 import { deleteFromS3 } from "../utils/s3Client.js";
-import { cache } from '../utils/redisClient.js';
 
 
 export const createGuestHouse = async (req, res) => {
@@ -38,10 +37,6 @@ export const createGuestHouse = async (req, res) => {
       },
     });
 
-    // Invalidate guest houses cache
-    await cache.delete('guesthouses:list');
-    console.log('🗑️  Invalidated guest houses cache');
-
     res.status(201).json({
       message: "Guest House Created Successfully",
       guestHouse,
@@ -54,27 +49,10 @@ export const createGuestHouse = async (req, res) => {
   }
 };
 
-// Get all the Guest Houses (with Redis caching)
+// Get all the Guest Houses
 export const getGuestHouses = async (req, res) => {
   try {
-    const cacheKey = 'guesthouses:list';
-    
-    // Try to get from cache first
-    let guestHouses = await cache.get(cacheKey);
-    
-    if (guestHouses) {
-      console.log('✅ Guest houses served from Redis cache');
-      return res.status(200).json(guestHouses);
-    }
-    
-    // Cache miss - fetch from database
-    console.log('🟡 Cache miss - fetching guest houses from database');
-    guestHouses = await GuestHouse.find().sort({createdAt: -1});
-    
-    // Store in cache for 10 minutes (600 seconds)
-    await cache.set(cacheKey, guestHouses, 600);
-    console.log('✅ Guest houses cached in Redis');
-    
+    const guestHouses = await GuestHouse.find().sort({createdAt: -1});
     res.status(200).json(guestHouses);
   } catch (error) {
     console.error("Error fetching guest houses:", error);
@@ -108,10 +86,6 @@ export const toggleMaintenanceMode = async (req, res) => {
         newStatus: !guestHouse.maintenance,
       },
     });
-
-    // Invalidate guest houses cache (maintenance status changed)
-    await cache.delete('guesthouses:list');
-    console.log('🗑️  Invalidated guest houses cache (maintenance toggled)');
 
     res.json({
       message: `Maintenance mode ${guestHouse.maintenance ? 'activated' : 'deactivated'}`,
@@ -170,10 +144,6 @@ export const deleteGuestHouse = async (req, res) => {
       console.warn("Audit log error (continued):", logError.message);
     }
 
-    // Invalidate guest houses cache
-    await cache.delete('guesthouses:list');
-    console.log('🗑️  Invalidated guest houses cache (deleted)');
-
     return res.json({
       success: true,
       message:
@@ -231,10 +201,6 @@ export const updateGuestHouse = async (req, res) => {
       performedBy: req.user?.email || 'Admin',
       details: updateData,
     });
-
-    // Invalidate guest houses cache
-    await cache.delete('guesthouses:list');
-    console.log('🗑️  Invalidated guest houses cache (updated)');
 
     res.status(200).json({
       message: "Guest House updated successfully",

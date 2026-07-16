@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
 import "../styles/adminBooking.css";
 import { FaFileExcel } from "react-icons/fa";
 import { toast } from "react-toastify";
+import api from "../../utils/api";
 
 const Bookings = () => {
   const [bookings, setBookings] = useState([]);
@@ -23,7 +23,7 @@ const Bookings = () => {
       !silent && setLoading(true);
       silent && setRefreshing(true);
 
-      const res = await axios.get("http://localhost:5000/api/bookings");
+      const res = await api.get("/api/bookings");
       setBookings(Array.isArray(res.data.bookings) ? res.data.bookings : res.data || []);
     } catch (err) {
       console.error("Error fetching bookings:", err);
@@ -58,9 +58,7 @@ const Bookings = () => {
   const handleExport = async () => {
     try {
       setIsExporting(true);
-      const response = await axios.get(
-        "http://localhost:5000/api/bookings/export/daily",
-        {
+      const response = await api.get("/api/bookings/export/daily", {
           params: { date: exportDate },
           responseType: "blob",
         }
@@ -97,7 +95,7 @@ const Bookings = () => {
     try {
       setActionLoadingId(id);
       
-      await axios.patch(`http://localhost:5000/api/bookings/${id}/${action}`);
+      await api.patch(`/api/bookings/${id}/${action}`);
       toast.success(`Booking ${action === "approve" ? "approved" : "rejected"} successfully.`);
       await fetchBookings();
     } catch (err) {

@@ -8,7 +8,129 @@ import User from '../models/User.js';
 import GuestHouse from '../models/GuestHouse.js';
 import { bookingRequest } from "../utils/emailTemplates/bookingRequest.js";
 import { bookingStatusUpdate } from "../utils/emailTemplates/bookingStatusUpdate.js";
-import { cache } from '../utils/redisClient.js';
+
+const parseFamilyMembers = (familyMembers) => {
+  if (!familyMembers) {
+    return [];
+  }
+
+  const parsedFamilyMembers = typeof familyMembers === "string"
+    ? JSON.parse(familyMembers)
+    : familyMembers;
+
+  if (!Array.isArray(parsedFamilyMembers)) {
+    throw new Error("Family details must be a list");
+  }
+
+  return parsedFamilyMembers
+    .filter((member) => member?.name || member?.relation || member?.age)
+    .map((member) => ({
+      name: String(member.name || "").trim(),
+      relation: String(member.relation || "").trim(),
+      age: member.age === "" || member.age == null ? undefined : Number(member.age),
+    }));
+};
+
+export const createAdminBooking = async (req, res) => {
+  try {
+    const {
+      guestHouseId,
+      roomId,
+      bedId,
+      checkIn,
+      checkOut,
+      fullName,
+      email,
+      phone,
+      address,
+      dateOfBirth,
+      gender,
+      nationality,
+      identityType,
+      identityNumber,
+      emergencyContactName,
+      emergencyContactPhone,
+      specialRequests,
+    } = req.body;
+
+    if (!guestHouseId || !roomId || !bedId || !checkIn || !checkOut || !fullName || !email || !phone || !address || !identityType || !identityNumber || !req.verificationImageUrl) {
+      return res.status(400).json({ message: "Booking, guest, identity, and verification image details are required" });
+    }
+
+    const checkInDate = new Date(checkIn);
+    const checkOutDate = new Date(checkOut);
+    if (Number.isNaN(checkInDate.getTime()) || Number.isNaN(checkOutDate.getTime()) || checkOutDate <= checkInDate) {
+      return res.status(400).json({ message: "Check-out must be after check-in" });
+    }
+
+    const familyMembers = parseFamilyMembers(req.body.familyMembers);
+    if (familyMembers.some((member) => !member.name || !member.relation || (member.age !== undefined && Number.isNaN(member.age)))) {
+      return res.status(400).json({ message: "Each family member needs a name, relation, and valid age" });
+    }
+
+    const [guestHouse, room, bed, overlap] = await Promise.all([
+      GuestHouse.findById(guestHouseId),
+      Room.findById(roomId),
+      Bed.findById(bedId),
+      Booking.findOne({
+        bedId,
+        status: "approved",
+        checkIn: { $lt: checkOutDate },
+        checkOut: { $gt: checkInDate },
+      }),
+    ]);
+
+    if (!guestHouse || !room || !bed) {
+      return res.status(404).json({ message: "Selected guest house, room, or bed was not found" });
+    }
+
+    if (String(bed.roomId) !== String(room._id) || Number(room.guestHouseId) !== Number(guestHouse.guestHouseId)) {
+      return res.status(400).json({ message: "Selected room and bed do not belong to this guest house" });
+    }
+
+    if (overlap) {
+      return res.status(409).json({ message: "This bed is already booked for the selected dates" });
+    }
+
+    const booking = await Booking.create({
+      guestHouseId,
+      roomId,
+      bedId,
+      checkIn: checkInDate,
+      checkOut: checkOutDate,
+      status: "approved",
+      fullName: fullName.trim(),
+      email,
+      phone,
+      address: address.trim(),
+      dateOfBirth: dateOfBirth || undefined,
+      gender: gender || undefined,
+      nationality: nationality?.trim(),
+      identityType,
+      identityNumber: identityNumber.trim(),
+      verificationImage: req.verificationImageUrl,
+      emergencyContactName: emergencyContactName?.trim(),
+      emergencyContactPhone: emergencyContactPhone?.trim(),
+      familyMembers,
+      specialRequests: specialRequests?.trim(),
+      bookingSource: "admin",
+      createdBy: req.user?._id,
+    });
+
+    logAction({
+      action: "ADMIN_BOOKING_CREATED",
+      entityType: "Booking",
+      entityId: booking._id,
+      performedBy: req.user?.email || "Admin",
+      details: { guestHouseId, roomId, bedId, checkIn, checkOut },
+    }).catch((error) => console.error("Audit log error:", error));
+
+    return res.status(201).json({ message: "Room booked successfully", booking });
+  } catch (error) {
+    console.error("Error creating admin booking:", error);
+    return res.status(500).json({ message: error.message || "Server error creating booking" });
+  }
+};
 
 
 // 🟢 Create a new booking (user)
@@ -62,15 +184,6 @@ export const createBooking = async (req, res) => {
     // ✅ Save it in MongoDB
     await newBooking.save();
 
-    // Invalidate availability cache for this guest house and date range
-    // Delete all availability cache keys for this guest house
-    await cache.deletePattern(`availability:${guestHouseId}:*`);
-    console.log('🗑️  Invalidated availability cache (booking created)');
-
-    // Invalidate admin dashboard cache
-    await cache.delete('admin:dashboard:summary');
-    console.log('🗑️  Invalidated admin dashboard cache');
-
     // Send response immediately
     res.status(201).json({ message: "Booking request submitted", newBooking });
 
@@ -99,7 +212,32 @@ export const createBooking = async (req, res) => {
 // 🟡 Get all bookings (admin)
 export const getAllBookings = async (req, res) => {
   try {
-    const bookings = await Booking.find()
+    const { startDate, endDate } = req.query;
+    const query = {};
+
+    if (startDate || endDate) {
+      const createdAt = {};
+
+      if (startDate) {
+        const start = new Date(`${startDate}T00:00:00.000Z`);
+        if (Number.isNaN(start.getTime())) {
+          return res.status(400).json({ message: "Invalid start date" });
+        }
+        createdAt.$gte = start;
+      }
+
+      if (endDate) {
+        const end = new Date(`${endDate}T23:59:59.999Z`);
+        if (Number.isNaN(end.getTime())) {
+          return res.status(400).json({ message: "Invalid end date" });
+        }
+        createdAt.$lte = end;
+      }
+
+      query.createdAt = createdAt;
+    }
+
+    const bookings = await Booking.find(query)
       .populate("userId", "email firstName lastName")
       .populate("guestHouseId", "guestHouseName")
       .populate("roomId", "roomNumber")
@@ -255,14 +393,6 @@ export const approveBooking = async (req, res) => {
       details: { status: "approved" },
     }).catch(err => console.error("❌ Audit log error:", err));
 
-    // 7️⃣ Fire-and-forget: Invalidate caches asynchronously (non-blocking)
-    Promise.all([
-      cache.deletePattern(`availability:${booking.guestHouseId}:*`),
-      cache.delete('admin:dashboard:summary')
-    ]).then(() => {
-      console.log('🗑️  Invalidated availability and dashboard cache (booking approved)');
-    }).catch(err => console.error("❌ Cache invalidation error:", err));
-
   } catch (error) {
     console.error("Error approving booking:", error);
     res.status(500).json({ message: "Server error approving booking" });
@@ -315,14 +445,6 @@ export const rejectBooking = async (req, res) => {
       details: { status: "rejected" },
     }).catch(err => console.error("❌ Audit log error:", err));
 
-    // 7️⃣ Fire-and-forget: Invalidate caches asynchronously (non-blocking)
-    Promise.all([
-      cache.deletePattern(`availability:${booking.guestHouseId}:*`),
-      cache.delete('admin:dashboard:summary')
-    ]).then(() => {
-      console.log('🗑️  Invalidated availability and dashboard cache (booking rejected)');
-    }).catch(err => console.error("❌ Cache invalidation error:", err));
-
   } catch (error) {
     console.error("Error rejecting booking:", error);
     res.status(500).json({ message: "Server error rejecting booking" });
@@ -331,7 +453,7 @@ export const rejectBooking = async (req, res) => {
 
 
 
-// 🟢 Check Room & Bed Availability for selected Guest House and Date Range (with Redis caching)
+// Check Room & Bed Availability for selected Guest House and Date Range
 export const checkAvailability = async (req, res) => {
   try {
     const { guestHouseId, checkIn, checkOut } = req.query;
@@ -339,20 +461,6 @@ export const checkAvailability = async (req, res) => {
     if (!guestHouseId || !checkIn || !checkOut) {
       return res.status(400).json({ message: "Missing required fields" });
     }
-
-    // Create cache key from parameters
-    const cacheKey = `availability:${guestHouseId}:${checkIn}:${checkOut}`;
-    
-    // Try to get from cache first
-    const cachedResult = await cache.get(cacheKey);
-    
-    if (cachedResult) {
-      console.log('✅ Availability served from Redis cache');
-      return res.json(cachedResult);
-    }
-
-    // Cache miss - fetch from database
-    console.log('🟡 Cache miss - calculating availability from database');
 
     // Find the GuestHouse to get both _id (ObjectId) and guestHouseId (Number)
     const guestHouse = await GuestHouse.findOne({
@@ -424,10 +532,6 @@ export const checkAvailability = async (req, res) => {
     }
 
     const result = { unavailableRooms, unavailableBeds };
-
-    // Store in cache for 2 minutes (120 seconds) - short TTL for real-time accuracy
-    await cache.set(cacheKey, result, 120);
-    console.log('✅ Availability cached in Redis');
 
     res.json(result);
   } catch (error) {

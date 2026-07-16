@@ -10,11 +10,23 @@ import {
   getApprovedBookingsForCalendar,
   exportDailyBookings
 } from "../controller/bookingController.js";
+import { createAdminBooking } from "../controller/bookingController.js";
+import { processAndUploadVerificationImage, uploadVerificationImage } from "../middlewares/imageUpload.js";
+import { authenticate, authorize } from '../middlewares/auth.js';
 
 const router = express.Router();
 
 // User creates a booking
 router.post("/", createBooking);
+
+router.post(
+  "/admin",
+  authenticate,
+  authorize('ADMIN'),
+  uploadVerificationImage,
+  processAndUploadVerificationImage,
+  createAdminBooking
+);
 
 // User gets their bookings
 router.get("/my", getMyBookings);

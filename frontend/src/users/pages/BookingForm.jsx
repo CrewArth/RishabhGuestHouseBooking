@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import '../styles/bookingform.css';
 import Navbar from '../../components/Navbar';
-import axios from 'axios';
 import { toast } from 'react-toastify';
+import api from '../../utils/api';
 
 const BookingForm = () => {
   const location = useLocation();
@@ -118,9 +118,7 @@ const BookingForm = () => {
   const fetchRooms = async (gh) => {
     try {
       setRoomsLoading(true);
-      const res = await axios.get(
-        `http://localhost:5000/api/rooms/by-guesthouse?guestHouseId=${gh.guestHouseId}`
-      );
+      const res = await api.get(`/api/rooms/by-guesthouse?guestHouseId=${gh.guestHouseId}`);
       setRooms(Array.isArray(res.data?.rooms) ? res.data.rooms : []);
     } catch (err) {
       console.error('Error fetching rooms:', err);
@@ -133,7 +131,7 @@ const BookingForm = () => {
   const fetchBeds = async (roomId) => {
     try {
       setBedsLoading(true);
-      const res = await axios.get(`http://localhost:5000/api/beds?roomId=${roomId}`);
+      const res = await api.get(`/api/beds?roomId=${roomId}`);
       setBeds(Array.isArray(res.data?.beds) ? res.data.beds : []);
     } catch (err) {
       console.error('Error fetching beds:', err);
@@ -147,7 +145,7 @@ const BookingForm = () => {
     try {
       if (!formData.checkInDate || !formData.checkOutDate || !selectedGuestHouse) return;
 
-      const res = await axios.get(`http://localhost:5000/api/bookings/availability`, {
+      const res = await api.get(`/api/bookings/availability`, {
         params: {
           guestHouseId: selectedGuestHouse._id || selectedGuestHouse.guestHouseId,
           checkIn: formData.checkInDate,
@@ -193,7 +191,7 @@ const BookingForm = () => {
         userId: storedUser?._id,
       };
 
-      const res = await axios.post("http://localhost:5000/api/bookings", bookingData);
+      const res = await api.post("/api/bookings", bookingData);
         
       console.log(res.data);
       if (res.status === 201) {

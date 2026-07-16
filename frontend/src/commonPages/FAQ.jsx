@@ -30,8 +30,8 @@ const FAQ = () => {
       answer: "If your booking is rejected, you will receive an email notification with the reason. You can then submit a new booking request for different dates or accommodations."
     },
     {
-      question: "How do I create an account?",
-      answer: "Click on the 'Signup' button on the homepage or navigation bar. Fill in your details including first name, last name, email, phone number, address, and password. Once registered, you can log in and start booking."
+      question: "How do I get access to the system?",
+      answer: "Accounts are created by a super admin. If you need access, contact the super admin team to have an account created for you."
     },
     {
       question: "I forgot my password. How can I reset it?",

@@ -6,7 +6,10 @@ const bookingSchema = new mongoose.Schema(
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true,
+    },
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
     },
     guestHouseId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -37,8 +40,27 @@ const bookingSchema = new mongoose.Schema(
       default: "pending",
     },
     fullName: { type: String },
+    email: { type: String, trim: true, lowercase: true },
     phone: { type: String },
     address: { type: String },
+    dateOfBirth: { type: Date },
+    gender: { type: String, enum: ["male", "female", "other", "prefer_not_to_say"] },
+    nationality: { type: String },
+    identityType: { type: String },
+    identityNumber: { type: String },
+    verificationImage: { type: String },
+    emergencyContactName: { type: String },
+    emergencyContactPhone: { type: String },
+    familyMembers: [{
+      name: { type: String, trim: true },
+      relation: { type: String, trim: true },
+      age: { type: Number, min: 0 },
+    }],
+    bookingSource: {
+      type: String,
+      enum: ["self_service", "admin"],
+      default: "self_service",
+    },
     specialRequests: { type: String },
 
   },

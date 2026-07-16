@@ -2,13 +2,6 @@
 
 ### Performance Optimizations
 
-**Redis Caching Implementation**
-- Guest Houses List: **90-95% faster** response times (50-100ms → 1-5ms)
-- Booking Availability: **95-99% faster** on cache hits (200-500ms → 1-5ms)
-- Admin Dashboard: **95-99% faster** loads (300-700ms → 1-5ms)
-- **70-90% reduction** in database queries
-- **10x scalability** improvement for concurrent users
-
 **Booking Approval/Rejection Optimization**
 - Reduced response time from **3.97 seconds to ~200-300ms**
 - **90-95% performance improvement**
@@ -56,7 +49,7 @@
 - **Error Handling**: Enhanced error messages with specific feedback
 - **Code Optimization**: Parallelized queries using Promise.all
 - **Non-blocking Operations**: Email and audit logging don't block responses
-- **Cache Invalidation**: Smart cache invalidation on data changes
+- **Data Flow**: Non-blocking updates on data changes
 
 ---
 

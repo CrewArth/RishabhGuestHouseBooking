@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
+import { normalizeRole } from '../utils/roles.js';
 
 /*
 Add auto increment unique id, similar to object id. 
@@ -19,7 +20,7 @@ const userSchema = new mongoose.Schema({
         trim: true
     },
 
-    email: {
+        email: {
         type: String,
         required: true,
         trim: true,
@@ -38,8 +39,9 @@ const userSchema = new mongoose.Schema({
     },
     role: {
         type: String,
-        enum: ["user", "admin"],
-        default: "user"
+        enum: ["ADMIN", "SUPER_ADMIN"],
+        default: "ADMIN",
+        set: (value) => normalizeRole(value),
     },
     password: {
         type: String,

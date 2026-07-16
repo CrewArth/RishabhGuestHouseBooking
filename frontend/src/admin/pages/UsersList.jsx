@@ -1,9 +1,9 @@
-import axios from "axios";
 import { useEffect, useState } from "react";
 import "../styles/usersList.css";
 import EditUserModal from "../components/EditUserModel";
 import CreateUserModal from "../components/CreateUserModal";
 import { toast } from "react-toastify";
+import api from "../../utils/api";
 
 const UsersList = () => {
   const [users, setUsers] = useState([]);
@@ -17,7 +17,6 @@ const UsersList = () => {
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [totalUsers, setTotalUsers] = useState(0);
   const limit = 10;
 
   // Fetch users
@@ -26,14 +25,11 @@ const UsersList = () => {
       setLoading(true);
       setErr(null);
 
-      const res = await axios.get(
-        `http://localhost:5000/api/admin/users?page=${page}&limit=${limit}`
-      );
+      const res = await api.get(`/api/admin/users?page=${page}&limit=${limit}`);
 
       setUsers(Array.isArray(res.data?.users) ? res.data.users : []);
       setTotalPages(res.data.totalPages || 1);
       setCurrentPage(res.data.currentPage || 1);
-      setTotalUsers(res.data.totalUsers || 0);
     } catch (e) {
       console.error("Error fetching users: ", e);
       setErr("Failed to load users");
@@ -47,7 +43,7 @@ const UsersList = () => {
   // Update user
   const handleUpdateUser = async (updatedUser) => {
     try {
-      await axios.put(`http://localhost:5000/api/users/${selectedUser._id}`, updatedUser);
+      await api.put(`/api/users/${selectedUser._id}`, updatedUser);
 
       toast.success("User updated successfully");
 
@@ -61,14 +57,8 @@ const UsersList = () => {
   };
 
   const handleToggleUserStatus = async (user) => {
-    const confirmMsg = user.isActive
-    //   ? "Deactivate this user? They won't be able to log in."
-    //   : "Activate this user again?";
-
-    // if (!window.confirm(confirmMsg)) return;
-
     try {
-      const res = await axios.patch(`http://localhost:5000/api/users/${user._id}/toggle`);
+      const res = await api.patch(`/api/users/${user._id}/toggle`);
 
       toast.success(res.data.message);
       fetchUsers();
@@ -102,7 +92,7 @@ const UsersList = () => {
   return (
     <div className="admin-content">
       <div className="users-header">
-        <h1>All Users</h1>
+        <h1>All Admins</h1>
         {/* <span className="count">Total: {users.length}</span> */}
       </div>
 
@@ -121,7 +111,7 @@ const UsersList = () => {
           className="btn-create-user"
           onClick={() => setIsCreateModalOpen(true)}
         >
-          Create User
+          Create Admin
         </button>
       </div>
 
@@ -185,7 +175,7 @@ const UsersList = () => {
             ) : (
               <tr>
                 <td colSpan="6" style={{ textAlign: "center" }}>
-                  No users found
+                  No admins found
                 </td>
               </tr>
             )}

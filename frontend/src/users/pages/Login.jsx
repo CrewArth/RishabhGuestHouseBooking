@@ -1,14 +1,13 @@
-import { Link, useNavigate } from "react-router-dom";
-import axios from "axios";
+import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { useEffect, useState } from "react";
 import { ToastContainer, toast } from "react-toastify";
 import 'react-toastify/dist/ReactToastify.css';
-import Navbar from '../../components/Navbar';
-import Footer from '../../components/Footer';
 import '../styles/login.css';
+import api from "../../utils/api";
+import { getAuthenticatedRedirectPath, getRedirectPathForRole } from "../../utils/auth";
 
 // Email Validation Schema
 const schema = yup.object({
@@ -36,6 +35,14 @@ export default function LoginPage() {
     }
   }, [setValue]);
 
+  useEffect(() => {
+    const redirectPath = getAuthenticatedRedirectPath();
+
+    if (redirectPath) {
+      navigate(redirectPath, { replace: true });
+    }
+  }, [navigate]);
+
   const onSubmit = async (data) => {
     try {
       if (rememberMe) {
@@ -44,18 +51,14 @@ export default function LoginPage() {
         localStorage.removeItem("rememberedEmail");
       }
 
-      const res = await axios.post("http://localhost:5000/api/auth/signin", data);
+      const res = await api.post("/api/auth/signin", data);
       localStorage.setItem("token", res.data.token);
       localStorage.setItem("user", JSON.stringify(res.data.user));
 
       toast.success("Login Successful!", { autoClose: 1000 });
 
       setTimeout(() => {
-        if (res.data.user.role === "admin") {
-          navigate('/admin/dashboard');
-        } else {
-          navigate("/dashboard");
-        }
+        navigate(getRedirectPathForRole(res.data.user.role));
       }, 1200);
 
     } catch (error) {
@@ -69,7 +72,6 @@ export default function LoginPage() {
 
   return (
     <>
-      <Navbar />
       <ToastContainer position="top-right" theme="colored" />
 
       <div className="login-container">
@@ -133,13 +135,10 @@ export default function LoginPage() {
           </form>
 
           <div className="login-footer">
-            <p className="footer-text">Don’t have an account?</p>
-            <Link to="/signup" className="signup-button">Create Account</Link>
+            <p className="footer-text">Need access? Contact a super admin.</p>
           </div>
         </div>
       </div>
-
-      <Footer />
     </>
   );
 }

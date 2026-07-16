@@ -1,11 +1,12 @@
 import React, { useEffect, useState, useCallback } from "react";
 import "../styles/adminDashboard.css";
-import axios from "axios";
 import BookingsPerDayChart from "../components/BookingsPerDayChart.jsx";
 import TopGuestHousesChart from "../components/TopGuestHousesChart.jsx";
 import Calendar from "../components/Calender.jsx";
+import TodayBookings from "../components/TodayBookings";
+import api from "../../utils/api";
 
-const AdminDashboard = () => {
+const AdminDashboard = ({ showTodayBookings = false }) => {
   const [stats, setStats] = useState({
     totalBookings: 0,
     totalUsers: 0,
@@ -29,8 +30,6 @@ const AdminDashboard = () => {
     rangeLabel: "",
   });
 
-  const API_BASE = "http://localhost:5000/api/admin";
-  
   // Date range state - default to last 30 days
   const getDefaultEndDate = () => new Date().toISOString().slice(0, 10);
   const getDefaultStartDate = () => {
@@ -61,7 +60,7 @@ const AdminDashboard = () => {
   const fetchStats = async () => {
     try {
       setRefreshing(true);
-      const res = await axios.get(`${API_BASE}/summary`);
+      const res = await api.get('/api/admin/summary');
       setStats(res.data);
     } catch (err) {
       console.error("Error fetching admin stats: ", err);
@@ -76,14 +75,14 @@ const AdminDashboard = () => {
       setTopGuestHouses((prev) => ({ ...prev, loading: true }));
 
       const [trendRes, guestRes] = await Promise.all([
-        axios.get(`${API_BASE}/metrics/bookings-per-day`, {
+        api.get('/api/admin/metrics/bookings-per-day', {
           params: { 
             startDate: dateRange.startDate,
             endDate: dateRange.endDate,
             status: "approved" 
           },
         }),
-        axios.get(`${API_BASE}/metrics/top-guest-houses`, {
+        api.get('/api/admin/metrics/top-guest-houses', {
           params: { 
             startDate: dateRange.startDate,
             endDate: dateRange.endDate,
@@ -134,6 +133,8 @@ const AdminDashboard = () => {
   return (
     <div className="admin-dashboard">
       <h1 className="dashboard-title">Admin Dashboard</h1>
+
+      {showTodayBookings && <TodayBookings />}
 
       {refreshing && (
         <p style={{ fontSize: "14px", color: "gray" }}>Refreshing…</p>

@@ -1,0 +1,26 @@
+import express from 'express';
+import authRoutes from './auth.js';
+import adminRoutes from './createadmin.js';
+import userRoutes from './userRoute.js';
+import guestHouseRoutes from './guestHouseRoutes.js';
+import roomRoutes from './roomRoutes.js';
+import bedRoutes from './bedRoutes.js';
+import auditLogRoutes from './auditLogRoutes.js';
+import adminSummary from './adminRoutes.js';
+import bookingRoutes from './bookingRoutes.js';
+import contactRoutes from './contactRoutes.js';
+
+const router = express.Router();
+
+router.use('/auth', authRoutes);
+router.use('/admin', adminRoutes);
+router.use('/guesthouses', guestHouseRoutes);
+router.use('/rooms', roomRoutes);
+router.use('/beds', bedRoutes);
+router.use('/audit-logs', auditLogRoutes);
+router.use('/admin', adminSummary);
+router.use('/users', userRoutes);
+router.use('/bookings', bookingRoutes);
+router.use('/contact', contactRoutes);
+
+export default router;

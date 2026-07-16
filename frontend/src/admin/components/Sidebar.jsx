@@ -4,13 +4,13 @@ import { NavLink } from 'react-router-dom';
 
 const Sidebar = () => {
   const menuItems = [
-    { icon: Home, label: 'Dashboard', to: '/admin/dashboard' },
-    { icon: Building2, label: 'Guest House', to: '/admin/guesthouses' },
-    { icon: DoorOpen, label: 'Room Management', to: '/admin/rooms' },
-    { icon: Bed, label: 'Bed Management', to: '/admin/beds' },
-    { icon: BookOpen, label: 'Booking Management', to: '/admin/bookings' },
-    { icon: PersonStanding, label: 'List Users', to: '/admin/users' },
-    { icon: FileText, label: 'Audit Logs', to: '/admin/audits' },
+    { icon: Home, label: 'Dashboard', to: '/super-admin/dashboard' },
+    { icon: Building2, label: 'Guest House', to: '/super-admin/guesthouses' },
+    { icon: DoorOpen, label: 'Room Management', to: '/super-admin/rooms' },
+    { icon: Bed, label: 'Bed Management', to: '/super-admin/beds' },
+    { icon: BookOpen, label: 'Booking Management', to: '/super-admin/bookings' },
+    { icon: PersonStanding, label: 'List Users', to: '/super-admin/users' },
+    { icon: FileText, label: 'Audit Logs', to: '/super-admin/audits' },
   ];
 
   return (

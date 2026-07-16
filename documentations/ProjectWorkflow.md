@@ -40,7 +40,7 @@
 
 ### Guest House Controller (backend/controller/guestHouseController.js)
 - **createGuestHouse** - Creates new guest house, uploads image to S3 (via middleware), logs GUESTHOUSE_CREATED action, invalidates guesthouses:list cache
-- **getGuestHouses** - Fetches all guest houses, checks Redis cache first (guesthouses:list), caches result for 10 minutes if cache miss, returns sorted by createdAt
+- **getGuestHouses** - Fetches all guest houses, returns sorted by createdAt
 - **getGuestHouseById** - Fetches single guest house by guestHouseId number
 - **updateGuestHouse** - Updates guest house information, handles image update (via middleware), logs GUESTHOUSE_UPDATED action, invalidates guesthouses:list cache
 - **deleteGuestHouse** - Deletes guest house, deletes image from S3, cascades delete to rooms and beds, logs GUESTHOUSE_DELETED action, invalidates guesthouses:list cache
@@ -69,12 +69,12 @@
 - **getMyBookings** - Fetches bookings for current user, populates guestHouseId, roomId, bedId, sorts by createdAt descending
 - **approveBooking** - Approves pending booking, parallelizes user/guest house queries, updates booking status to "approved", marks bed as unavailable, sends approval email (async), logs BOOKING_APPROVED action (async), invalidates availability and dashboard cache (async)
 - **rejectBooking** - Rejects pending booking, parallelizes user/guest house queries, updates booking status to "rejected", sends rejection email (async), logs BOOKING_REJECTED action (async), invalidates availability and dashboard cache (async)
-- **checkAvailability** - Checks room and bed availability for date range, finds overlapping approved bookings, calculates unavailable rooms (all beds booked) and unavailable beds, caches result in Redis (2-minute TTL), returns unavailableRooms and unavailableBeds arrays
+- **checkAvailability** - Checks room and bed availability for date range, finds overlapping approved bookings, calculates unavailable rooms (all beds booked) and unavailable beds, returns unavailableRooms and unavailableBeds arrays
 - **getApprovedBookingsForCalendar** - Fetches approved bookings for calendar view, populates all related entities, sorts by checkIn date
 - **exportDailyBookings** - Exports bookings for specific date as CSV file, includes user and booking details, sets proper CSV headers
 
 ### Admin Controller (backend/controller/adminController.js)
-- **getAdminSummary** - Fetches dashboard statistics, checks Redis cache first (admin:dashboard:summary), makes 7 countDocuments queries if cache miss, calculates occupancy rate, caches result for 30 seconds
+- **getAdminSummary** - Fetches dashboard statistics, makes 7 countDocuments queries if needed, calculates occupancy rate
 - **getBookingsPerDay** - Aggregates bookings per day for date range, uses MongoDB aggregation pipeline, groups by date, supports status filtering
 - **getTopGuestHouses** - Aggregates top guest houses by booking count, uses MongoDB aggregation with $lookup, supports date range and status filtering, limits results
 - **listUsers** - Lists all users with pagination, returns firstName, lastName, email, phone, address, isActive, createdAt, supports pagination
@@ -101,7 +101,7 @@
 
 ### Guest House Routes (backend/routes/guestHouseRoutes.js)
 - **POST /api/guesthouses** - Uses upload and processAndUploadImage middlewares, maps to createGuestHouse controller
-- **GET /api/guesthouses** - Maps to getGuestHouses controller (with Redis caching)
+- **GET /api/guesthouses** - Maps to getGuestHouses controller
 - **GET /api/guesthouses/:guestHouseId** - Maps to getGuestHouseById controller
 - **PUT /api/guesthouses/:guestHouseId** - Uses upload and processAndUploadImage middlewares, maps to updateGuestHouse controller
 - **DELETE /api/guesthouses/:guestHouseId** - Maps to deleteGuestHouse controller
@@ -128,14 +128,14 @@
 - **POST /api/bookings** - Maps to createBooking controller
 - **GET /api/bookings** - Maps to getAllBookings controller (admin only)
 - **GET /api/bookings/my** - Maps to getMyBookings controller (user's own bookings)
-- **GET /api/bookings/availability** - Maps to checkAvailability controller (with Redis caching)
+- **GET /api/bookings/availability** - Maps to checkAvailability controller
 - **GET /api/bookings/calendar** - Maps to getApprovedBookingsForCalendar controller
 - **GET /api/bookings/export/daily** - Maps to exportDailyBookings controller
 - **PATCH /api/bookings/:id/approve** - Maps to approveBooking controller (optimized, non-blocking)
 - **PATCH /api/bookings/:id/reject** - Maps to rejectBooking controller (optimized, non-blocking)
 
 ### Admin Routes (backend/routes/adminRoutes.js)
-- **GET /api/admin/summary** - Maps to getAdminSummary controller (with Redis caching)
+- **GET /api/admin/summary** - Maps to getAdminSummary controller
 - **GET /api/admin/users** - Maps to listUsers controller
 - **GET /api/admin/metrics/bookings-per-day** - Maps to getBookingsPerDay controller
 - **GET /api/admin/metrics/top-guest-houses** - Maps to getTopGuestHouses controller
@@ -176,14 +176,6 @@
 
 ### Audit Logger (backend/utils/auditLogger.js)
 - **logAction** - Logs system actions to AuditLog collection, enriches details based on entityType (GuestHouse, Room, Bed, Booking, User), queries related entities for context, creates audit log entry
-
-### Redis Client (backend/utils/redisClient.js)
-- **redisClient** - Redis client connection using createClient, handles connection events (connect, ready, error), connects to Redis on startup
-- **cache.get** - Gets data from Redis cache by key, parses JSON, returns null on error (graceful degradation)
-- **cache.set** - Sets data in Redis cache with optional TTL, stringifies JSON, returns false on error (non-blocking)
-- **cache.delete** - Deletes specific key from Redis cache
-- **cache.deletePattern** - Deletes all keys matching pattern using KEYS command
-- **cache.exists** - Checks if key exists in Redis cache
 
 ### S3 Client (backend/utils/s3Client.js)
 - **s3** - AWS S3 client configured with region and credentials from env
@@ -310,7 +302,7 @@
 ### Booking Creation Workflow
 1. User selects guest house → BookingForm.jsx Step 1
 2. User enters dates → Validates no past dates
-3. Checks availability → GET /api/bookings/availability (cached in Redis)
+3. Checks availability → GET /api/bookings/availability
 4. User selects room and bed → BookingForm.jsx
 5. User enters personal info → BookingForm.jsx Step 2
 6. POST /api/bookings → bookingController.createBooking
@@ -364,47 +356,26 @@
 ### Availability Check Workflow
 1. User selects dates → BookingForm.jsx
 2. GET /api/bookings/availability → bookingController.checkAvailability
-3. Checks Redis cache → cache.get (availability:{guestHouseId}:{checkIn}:{checkOut})
-4. If cache hit → Returns cached result immediately
-5. If cache miss → Finds guest house → GuestHouse.findOne
-6. Finds overlapping bookings → Booking.find (approved, date range overlap)
-7. Calculates unavailable beds → Extracts bed IDs from overlapping bookings
-8. Calculates unavailable rooms → Checks if all beds in room are booked
-9. Caches result → cache.set (2-minute TTL)
-10. Returns unavailableRooms and unavailableBeds → Response
+3. Finds guest house → GuestHouse.findOne
+4. Finds overlapping bookings → Booking.find (approved, date range overlap)
+5. Calculates unavailable beds → Extracts bed IDs from overlapping bookings
+6. Calculates unavailable rooms → Checks if all beds in room are booked
+7. Returns unavailableRooms and unavailableBeds → Response
 
 ### Admin Dashboard Workflow
 1. Admin navigates to dashboard → Overview.jsx
 2. GET /api/admin/summary → adminController.getAdminSummary
-3. Checks Redis cache → cache.get (admin:dashboard:summary)
-4. If cache hit → Returns cached stats immediately
-5. If cache miss → Makes 7 countDocuments queries → User, GuestHouse, Booking (total/approved/pending/rejected/today)
-6. Calculates occupancy rate → (approvedBookings / totalBookings) * 100
-7. Caches result → cache.set (30-second TTL)
-8. Returns statistics → Response
-9. Auto-refreshes every 30 seconds → Frontend useEffect
+3. Makes 7 countDocuments queries → User, GuestHouse, Booking (total/approved/pending/rejected/today)
+4. Calculates occupancy rate → (approvedBookings / totalBookings) * 100
+5. Returns statistics → Response
+6. Auto-refreshes every 30 seconds → Frontend useEffect
 
 ---
 
 ## Cache Keys Used
 
-- **guesthouses:list** - Complete guest houses list (TTL: 10 minutes)
-- **availability:{guestHouseId}:{checkIn}:{checkOut}** - Availability results (TTL: 2 minutes)
-- **admin:dashboard:summary** - Admin dashboard statistics (TTL: 30 seconds)
-
----
-
-## Cache Invalidation Triggers
-
-- **guesthouses:list** - Invalidated on: createGuestHouse, updateGuestHouse, deleteGuestHouse, toggleMaintenanceMode
-- **availability:*** - Invalidated on: createBooking, approveBooking, rejectBooking
-- **admin:dashboard:summary** - Invalidated on: createBooking, approveBooking, rejectBooking, registerUser, deleteUser, createGuestHouse, deleteGuestHouse
-
----
-
 ## Performance Optimizations
 
-- **Redis Caching** - 90-95% faster response times for cached data
 - **Parallelized Queries** - Uses Promise.all for simultaneous database queries
 - **Non-blocking Operations** - Email, audit logging, and cache operations don't block responses
 - **Database Indexing** - Compound indexes on Booking model for faster queries

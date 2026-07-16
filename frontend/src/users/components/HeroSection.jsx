@@ -1,15 +1,16 @@
 import '../styles/hero.css'
 import { useNavigate } from 'react-router-dom';
 import herobg from '../../assets/hero-bg.webp'
+import { getRedirectPathForRole, getStoredUser } from '../../utils/auth';
 
 const HeroSection = () => {
 
   const navigate = useNavigate();
-  const user = localStorage.getItem('user');
+  const user = getStoredUser();
 
   const navigateSignin = () => {
     if(user){
-      navigate('/dashboard')
+      navigate(getRedirectPathForRole(user.role))
     }
     else{
       navigate('/signin')

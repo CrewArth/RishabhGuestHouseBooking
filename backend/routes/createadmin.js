@@ -19,13 +19,13 @@ router.post('/create-admin', async(req, res) => {
             email,
             phone,
             password,
-            role: "admin",
+            role: "SUPER_ADMIN",
             isActive: true
         });
 
         await admin.save();
         res.status(201).json({
-            message: "Admin Created Sucessfully", admin
+            message: "Super Admin Created Sucessfully", admin
         })
     }catch(error){
         res.status(500).json({

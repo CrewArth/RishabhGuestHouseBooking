@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react'
-import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import '../styles/profile.css'
 import Navbar from '../../components/Navbar';
 import { toast } from 'react-toastify';
+import api from '../../utils/api';
 
 const Profile = () => {
 
@@ -82,7 +82,7 @@ const Profile = () => {
                 phone: updatedUser.phone ? parseInt(updatedUser.phone, 10) : updatedUser.phone
             };
 
-            const response = await axios.put(`http://localhost:5000/api/users/${user._id}`, submitData);
+            const response = await api.put(`/api/users/${user._id}`, submitData);
 
             // Check if we have a valid response with user data
             if (response.data && response.data.user) {

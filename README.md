@@ -1,6 +1,6 @@
 # Guest House Booking System
 
-A comprehensive web application for managing guest house bookings, rooms, and beds with separate interfaces for users and administrators. Built with MERN stack (MongoDB, Express.js, React, Node.js) with Redis caching for optimal performance.
+A comprehensive web application for managing guest house bookings, rooms, and beds with separate interfaces for users and administrators. Built with MERN stack (MongoDB, Express.js, React, Node.js).
 
 ---
 
@@ -28,7 +28,6 @@ axios requests,
 What are hooks in react
 UseEffect Lifecycle
 Do not speak everything in ppt details, just give overview
-how can we implement redis caching in pagination, what would be the key,
 In which response you got the token,
 The process of JWT and what would you do when the refresh token gets expire, how is the process
 Outlet,
@@ -69,7 +68,6 @@ Outlet,
 - 📥 **Data Export** - Export bookings and audit logs as CSV files
 
 ### System Features
-- ⚡ **Redis Caching** - 90-95% faster response times with intelligent cache invalidation
 - 🖼️ **Image Optimization** - Automatic image resizing and WebP conversion before S3 upload
 - 📧 **Email Notifications** - Automated emails for booking confirmations and status updates
 - 🔒 **Protected Routes** - Role-based access control for user and admin routes
@@ -97,7 +95,6 @@ Outlet,
 - **Mongoose** - MongoDB object modeling
 - **JWT** - Authentication tokens
 - **Bcrypt** - Password hashing
-- **Redis** - Caching layer
 - **Sharp** - Image processing
 - **Multer** - File upload handling
 - **Nodemailer** - Email service
@@ -105,7 +102,6 @@ Outlet,
 
 ### Infrastructure
 - **MongoDB Atlas / Local** - Database
-- **Redis** - Cache server
 - **AWS S3** - Image storage
 - **Gmail SMTP** - Email service
 
@@ -118,7 +114,6 @@ Before you begin, ensure you have the following installed:
 - **Node.js** (v18 or higher)
 - **npm** or **yarn**
 - **MongoDB** (local or MongoDB Atlas account)
-- **Redis** (for caching - optional but recommended)
 - **AWS Account** (for S3 image storage)
 - **Gmail Account** (for email service)
 
@@ -157,31 +152,14 @@ npm install
 - Create account at [MongoDB Atlas](https://www.mongodb.com/cloud/atlas)
 - Create a cluster and get connection string
 
-### 5. Set Up Redis (Optional but Recommended)
-
-**Option A: Docker (Easiest)**
-```bash
-docker run -d -p 6379:6379 --name redis redis:latest
-```
-
-**Option B: Local Installation**
-- Install Redis based on your OS
-- Start Redis service
-
-**Verify Redis:**
-```bash
-redis-cli ping
-# Should return: PONG
-```
-
-### 6. Set Up AWS S3
+### 5. Set Up AWS S3
 
 1. Create AWS account
 2. Create S3 bucket
 3. Create IAM user with S3 permissions
 4. Get Access Key ID and Secret Access Key
 
-### 7. Configure Environment Variables
+### 6. Configure Environment Variables
 
 Create `backend/.env` file:
 
@@ -206,16 +184,11 @@ AWS_S3_BUCKET=your-bucket-name
 AWS_ACCESS_KEY_ID=your_access_key_id
 AWS_SECRET_ACCESS_KEY=your_secret_access_key
 
-# Redis Configuration
-REDIS_HOST=localhost
-REDIS_PORT=6379
-REDIS_PASSWORD=
-
 # Frontend URL (for password reset links)
 FRONTEND_URL=http://localhost:5173
 ```
 
-### 8. Start the Application
+### 7. Start the Application
 
 **Start Backend:**
 ```bash
@@ -229,7 +202,7 @@ cd frontend
 npm run dev
 ```
 
-### 9. Access the Application
+### 8. Access the Application
 
 - **Frontend**: http://localhost:5173
 - **Backend API**: http://localhost:5000
@@ -276,9 +249,8 @@ GuestHouseBookingSystem/
 │   │   ├── auditLogger.js        # Audit logging utility
 │   │   ├── emailService.js       # Email sending service
 │   │   ├── emailTemplates/       # Email HTML templates
-│   │   ├── jwt.js                 # JWT token generation/verification
-│   │   ├── redisClient.js         # Redis client & cache helpers
-│   │   └── s3Client.js            # AWS S3 client
+│   │   ├── jwt.js                # JWT token generation/verification
+│   │   └── s3Client.js           # AWS S3 client
 │   ├── validators/
 │   │   └── room.schema.js         # Joi validation schemas
 │   ├── server.js                  # Express server entry point
@@ -334,7 +306,6 @@ This project is licensed under the ISC License.
 ## 📚 Additional Documentation
 
 - [Project Workflow](./ProjectWorkflow.md) - Complete function and file documentation
-- [Redis Implementation Guide](./REDIS_IMPLEMENTATION_STEPS.md) - Redis setup and implementation
 - [System Diagrams](./SystemDiagrams.md) - ER, Class, and Use Case diagrams (if exists)
 
 ---

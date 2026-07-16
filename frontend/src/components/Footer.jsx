@@ -10,7 +10,7 @@ const Footer = () => {
     <footer className="footer-container">
       <div className="company">
         <Logo />
-        <p>Rishabh Software</p>
+        <p>Arth Guest House</p>
       </div>
 
       <div className="contactus">

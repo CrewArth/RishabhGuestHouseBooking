@@ -1,11 +1,11 @@
 // src/pages/BedManagement.jsx
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import BedFormModal from '../components/BedFormModal';
 import '../styles/bedManagement.css';
 import '../styles/auditLogs.css';
 import { toast } from 'react-toastify';
+import api from '../../utils/api';
 
 const BedManagement = () => {
   const [guestHouses, setGuestHouses] = useState([]);
@@ -24,7 +24,7 @@ const BedManagement = () => {
 
   const fetchGuestHouses = async () => {
     try {
-      const res = await axios.get('http://localhost:5000/api/guesthouses');
+      const res = await api.get('/api/guesthouses');
       setGuestHouses(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error('Error fetching guest houses', err);
@@ -37,7 +37,7 @@ const BedManagement = () => {
       return;
     }
     try {
-      const res = await axios.get(`http://localhost:5000/api/rooms/by-guesthouse?guestHouseId=${ghId}`);
+      const res = await api.get(`/api/rooms/by-guesthouse?guestHouseId=${ghId}`);
       setRooms(res.data.rooms || []);
     } catch (err) {
       console.error('Error fetching rooms for GH', err);
@@ -51,7 +51,7 @@ const BedManagement = () => {
       return;
     }
     try {
-      const res = await axios.get(`http://localhost:5000/api/beds?roomId=${roomId}`);
+      const res = await api.get(`/api/beds?roomId=${roomId}`);
       setBeds(res.data.beds || []);
     } catch (err) {
       console.error('Error fetching beds', err);
@@ -90,7 +90,7 @@ const BedManagement = () => {
         bedType: newBed.bedType || 'single' // preserve schema but default single
       };
 
-      const res = await axios.post('http://localhost:5000/api/beds', payload);
+      const res = await api.post('/api/beds', payload);
       toast.success("Bed created sucessfully")
 
       // server returns updated beds; prefer fetching to keep consistent
@@ -105,7 +105,7 @@ const BedManagement = () => {
 
   const handleEditBed = async (updatedBed) => {
     try {
-      await axios.put(`http://localhost:5000/api/beds/${selectedBed._id}`, {
+      await api.put(`/api/beds/${selectedBed._id}`, {
         ...updatedBed,
         bedType: updatedBed.bedType || 'single'
       });
@@ -120,7 +120,7 @@ const BedManagement = () => {
 
   const toggleAvailability = async (bedId, currentAvailability) => {
     try {
-      await axios.patch(`http://localhost:5000/api/beds/${bedId}/availability`, {
+      await api.patch(`/api/beds/${bedId}/availability`, {
         isAvailable: !currentAvailability
       });
       fetchBedsForRoom(selectedRoom);
@@ -132,7 +132,7 @@ const BedManagement = () => {
   const handleDeleteBed = async (bedId) => {
     if (!window.confirm('Are you sure you want to delete this bed?')) return;
     try {
-      await axios.delete(`http://localhost:5000/api/beds/${bedId}`);
+      await api.delete(`/api/beds/${bedId}`);
       fetchBedsForRoom(selectedRoom);
     } catch (err) {
       console.error('Error deleting bed', err);
@@ -172,7 +172,7 @@ const BedManagement = () => {
     // }
 
     try {
-      const res = await axios.post('http://localhost:5000/api/beds/auto-create', {
+      const res = await api.post('/api/beds/auto-create', {
         roomId: selectedRoom,
         bedType: 'single' // default bed type
       });

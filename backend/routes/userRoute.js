@@ -8,6 +8,7 @@ import {
 
 const router = express.Router();
 
+
 router.put("/:id", updateUser);
 
 // DELETE user by ID

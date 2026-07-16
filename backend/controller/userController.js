@@ -1,6 +1,5 @@
 import User from "../models/User.js";
 import { logAction } from "../utils/auditLogger.js";
-import { cache } from '../utils/redisClient.js';
 
 const getTrackedDetails = (payload = {}) => {
   const allowedFields = [
@@ -99,10 +98,6 @@ export const deleteUser = async (req, res) => {
         name: `${deleted.firstName} ${deleted.lastName}`.trim(),
       },
     });
-
-    // Invalidate admin dashboard cache
-    await cache.delete('admin:dashboard:summary');
-    console.log('🗑️  Invalidated admin dashboard cache (user deleted)');
 
     res.json({ success: true, message: "User deleted successfully" });
   } catch (error) {

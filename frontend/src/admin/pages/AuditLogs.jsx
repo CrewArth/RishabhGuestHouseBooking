@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
 import '../styles/auditLogs.css';
 import { FaFileExcel} from 'react-icons/fa';
+import api from '../../utils/api';
 
 const AuditLogs = () => {
   const [logs, setLogs] = useState([]);
@@ -18,7 +18,7 @@ const AuditLogs = () => {
 
   const fetchLogs = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/audit-logs', {
+      const response = await api.get('/api/audit-logs', {
         params: {
           page: currentPage,
           limit,
@@ -149,9 +149,7 @@ const AuditLogs = () => {
   const handleExport = async () => {
     try {
       setIsExporting(true);
-      const response = await axios.get(
-        'http://localhost:5000/api/audit-logs/export/daily',
-        {
+      const response = await api.get('/api/audit-logs/export/daily', {
           params: { date: exportDate },
           responseType: 'blob',
         }

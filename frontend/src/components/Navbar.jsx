@@ -3,6 +3,7 @@ import "../styles/navbar.css";
 import Logo from "./Logo";
 import { useNavigate, Link } from "react-router-dom";
 import { FaBars } from "react-icons/fa";  // For mobile hamburger icon
+import { getStoredUser, normalizeRole } from "../utils/auth";
 
 const Navbar = () => {
   const navigate = useNavigate();
@@ -11,12 +12,11 @@ const Navbar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem("user");
+    const storedUser = getStoredUser();
     const token = localStorage.getItem("token");
 
     if (storedUser) {
-      const user = JSON.parse(storedUser);
-      setUsername(user.firstName);
+      setUsername(storedUser.firstName);
       setIsLoggedIn(true);
       return;
     }
@@ -35,7 +35,7 @@ const Navbar = () => {
       localStorage.removeItem("user");
       setIsLoggedIn(false);
       setUsername("");
-      navigate("/");
+      navigate("/signin");
       return;
     }
     navigate("/signin");
@@ -45,7 +45,7 @@ const Navbar = () => {
     <nav className="navbar-container">
       <div className="navbar-left">
         <Logo />
-        <p className="navbar-title">Rishabh Guest House</p>
+        <p className="navbar-title">Arth Guest House</p>
       </div>
 
       {/* Hamburger Icon for Mobile */}
@@ -57,8 +57,11 @@ const Navbar = () => {
       <div className={`navbar-middle ${isMobileMenuOpen ? "active" : ""}`}>
         {isLoggedIn && (
           <>
-            {JSON.parse(localStorage.getItem("user"))?.role !== "admin" && (
-              <Link to="/my-bookings" className="nav-link">My Bookings</Link>
+            {normalizeRole(getStoredUser()?.role) === "ADMIN" && (
+              <>
+                <Link to="/admin/dashboard" className="nav-link">Dashboard</Link>
+                <Link to="/admin/book-room" className="nav-link">Book Room</Link>
+              </>
             )}
             <Link to="/profile" className="nav-link">Profile</Link>
           </>

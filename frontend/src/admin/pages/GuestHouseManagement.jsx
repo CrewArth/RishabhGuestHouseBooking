@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from "react";
 import GuestHouseFormModal from "../components/GuestHouseFormModal";
-import axios from "axios";
 import "../styles/guestHouseManagement.css";
 
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import api from "../../utils/api";
 
 const GuestHouseManagement = () => {
   const [guestHouses, setGuestHouses] = useState([]);
@@ -13,7 +13,7 @@ const GuestHouseManagement = () => {
 
   const fetchGuestHouses = async () => {
     try {
-      const response = await axios.get("http://localhost:5000/api/guesthouses");
+      const response = await api.get("/api/guesthouses");
       setGuestHouses(
         Array.isArray(response.data) ? response.data : response.data.guestHouses
       );
@@ -30,7 +30,7 @@ const GuestHouseManagement = () => {
 
   const handleAddGuestHouse = async (newGH) => {
     try {
-      await axios.post("http://localhost:5000/api/guesthouses", newGH);
+      await api.post("/api/guesthouses", newGH);
       toast.success("Guest House created sucessfully")
       fetchGuestHouses();
     } catch (err) {
@@ -41,8 +41,8 @@ const GuestHouseManagement = () => {
 
   const handleEditGuestHouse = async (updatedData) => {
     try {
-      await axios.put(
-        `http://localhost:5000/api/guesthouses/${selectedGH.guestHouseId}`,
+      await api.put(
+        `/api/guesthouses/${selectedGH.guestHouseId}`,
         updatedData
       );
       fetchGuestHouses();
@@ -53,9 +53,7 @@ const GuestHouseManagement = () => {
 
   const toggleMaintenance = async (guestHouseId) => {
     try {
-      await axios.patch(
-        `http://localhost:5000/api/guesthouses/${guestHouseId}/maintenance`
-      );
+      await api.patch(`/api/guesthouses/${guestHouseId}/maintenance`);
       fetchGuestHouses();
     } catch (err) {
       console.error("Error toggling maintenance mode", err);
@@ -78,9 +76,7 @@ const GuestHouseManagement = () => {
     );
 
     try {
-      await axios.delete(
-        `http://localhost:5000/api/guesthouses/${guestHouseId}`
-      );
+      await api.delete(`/api/guesthouses/${guestHouseId}`);
       toast.success("Guest House deleted sucessfully")
     } catch (err) {
       console.error("Error deleting guest house:", err);

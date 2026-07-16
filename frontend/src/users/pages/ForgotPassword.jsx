@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import axios from "axios";
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
 import "../styles/login.css";
 import { toast } from "react-toastify";
+import api from "../../utils/api";
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState("");
@@ -16,7 +16,7 @@ const ForgotPassword = () => {
 
     try {
       setLoading(true);
-      await axios.post("http://localhost:5000/api/auth/forgot-password", { email });
+      await api.post("/api/auth/forgot-password", { email });
       toast.success("If an account exists, reset instructions were sent");
       setEmail("");
     } catch (error) {

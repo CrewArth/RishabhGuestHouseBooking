@@ -1,14 +1,11 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import axios from 'axios';
-
-// Adjust base URL if you use a proxy; this is explicit
-const API_BASE = 'http://localhost:5000';
+import api from '../utils/api';
 
 export const fetchGuestHouses = createAsyncThunk(
   'guestHouses/fetchAll',
   async (_, { rejectWithValue }) => {
     try { 
-      const res = await axios.get(`${API_BASE}/api/guesthouses`);
+      const res = await api.get('/api/guesthouses');
       // Your API returns either an array or {guestHouses:[...]} — normalize it:
       const data = Array.isArray(res.data) ? res.data : (res.data.guestHouses || []);
       return data;
