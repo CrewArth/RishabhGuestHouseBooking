@@ -2,6 +2,8 @@ import { Suspense } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import lazyLoad from './utils/lazyLoad';
 import ProtectedRoute from './users/routes/ProtectedRoute';
+import PublicRoute from './users/routes/PublicRoute';
+import Dashboard from './users/pages/Dashboard';
 import ProtectedAdminRoute from './admin/routes/ProtectedAdminRoute';
 const LoginPage = lazyLoad(() => import('./users/pages/Login'));
 const AdminDashboard = lazyLoad(() => import('./admin/pages/AdminDashboard'));
@@ -66,9 +68,9 @@ function App() {
         <Routes>
         
         {/* ------------------ PUBLIC ROUTES ------------------ */}
-        <Route path="/" element={<RootRedirect />} />
+        <Route path="/" element={<Homepage />} />
         <Route path="/signin" element={<LoginPage />} />
-        <Route path="/signup" element={<Navigate to="/signin" replace />} />
+        <Route path="/signup" element={<SignupPage />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/about" element={<AboutUs />} />
