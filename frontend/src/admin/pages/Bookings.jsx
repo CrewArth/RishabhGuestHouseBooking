@@ -1,164 +1,123 @@
 import React, { useEffect, useState } from "react";
-import "../styles/adminBooking.css";
 import { FaFileExcel } from "react-icons/fa";
 import { toast } from "react-toastify";
 import api from "../../utils/api";
 
-const Bookings = () => {
-  const [bookings, setBookings] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState("");
-  const [selected, setSelected] = useState(null);
-  const [actionLoadingId, setActionLoadingId] = useState(null);
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [exportDate, setExportDate] = useState(() =>
-    new Date().toISOString().slice(0, 10)
-  );
-  const [isExporting, setIsExporting] = useState(false);
+const formatDate = (dateStr) => {
+  if (!dateStr) return "—";
+  const d = new Date(dateStr);
+  return isNaN(d.getTime()) ? "—" : d.toLocaleDateString("en-IN");
+};
 
+const Bookings = () => {
+  const [bookings, setBookings]           = useState([]);
+  const [loading, setLoading]             = useState(true);
+  const [refreshing, setRefreshing]       = useState(false);
+  const [error, setError]                 = useState("");
+  const [selected, setSelected]           = useState(null);
+  const [actionLoadingId, setActionLoadingId] = useState(null);
+  const [statusFilter, setStatusFilter]   = useState("all");
+  const [exportDate, setExportDate]       = useState(() => new Date().toISOString().slice(0, 10));
+  const [isExporting, setIsExporting]     = useState(false);
 
   const fetchBookings = async (silent = false) => {
     try {
-      !silent && setLoading(true);
-      silent && setRefreshing(true);
-
+      !silent ? setLoading(true) : setRefreshing(true);
       const res = await api.get("/api/bookings");
       setBookings(Array.isArray(res.data.bookings) ? res.data.bookings : res.data || []);
     } catch (err) {
-      console.error("Error fetching bookings:", err);
       setError("Failed to load bookings");
       setBookings([]);
     } finally {
-      !silent && setLoading(false);
-      silent && setRefreshing(false);
+      !silent ? setLoading(false) : setRefreshing(false);
     }
   };
 
   useEffect(() => {
     fetchBookings();
-
-    // Auto-refresh every 12 seconds (but only if modal is closed)
-    const interval = setInterval(() => {
-      if (!selected && !actionLoadingId) {
-        fetchBookings(true); // silent refresh
-      }
-    }, 12000);
-
-    return () => clearInterval(interval);
+    const id = setInterval(() => { if (!selected && !actionLoadingId) fetchBookings(true); }, 12000);
+    return () => clearInterval(id);
   }, [selected, actionLoadingId]);
-
-  const formatDate = (dateStr) => {
-    if (!dateStr) return "—";
-    const date = new Date(dateStr);
-    if (isNaN(date.getTime())) return "Invalid Date";
-    return date.toLocaleDateString("en-IN");
-  };
 
   const handleExport = async () => {
     try {
       setIsExporting(true);
-      const response = await api.get("/api/bookings/export/daily", {
-          params: { date: exportDate },
-          responseType: "blob",
-        }
-      );
-
-      const blob = new Blob([response.data], {
-        type: "text/csv;charset=utf-8;",
-      });
-      const downloadUrl = window.URL.createObjectURL(blob);
+      const res = await api.get("/api/bookings/export/daily", { params: { date: exportDate }, responseType: "blob" });
+      const url  = window.URL.createObjectURL(new Blob([res.data], { type: "text/csv;charset=utf-8;" }));
       const link = document.createElement("a");
-      link.href = downloadUrl;
+      link.href = url;
       link.setAttribute("download", `bookings-${exportDate}.csv`);
       document.body.appendChild(link);
       link.click();
       link.remove();
-      window.URL.revokeObjectURL(downloadUrl);
-      toast.success("Bookings exported successfully.");
-    } catch (err) {
-      console.error("Error exporting bookings:", err);
-      toast.error("Failed to export bookings for this day.");
-    } finally {
-      setIsExporting(false);
-    }
+      window.URL.revokeObjectURL(url);
+      toast.success("Exported successfully");
+    } catch { toast.error("Export failed"); }
+    finally { setIsExporting(false); }
   };
 
   const handleAction = async (id, action, currentStatus) => {
-    if (currentStatus !== "pending") {
-      toast.info("This booking has already been processed.");
-      return;
-    }
-
-    if (!window.confirm(`Are you sure you want to ${action} this booking?`)) return;
-
+    if (currentStatus !== "pending") return toast.info("Already processed.");
+    if (!window.confirm(`${action === "approve" ? "Approve" : "Reject"} this booking?`)) return;
     try {
       setActionLoadingId(id);
-      
       await api.patch(`/api/bookings/${id}/${action}`);
-      toast.success(`Booking ${action === "approve" ? "approved" : "rejected"} successfully.`);
-      await fetchBookings();
-    } catch (err) {
-      console.error(`Error ${action} booking:`, err);
-      toast.error("Action failed. Check server logs.");
-    } finally {
-      setActionLoadingId(null);
-    }
+      toast.success(`Booking ${action === "approve" ? "approved" : "rejected"}`);
+      fetchBookings();
+    } catch { toast.error("Action failed"); }
+    finally { setActionLoadingId(null); }
   };
 
-  if (loading)
-    return <div className="admin-content"><p>Loading bookings...</p></div>;
+  const filtered = bookings.filter((b) => statusFilter === "all" || b.status === statusFilter);
 
-  if (error)
-    return <div className="admin-content"><p className="error">{error}</p></div>;
+  if (loading) return <div className="page-root"><p style={{ color: "#64748b" }}>Loading bookings…</p></div>;
+  if (error)   return <div className="page-root"><p style={{ color: "#dc2626" }}>{error}</p></div>;
 
   return (
-    <div className="admin-content admin-bookings-page">
-      <div className="page-header">
-        <div className="bk-title">
-          <h2>Booking Requests</h2>
+    <div className="page-root">
+      {/* Header */}
+      <div className="page-header-row">
+        <div>
+          <h1 className="page-title">Bookings</h1>
+          <p className="page-subtitle">Review, approve and export booking requests</p>
         </div>
-        <div className="booking-export-wrapper">
+        <div className="export-row">
           <input
             type="date"
-            className="booking-export-date"
+            className="export-date-input"
             value={exportDate}
             onChange={(e) => setExportDate(e.target.value)}
           />
           <button
-            className="booking-export-btn"
+            className="btn-action export"
             onClick={handleExport}
             disabled={isExporting || !exportDate}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', fontSize: '0.875rem' }}
           >
-            <span className="export-icon" aria-hidden="true">
-              <FaFileExcel />
-            </span>
-            {isExporting ? "Generating..." : "Export"}
+            <FaFileExcel />
+            {isExporting ? "Exporting…" : "Export CSV"}
           </button>
         </div>
       </div>
 
-      <div className="filter-bar">
-        <label>Status: </label>
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-        >
+      {/* Filter bar */}
+      <div className="toolbar-row">
+        <span className="toolbar-label">Status:</span>
+        <select className="toolbar-select" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
           <option value="all">All</option>
           <option value="pending">Pending</option>
           <option value="approved">Approved</option>
           <option value="rejected">Rejected</option>
         </select>
+        {refreshing && <span style={{ fontSize: "0.8rem", color: "#94a3b8" }}>Refreshing…</span>}
       </div>
 
-
-      {refreshing && <p style={{ color: "gray", fontSize: "13px" }}>Refreshing…</p>}
-
-      <div className="bookings-table-wrap">
-        <table className="bookings-table">
+      {/* Table */}
+      <div className="table-scroll">
+        <table className="data-table" style={{ minWidth: 900 }}>
           <thead>
             <tr>
-              <th>Sr</th>
+              <th className="center">#</th>
               <th>Guest House</th>
               <th>User</th>
               <th>Check In</th>
@@ -169,110 +128,78 @@ const Bookings = () => {
               <th>Actions</th>
             </tr>
           </thead>
-
           <tbody>
-            {bookings.length === 0 && (
-              <tr><td colSpan="9" style={{ textAlign: "center" }}>No bookings found</td></tr>
+            {filtered.length === 0 ? (
+              <tr><td colSpan="9" className="table-empty">No bookings found</td></tr>
+            ) : (
+              filtered.map((b, i) => (
+                <tr key={b._id}>
+                  <td className="center">{i + 1}</td>
+                  <td>{b.guestHouseId?.guestHouseName || "—"}</td>
+                  <td>{b.userId?.firstName || "—"}</td>
+                  <td>{formatDate(b.checkIn)}</td>
+                  <td>{formatDate(b.checkOut)}</td>
+                  <td>{b.roomId?.roomNumber ? `Room ${b.roomId.roomNumber}` : "—"}</td>
+                  <td>{b.bedId?.bedNumber ? `Bed ${b.bedId.bedNumber}` : "—"}</td>
+                  <td><span className={`badge ${b.status}`}>{b.status}</span></td>
+                  <td>
+                    <div className="actions-cell">
+                      {b.status === "pending" && (
+                        <>
+                          <button
+                            className="btn-action approve"
+                            disabled={actionLoadingId === b._id}
+                            onClick={() => handleAction(b._id, "approve", b.status)}
+                          >
+                            {actionLoadingId === b._id ? "…" : "Approve"}
+                          </button>
+                          <button
+                            className="btn-action reject"
+                            disabled={actionLoadingId === b._id}
+                            onClick={() => handleAction(b._id, "reject", b.status)}
+                          >
+                            {actionLoadingId === b._id ? "…" : "Reject"}
+                          </button>
+                        </>
+                      )}
+                      <button className="btn-action view" onClick={() => setSelected(b)}>View</button>
+                    </div>
+                  </td>
+                </tr>
+              ))
             )}
-
-            {bookings
-              .filter((b) => {
-                if (statusFilter === "all") return true;
-                return b.status === statusFilter;
-              })
-              .map((b, idx) => (
-              <tr key={b._id}>
-                <td>{idx + 1}</td>
-                <td>{b.guestHouseId?.guestHouseName || "—"}</td>
-                <td>{b.userId?.firstName || "—"}</td>
-                <td>{formatDate(b.checkIn)}</td>
-                <td>{formatDate(b.checkOut)}</td>
-                <td>{b.roomId?.roomNumber ? `Room ${b.roomId.roomNumber}` : "—"}</td>
-                <td>{b.bedId?.bedNumber ? `Bed ${b.bedId.bedNumber} (${b.bedId.bedType})` : "—"}</td>
-
-                <td><span className={`status-badge ${b.status}`}>{b.status}</span></td>
-
-                <td className="actions-td">
-
-  {/* Show Approve + Reject ONLY when status is pending */}
-  {b.status === "pending" && (
-    <>
-      <button
-        onClick={() => handleAction(b._id, "approve", b.status)}
-        className="btn success small"
-        disabled={actionLoadingId === b._id}
-      >
-        {actionLoadingId === b._id ? "loading..." : "Approve"}
-      </button>
-
-      <button
-        onClick={() => handleAction(b._id, "reject", b.status)}
-        className="btn danger small"
-        disabled={actionLoadingId === b._id}
-      >
-        {actionLoadingId === b._id ? "loading..." : "Reject"}
-      </button>
-    </>
-  )}
-
-    {/* Always show VIEW button */}
-  <button
-    onClick={() => setSelected(b)}
-    className="btn small"
-  >
-    View
-  </button>
-
-</td>
-
-              </tr>
-            ))}
           </tbody>
         </table>
       </div>
 
-     {selected && (
-  <div className="modal-backdrop" onClick={() => setSelected(null)}>
-    <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-      <h3>Booking Details</h3>
-
-      <div className="modal-details">
-
-        <p><strong>User:</strong> {selected.userId?.firstName} {selected.userId?.lastName}</p>
-        <p><strong>Email:</strong> {selected.userId?.email}</p>
-
-        <p><strong>Guest House:</strong> {selected.guestHouseId?.guestHouseName}</p>
-        <p><strong>Room:</strong> {selected.roomId?.roomNumber ? `Room ${selected.roomId.roomNumber}` : "—"}</p>
-        <p><strong>Bed:</strong> 
-          {selected.bedId?.bedNumber 
-            ? `Bed ${selected.bedId.bedNumber} (${selected.bedId.bedType})` 
-            : "—"}
-        </p>
-
-        <p><strong>Check-In:</strong> {formatDate(selected.checkIn)}</p>
-        <p><strong>Check-Out:</strong> {formatDate(selected.checkOut)}</p>
-
-        <p><strong>Status:</strong> 
-          <span className={`status-badge ${selected.status}`} style={{ marginLeft: 6 }}>
-            {selected.status}
-          </span>
-        </p>
-
-        {selected.specialRequests && (
-          <p><strong>Special Requests:</strong> {selected.specialRequests}</p>
-        )}
-
-        <p><strong>Applied On:</strong> {formatDate(selected.createdAt)}</p>
-
-      </div>
-
-      <div className="modal-actions">
-        <button className="btn" onClick={() => setSelected(null)}>Close</button>
-      </div>
-    </div>
-  </div>
-)}
-
+      {/* Detail modal */}
+      {selected && (
+        <div className="page-modal-backdrop" onClick={() => setSelected(null)}>
+          <div className="page-modal-card" onClick={(e) => e.stopPropagation()}>
+            <div className="page-modal-header">
+              <h3>Booking Details</h3>
+              <button className="page-modal-close" onClick={() => setSelected(null)}>✕</button>
+            </div>
+            <div className="page-modal-body">
+              <div className="modal-detail-grid">
+                <p><strong>User</strong>{selected.userId?.firstName} {selected.userId?.lastName}</p>
+                <p><strong>Email</strong>{selected.userId?.email || "—"}</p>
+                <p><strong>Guest House</strong>{selected.guestHouseId?.guestHouseName || "—"}</p>
+                <p><strong>Room</strong>{selected.roomId?.roomNumber ? `Room ${selected.roomId.roomNumber}` : "—"}</p>
+                <p><strong>Bed</strong>{selected.bedId?.bedNumber ? `Bed ${selected.bedId.bedNumber} (${selected.bedId.bedType})` : "—"}</p>
+                <p><strong>Check-In</strong>{formatDate(selected.checkIn)}</p>
+                <p><strong>Check-Out</strong>{formatDate(selected.checkOut)}</p>
+                <p><strong>Status</strong><span className={`badge ${selected.status}`}>{selected.status}</span></p>
+                <p><strong>Applied On</strong>{formatDate(selected.createdAt)}</p>
+                {selected.specialRequests && <p className="full"><strong>Special Requests</strong>{selected.specialRequests}</p>}
+              </div>
+            </div>
+            <div className="page-modal-footer">
+              <button className="btn-action view" onClick={() => setSelected(null)}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

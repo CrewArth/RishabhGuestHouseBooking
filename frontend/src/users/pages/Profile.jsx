@@ -1,33 +1,34 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom';
+import { useSelector, useDispatch } from 'react-redux';
 import '../styles/profile.css'
 import Navbar from '../../components/Navbar';
 import { toast } from 'react-toastify';
 import api from '../../utils/api';
+import { updateUser } from '../../redux/authSlice';
 
 const Profile = () => {
 
     const navigate = useNavigate();
-    const [user, setUser] = useState(null);
+    const dispatch = useDispatch();
+    const storedUser = useSelector((state) => state.auth.user);
+    const [user, setUser] = useState(storedUser);
     const [isEditing, setIsEditing] = useState(false);
     const [updatedUser, setUpdatedUser] = useState({});
     const [phoneError, setPhoneError] = useState('');
 
     useEffect(() => {
-        const storedUser = localStorage.getItem("user");
         if (!storedUser) {
             alert("User not logged in");
             navigate("/signin");
             return;
         }
-        const userData = JSON.parse(storedUser);
-        setUser(userData);
-        // Convert phone number to string for form handling (phone comes as number from backend)
+        setUser(storedUser);
         setUpdatedUser({
-            ...userData,
-            phone: userData.phone ? String(userData.phone) : ''
+            ...storedUser,
+            phone: storedUser.phone ? String(storedUser.phone) : ''
         });
-    }, [navigate]);
+    }, [storedUser, navigate]);
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
@@ -88,12 +89,11 @@ const Profile = () => {
             if (response.data && response.data.user) {
                 const updatedData = response.data.user;
 
-                // Update localStorage and state
-                localStorage.setItem("user", JSON.stringify(updatedData));
+                // Update Redux store (also persists to localStorage via the slice)
+                dispatch(updateUser(updatedData));
                 setUser(updatedData);
                 setIsEditing(false);
 
-                // Show success message and navigate
                 toast.success("Profile updated successfully");
                 navigate('/dashboard');
             } else {

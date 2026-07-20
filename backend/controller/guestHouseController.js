@@ -5,9 +5,21 @@ import { logAction } from '../utils/auditLogger.js';
 import { deleteFromS3 } from "../utils/s3Client.js";
 
 
+const MAX_GUEST_HOUSES = 4;
+
 export const createGuestHouse = async (req, res) => {
   try {
     const { guestHouseName, description } = req.body;
+
+    // Check guest house limit
+    const guestHouseCount = await GuestHouse.countDocuments();
+    if (guestHouseCount >= MAX_GUEST_HOUSES) {
+      return res.status(400).json({ 
+        message: `Maximum limit of ${MAX_GUEST_HOUSES} guest houses reached. Please delete an existing guest house to add a new one.`,
+        limit: MAX_GUEST_HOUSES,
+        currentCount: guestHouseCount
+      });
+    }
 
     // Parse location string back to JSON
     const location = JSON.parse(req.body.location);
@@ -52,7 +64,7 @@ export const createGuestHouse = async (req, res) => {
 // Get all the Guest Houses
 export const getGuestHouses = async (req, res) => {
   try {
-    const guestHouses = await GuestHouse.find().sort({createdAt: -1});
+    const guestHouses = await GuestHouse.find().sort({ guestHouseId: 1 });
     res.status(200).json(guestHouses);
   } catch (error) {
     console.error("Error fetching guest houses:", error);

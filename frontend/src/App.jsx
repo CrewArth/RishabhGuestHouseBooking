@@ -18,6 +18,7 @@ const Bookings = lazyLoad(() => import('./admin/pages/Bookings'));
 const GuestHouseManagement = lazyLoad(() => import('./admin/pages/GuestHouseManagement.jsx'));
 const UsersList = lazyLoad(() => import('./admin/pages/UsersList'));
 const NotFound = lazyLoad(() => import('./components/NotFound'));
+const Settings = lazyLoad(() => import('./admin/pages/Settings'));
 const ForgotPassword = lazyLoad(() => import('./users/pages/ForgotPassword'));
 const ResetPassword = lazyLoad(() => import('./users/pages/ResetPassword'));
 const AboutUs = lazyLoad(() => import('./commonPages/AboutUs'));
@@ -68,9 +69,9 @@ function App() {
         <Routes>
         
         {/* ------------------ PUBLIC ROUTES ------------------ */}
-        <Route path="/" element={<Homepage />} />
+        <Route path="/" element={<LoginPage />} />
         <Route path="/signin" element={<LoginPage />} />
-        <Route path="/signup" element={<SignupPage />} />
+        <Route path="/signup" element={<Navigate to="/signin" replace />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/about" element={<AboutUs />} />
@@ -124,6 +125,7 @@ function App() {
           <Route path="/super-admin/beds" element={<AddBeds />} />
           <Route path="/super-admin/audits" element={<AuditLogs />} />
           <Route path="/super-admin/bookings" element={<Bookings />}/>
+          <Route path="/super-admin/settings" element={<Settings />} />
         </Route>  
 
         <Route path="*" element={<NotFound />} />

@@ -1,35 +1,45 @@
-import { Home, Building2, DoorOpen, BookOpen, Bed, FileText, ChevronRight, PersonStanding } from 'lucide-react';
 import "../styles/sidebar.css";
 import { NavLink } from 'react-router-dom';
+import { ChevronRight } from 'lucide-react';
+import { mainSidebarData } from '../utils/sidebarData';
+
+// Settings is always the last item — split it out for a visual divider
+const SETTINGS_ID = 'MC_SETTINGS';
 
 const Sidebar = () => {
-  const menuItems = [
-    { icon: Home, label: 'Dashboard', to: '/super-admin/dashboard' },
-    { icon: Building2, label: 'Guest House', to: '/super-admin/guesthouses' },
-    { icon: DoorOpen, label: 'Room Management', to: '/super-admin/rooms' },
-    { icon: Bed, label: 'Bed Management', to: '/super-admin/beds' },
-    { icon: BookOpen, label: 'Booking Management', to: '/super-admin/bookings' },
-    { icon: PersonStanding, label: 'List Users', to: '/super-admin/users' },
-    { icon: FileText, label: 'Audit Logs', to: '/super-admin/audits' },
-  ];
+  const navItems = mainSidebarData.filter((item) => item.id !== SETTINGS_ID);
+  const settingsItem = mainSidebarData.find((item) => item.id === SETTINGS_ID);
+
+  const renderLink = (item) => (
+    <li key={item.id} className="nav-item">
+      <NavLink
+        to={item.navigate}
+        className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+      >
+        <item.icon size={20} />
+        <span>{item.name}</span>
+        <ChevronRight size={16} className="arrow-icon" />
+      </NavLink>
+    </li>
+  );
 
   return (
     <aside className="sidebar">
       <nav className="sidebar-nav">
+        {/* Main navigation items */}
         <ul className="nav-list">
-          {menuItems.map((item, index) => (
-            <li key={index} className="nav-item">
-              <NavLink
-                to={item.to}
-                className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}
-              >
-                <item.icon size={20} />
-                <span>{item.label}</span>
-                <ChevronRight size={16} className="arrow-icon" />
-              </NavLink>
-            </li>
-          ))}
+          {navItems.map(renderLink)}
         </ul>
+
+        {/* Settings pinned at the bottom with a divider */}
+        {settingsItem && (
+          <>
+            <div className="sidebar-divider" />
+            <ul className="nav-list">
+              {renderLink(settingsItem)}
+            </ul>
+          </>
+        )}
       </nav>
     </aside>
   );

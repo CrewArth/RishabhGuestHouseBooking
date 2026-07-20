@@ -1,226 +1,158 @@
-// src/pages/RoomManagement.jsx
 import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import RoomFormModal from '../components/RoomFormModel';
-import '../styles/roomManagement.css';
 import { toast } from 'react-toastify';
 import api from '../../utils/api';
 
 const RoomManagement = () => {
-  const [rooms, setRooms] = useState([]);
+  const [rooms, setRooms]               = useState([]);
   const [selectedRoom, setSelectedRoom] = useState(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [guestHouse, setGuestHouse] = useState(null);
-  const [guestHouses, setGuestHouses] = useState([]);
+  const [isModalOpen, setIsModalOpen]   = useState(false);
+  const [guestHouse, setGuestHouse]     = useState(null);
+  const [guestHouses, setGuestHouses]   = useState([]);
   const [selectedGHId, setSelectedGHId] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading]           = useState(false);
 
   const [searchParams] = useSearchParams();
   const ghFromQuery = searchParams.get('guestHouseId');
 
-  // Load list of guest houses for dropdown
   const fetchGuestHouses = async () => {
     try {
       const res = await api.get('/api/guesthouses');
       setGuestHouses(Array.isArray(res.data) ? res.data : []);
-    } catch (err) {
-      console.error('Error fetching guest houses:', err);
-    }
+    } catch (err) { console.error(err); }
   };
 
-  // Load guest house information when selected
   const fetchGuestHouse = async (id) => {
-    if (!id) {
-      setGuestHouse(null);
-      return;
-    }
+    if (!id) { setGuestHouse(null); return; }
     try {
       const res = await api.get(`/api/guesthouses/${id}`);
       setGuestHouse(res.data.guestHouse || null);
-    } catch (err) {
-      console.error('Error fetching guest house:', err);
-      setGuestHouse(null);
-    }
+    } catch (err) { setGuestHouse(null); }
   };
 
   const fetchRooms = async (ghId) => {
-    if (!ghId) {
-      setRooms([]);
-      return;
-    }
+    if (!ghId) { setRooms([]); return; }
     try {
       setLoading(true);
-      const response = await api.get(`/api/rooms/by-guesthouse?guestHouseId=${ghId}`);
-      setRooms(response.data.rooms || []);
-    } catch (error) {
-      console.log('Error fetching rooms:', error);
-      setRooms([]);
-    } finally {
-      setLoading(false);
-    }
+      const res = await api.get(`/api/rooms/by-guesthouse?guestHouseId=${ghId}`);
+      setRooms(res.data.rooms || []);
+    } catch (err) { setRooms([]); }
+    finally { setLoading(false); }
   };
 
-  // init
   useEffect(() => {
     fetchGuestHouses();
-
-    if (ghFromQuery) {
-      // if URL provided guestHouseId, use it
-      setSelectedGHId(ghFromQuery);
-      fetchGuestHouse(ghFromQuery);
-      fetchRooms(ghFromQuery);
-    }
+    if (ghFromQuery) { setSelectedGHId(ghFromQuery); fetchGuestHouse(ghFromQuery); fetchRooms(ghFromQuery); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ghFromQuery]);
 
-  // when user picks from dropdown
   useEffect(() => {
-    if (selectedGHId) {
-      fetchGuestHouse(selectedGHId);
-      fetchRooms(selectedGHId);
-    } else {
-      setGuestHouse(null);
-      setRooms([]);
-    }
+    if (selectedGHId) { fetchGuestHouse(selectedGHId); fetchRooms(selectedGHId); }
+    else { setGuestHouse(null); setRooms([]); }
   }, [selectedGHId]);
 
-  const handleAddRoom = async (newRoom) => {
+  const handleAdd = async (newRoom) => {
     try {
-      // Hide roomType from UI; default it to "single" on submission
-      const payload = {
-        ...newRoom,
-        roomType: newRoom.roomType || 'single',
-        guestHouseId: Number(selectedGHId),
-      };
-      await api.post('/api/rooms', payload);
-      toast.success("Room created sucessfully")
+      await api.post('/api/rooms', { ...newRoom, roomType: newRoom.roomType || 'single', guestHouseId: Number(selectedGHId) });
+      toast.success('Room created successfully');
       fetchRooms(selectedGHId);
-    } catch (error) {
-      console.error('Error adding room:', error);
-      toast.error(error?.response?.data?.message || 'Failed to add room')
-    }
+    } catch (err) { toast.error(err?.response?.data?.message || 'Failed to add room'); }
   };
 
-  const handleEditRoom = async (updatedRoom) => {
+  const handleEdit = async (updated) => {
     try {
-      await api.put(
-        `/api/rooms/${selectedRoom._id}`,
-        {
-          ...updatedRoom,
-          // ensure roomType remains in payload server-side; keep unchanged if not provided
-          roomType: updatedRoom.roomType || 'single'
-        }
-      );
+      await api.put(`/api/rooms/${selectedRoom._id}`, { ...updated, roomType: updated.roomType || 'single' });
+      toast.success('Room updated');
       fetchRooms(selectedGHId);
-    } catch (error) {
-      console.error('Error updating room:', error);
-      toast.error(error?.response?.data?.message || 'Failed to update room')
-    }
+    } catch (err) { toast.error(err?.response?.data?.message || 'Failed to update room'); }
   };
 
-  const toggleRoomAvailability = async (roomId, currentStatus) => {
+  const toggleAvailability = async (roomId, current) => {
     try {
-      await api.patch(
-        `/api/rooms/${roomId}/availability`,
-        {
-          isAvailable: !currentStatus,
-        }
-      );
+      await api.patch(`/api/rooms/${roomId}/availability`, { isAvailable: !current });
       fetchRooms(selectedGHId);
-    } catch (error) {
-      console.error('Error toggling availability:', error);
-    }
+    } catch (err) { console.error(err); }
   };
 
   const deleteRoom = async (roomId) => {
+    if (!window.confirm('Delete this room?')) return;
     try {
-      const confirmDelete = window.confirm('Are you sure you want to delete this room?');
-      if (!confirmDelete) return;
       await api.delete(`/api/rooms/${roomId}`);
-      toast.success("Room deleted sucessfully")
+      toast.success('Room deleted');
       fetchRooms(selectedGHId);
-    } catch (error) {
-      console.error('Error deleting room:', error);
-      // alert('Failed to delete room');
-      toast.error(error?.response?.data?.message || 'Failed to delete room')
-    }
+    } catch (err) { toast.error(err?.response?.data?.message || 'Failed to delete room'); }
   };
 
   return (
-    <div className="gh-management-container">
-      <div className="gh-header">
-        <h2 className="gh-title">
-          Room Management - {guestHouse ? guestHouse.guestHouseName : (selectedGHId ? 'Loading...' : 'Select Guest House')}
-        </h2>
-
-        <div className="gh-header-controls">
+    <div className="page-root">
+      {/* Header */}
+      <div className="page-header-row">
+        <div>
+          <h1 className="page-title">Room Management</h1>
+          <p className="page-subtitle">
+            {guestHouse ? guestHouse.guestHouseName : selectedGHId ? 'Loading…' : 'Select a guest house to view rooms'}
+          </p>
+        </div>
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
           <select
+            className="toolbar-select"
             value={selectedGHId || ''}
             onChange={(e) => setSelectedGHId(e.target.value || null)}
-            className="gh-select"
           >
-            <option value="">-- Select Guest House --</option>
+            <option value="">Select Guest House</option>
             {guestHouses.map((g) => (
               <option key={g.guestHouseId || g._id} value={g.guestHouseId || g._id}>
                 {g.guestHouseName}
               </option>
             ))}
           </select>
-
           <button
-            className="add-gh-btn"
+            className="btn-primary-cta"
+            disabled={!selectedGHId}
             onClick={() => {
-              if (!selectedGHId) {
-                alert('Please select a Guest House first.');
-                return;
-              }
+              if (!selectedGHId) { alert('Please select a Guest House first.'); return; }
               setIsModalOpen(true);
             }}
-            disabled={!selectedGHId}
           >
-            + Add New Room
+            + Add Room
           </button>
         </div>
       </div>
 
-      <div className="gh-table-container">
+      {/* Table */}
+      <div className="table-scroll">
         {loading ? (
-          <div style={{ padding: 20 }}>Loading rooms...</div>
+          <div style={{ padding: '1.5rem', color: '#64748b' }}>Loading rooms…</div>
         ) : (
-          <table className="gh-table">
+          <table className="data-table">
             <thead>
               <tr>
-                <th>Room Number</th>
+                <th>Room No.</th>
                 <th>Capacity</th>
-                <th>Status</th>
+                <th>Availability</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
               {rooms.length === 0 ? (
-                <tr>
-                  <td colSpan="4" style={{ textAlign: 'center' }}>
-                    No rooms found.
-                  </td>
-                </tr>
+                <tr><td colSpan="4" className="table-empty">No rooms found. Select a guest house or add a new room.</td></tr>
               ) : (
                 rooms.map((room) => (
                   <tr key={room._id}>
-                    <td>{room.roomNumber}</td>
+                    <td>Room {room.roomNumber}</td>
                     <td>{room.roomCapacity}</td>
-                    <td>{room.isAvailable ? '✅ Available' : '❌ Under Maintanence'}</td>
-                    <td className="action-buttons">
-                      <button onClick={() => { setSelectedRoom(room); setIsModalOpen(true); }} title="Edit">
-                        Edit
-                      </button>
-
-                      <button onClick={() => toggleRoomAvailability(room._id, room.isAvailable)} title="Toggle Availability">
-                        Toggle
-                      </button>
-
-                      <button className="delete-btn" onClick={() => deleteRoom(room._id)} title="Delete">
-                        Delete
-                      </button>
+                    <td>
+                      <span className={`badge ${room.isAvailable ? 'active' : 'maintenance'}`}>
+                        {room.isAvailable ? 'Available' : 'Maintenance'}
+                      </span>
+                    </td>
+                    <td>
+                      <div className="actions-cell">
+                        <button className="btn-action edit"   onClick={() => { setSelectedRoom(room); setIsModalOpen(true); }}>Edit</button>
+                        <button className="btn-action toggle" onClick={() => toggleAvailability(room._id, room.isAvailable)}>Toggle</button>
+                        <button className="btn-action delete" onClick={() => deleteRoom(room._id)}>Delete</button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -234,7 +166,7 @@ const RoomManagement = () => {
         <RoomFormModal
           isOpen={isModalOpen}
           onClose={() => { setIsModalOpen(false); setSelectedRoom(null); }}
-          onSubmit={selectedRoom ? handleEditRoom : handleAddRoom}
+          onSubmit={selectedRoom ? handleEdit : handleAdd}
           initialData={selectedRoom}
         />
       )}

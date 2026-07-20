@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react';
+import { useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 import api from '../../utils/api';
+import editIcon from '../../assets/edit.svg';
 import '../styles/todayBookings.css';
 
 const getLocalDate = () => {
@@ -25,6 +28,7 @@ const formatDate = (value) => {
 
 export default function TodayBookings() {
   const today = getLocalDate();
+  const navigate = useNavigate();
   const [fromDate, setFromDate] = useState(today);
   const [toDate, setToDate] = useState(today);
   const [appliedFilter, setAppliedFilter] = useState({ startDate: today, endDate: today });
@@ -32,12 +36,20 @@ export default function TodayBookings() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  // If the admin has an assigned guest house, scope all queries to it
+  const assignedGuestHouse = useSelector((state) => state.auth.user?.assignedGuestHouseId);
+
   useEffect(() => {
     const fetchBookings = async () => {
       try {
         setLoading(true);
         setError('');
-        const response = await api.get('/api/bookings', { params: appliedFilter });
+        const params = { ...appliedFilter };
+        if (assignedGuestHouse) {
+          // assignedGuestHouseId may be an ObjectId string or a populated object
+          params.guestHouseId = assignedGuestHouse._id || assignedGuestHouse;
+        }
+        const response = await api.get('/api/bookings', { params });
         setBookings(response.data.bookings || []);
       } catch (requestError) {
         console.error('Error fetching dashboard bookings:', requestError);
@@ -49,7 +61,7 @@ export default function TodayBookings() {
     };
 
     fetchBookings();
-  }, [appliedFilter]);
+  }, [appliedFilter, assignedGuestHouse]);
 
   const applyFilter = () => {
     if (!fromDate || !toDate || fromDate > toDate) {
@@ -70,8 +82,7 @@ export default function TodayBookings() {
     <section className="today-bookings" aria-labelledby="today-bookings-title">
       <div className="today-bookings-header">
         <div>
-          <h2 id="today-bookings-title">Today&apos;s Bookings</h2>
-          <p>Bookings submitted within the selected date range.</p>
+          <h2 id="today-bookings-title" style={{fontWeight: "bold", marginBottom: "30px"}}>Today&apos;s Bookings</h2>
         </div>
 
         <div className="today-bookings-filters">
@@ -102,6 +113,7 @@ export default function TodayBookings() {
                 <th>Check Out</th>
                 <th>Room / Bed</th>
                 <th>Status</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -121,6 +133,16 @@ export default function TodayBookings() {
                       {booking.bedId?.bedNumber ? ` / Bed ${booking.bedId.bedNumber}` : ''}
                     </td>
                     <td><span className={`today-bookings-status ${booking.status}`}>{booking.status}</span></td>
+                    <td>
+                      <button
+                        className="btn-action edit"
+                        onClick={() => navigate('/admin/book-room', { state: { bookingId: booking._id } })}
+                        title="Edit booking"
+                        style={{ background: 'transparent', border: 'none', boxShadow: 'none', padding: '4px' }}
+                      >
+                        <img src={editIcon} alt="Edit" style={{ width: 16, height: 16 }} />
+                      </button>
+                    </td>
                   </tr>
                 ))
               )}

@@ -1,167 +1,124 @@
 import React, { useEffect, useState } from "react";
 import GuestHouseFormModal from "../components/GuestHouseFormModal";
-import "../styles/guestHouseManagement.css";
-
-import { toast, ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+import { toast } from "react-toastify";
 import api from "../../utils/api";
 
 const GuestHouseManagement = () => {
   const [guestHouses, setGuestHouses] = useState([]);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedGH, setSelectedGH] = useState(null);
+  const [isModalOpen, setIsModalOpen]   = useState(false);
+  const [selectedGH, setSelectedGH]    = useState(null);
+  const MAX_GUEST_HOUSES = 4;
+  const canAddMore = guestHouses.length < MAX_GUEST_HOUSES;
 
   const fetchGuestHouses = async () => {
     try {
-      const response = await api.get("/api/guesthouses");
-      setGuestHouses(
-        Array.isArray(response.data) ? response.data : response.data.guestHouses
-      );
-
+      const res = await api.get("/api/guesthouses");
+      setGuestHouses(Array.isArray(res.data) ? res.data : res.data.guestHouses || []);
     } catch (err) {
-      console.error("Error fetching guest houses:", err);
+      console.error(err);
       setGuestHouses([]);
     }
   };
 
-  useEffect(() => {
-    fetchGuestHouses();
-  }, []);
+  useEffect(() => { fetchGuestHouses(); }, []);
 
-  const handleAddGuestHouse = async (newGH) => {
+  const handleAdd = async (payload) => {
     try {
-      await api.post("/api/guesthouses", newGH);
-      toast.success("Guest House created sucessfully")
+      await api.post("/api/guesthouses", payload);
+      toast.success("Guest House created successfully");
       fetchGuestHouses();
     } catch (err) {
-      console.error("Error adding guest house:", err);
-      toast.error("Error creating Guest House")
+      const msg = err?.response?.data?.message || "Error creating Guest House";
+      toast.error(msg);
     }
   };
 
-  const handleEditGuestHouse = async (updatedData) => {
+  const handleEdit = async (payload) => {
     try {
-      await api.put(
-        `/api/guesthouses/${selectedGH.guestHouseId}`,
-        updatedData
-      );
+      await api.put(`/api/guesthouses/${selectedGH.guestHouseId}`, payload);
+      toast.success("Guest House updated successfully");
       fetchGuestHouses();
     } catch (err) {
-      console.error("Error updating guest house:", err);
+      toast.error("Error updating Guest House");
     }
   };
 
-  const toggleMaintenance = async (guestHouseId) => {
+  const toggleMaintenance = async (id) => {
     try {
-      await api.patch(`/api/guesthouses/${guestHouseId}/maintenance`);
+      await api.patch(`/api/guesthouses/${id}/maintenance`);
       fetchGuestHouses();
     } catch (err) {
-      console.error("Error toggling maintenance mode", err);
+      console.error(err);
     }
   };
 
-  const handleDeleteGuestHouse = async (guestHouseId) => {
-    // if (
-    //   !window.confirm(
-    //     "Are you sure you want to delete this guest house and all related data?"
-    //   )
-    // ) {
-
-    //   return;
-    // }
-
+  const handleDelete = async (id) => {
     const prev = guestHouses;
-    setGuestHouses((list) =>
-      list.filter((g) => g.guestHouseId !== guestHouseId)
-    );
-
+    setGuestHouses((list) => list.filter((g) => g.guestHouseId !== id));
     try {
-      await api.delete(`/api/guesthouses/${guestHouseId}`);
-      toast.success("Guest House deleted sucessfully")
+      await api.delete(`/api/guesthouses/${id}`);
+      toast.success("Guest House deleted successfully");
     } catch (err) {
-      console.error("Error deleting guest house:", err);
       setGuestHouses(prev);
-      toast.error(err?.response?.data?.error || "Failed to delete. Check console for details.")
+      toast.error(err?.response?.data?.error || "Failed to delete");
     } finally {
       fetchGuestHouses();
     }
   };
 
   return (
-    <div className="gh-management-container">
-      <div className="gh-header">
-        <h1 className="gh-title">Guest House Management</h1>
-        <button className="add-gh-btn" onClick={() => setIsModalOpen(true)}>
-          + Add New Guest House
+    <div className="page-root">
+      {/* Header */}
+      <div className="page-header-row">
+        <div>
+          <h1 className="page-title">Guest House Management</h1>
+          <p className="page-subtitle">Create, edit, and manage all guest houses</p>
+        </div>
+        <button 
+          className="btn-primary-cta" 
+          onClick={() => setIsModalOpen(true)}
+          disabled={!canAddMore}
+          title={!canAddMore ? `Maximum limit of ${MAX_GUEST_HOUSES} guest houses reached` : ''}
+        >
+          + Add Guest House {!canAddMore && `(${guestHouses.length}/${MAX_GUEST_HOUSES})`}
         </button>
       </div>
 
-      <div className="gh-table-wrapper">
-        <table className="gh-table">
+      {/* Table */}
+      <div className="table-scroll">
+        <table className="data-table">
           <thead>
             <tr>
               <th>ID</th>
-              <th>Guest House Name</th>
+              <th>Name</th>
               <th>Location</th>
               <th>Status</th>
               <th>Actions</th>
             </tr>
           </thead>
-
           <tbody>
             {guestHouses.length === 0 ? (
-              <tr>
-                <td colSpan="5" className="no-data">
-                  No guest houses found.
-                </td>
-              </tr>
+              <tr><td colSpan="5" className="table-empty">No guest houses found.</td></tr>
             ) : (
               guestHouses.map((gh) => (
                 <tr key={gh.guestHouseId}>
                   <td>{gh.guestHouseId}</td>
                   <td>{gh.guestHouseName}</td>
+                  <td>{gh.location.city}, {gh.location.state}</td>
                   <td>
-                    {gh.location.city}, {gh.location.state}
-                  </td>
-                  <td>
-                    <span
-                      className={`status-badge ${gh.maintenance ? "maintenance" : "active"
-                        }`}
-                    >
-                      {gh.maintenance ? "Under Maintanence" : "Active"}
+                    <span className={`badge ${gh.maintenance ? "maintenance" : "active"}`}>
+                      {gh.maintenance ? "Maintenance" : "Active"}
                     </span>
                   </td>
-                  <td className="action-buttons">
-                    <button
-                      className="btn edit"
-                      data-tooltip="Edit"
-                      onClick={() => {
-                        setSelectedGH(gh);
-                        setIsModalOpen(true);
-                      }}
-                    >
-                      Edit
-                    </button>
-
-
-                    <button
-                      className="btn maintenance"
-                      data-tooltip={gh.maintenance ? "Disable Maintenance" : "Enable Maintenance"}
-                      onClick={() => toggleMaintenance(gh.guestHouseId)}
-                    >
-                      Toggle
-                    </button>
-
-                    <button
-                      id="delete-btn"
-                      className="btn-delete"
-                      data-tooltip="Delete"
-                      onClick={() => handleDeleteGuestHouse(gh.guestHouseId)}
-                    >
-                      Delete
-                    </button>
+                  <td>
+                    <div className="actions-cell">
+                      <button className="btn-action edit"   onClick={() => { setSelectedGH(gh); setIsModalOpen(true); }}>Edit</button>
+                      <button className="btn-action toggle" onClick={() => toggleMaintenance(gh.guestHouseId)}>
+                        {gh.maintenance ? "Activate" : "Maintenance"}
+                      </button>
+                      <button className="btn-action delete" onClick={() => handleDelete(gh.guestHouseId)}>Delete</button>
+                    </div>
                   </td>
-
                 </tr>
               ))
             )}
@@ -172,11 +129,8 @@ const GuestHouseManagement = () => {
       {isModalOpen && (
         <GuestHouseFormModal
           isOpen={isModalOpen}
-          onClose={() => {
-            setIsModalOpen(false);
-            setSelectedGH(null);
-          }}
-          onSubmit={selectedGH ? handleEditGuestHouse : handleAddGuestHouse}
+          onClose={() => { setIsModalOpen(false); setSelectedGH(null); }}
+          onSubmit={selectedGH ? handleEdit : handleAdd}
           initialData={selectedGH}
         />
       )}

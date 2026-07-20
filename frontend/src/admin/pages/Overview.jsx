@@ -6,7 +6,7 @@ import Calendar from "../components/Calender.jsx";
 import TodayBookings from "../components/TodayBookings";
 import api from "../../utils/api";
 
-const AdminDashboard = ({ showTodayBookings = false }) => {
+const Overview = ({ showTodayBookings = false }) => {
   const [stats, setStats] = useState({
     totalBookings: 0,
     totalUsers: 0,
@@ -19,222 +19,138 @@ const AdminDashboard = ({ showTodayBookings = false }) => {
   });
 
   const [refreshing, setRefreshing] = useState(false);
-  const [bookingsTrend, setBookingsTrend] = useState({
-    data: [],
-    loading: false,
-    rangeLabel: "",
-  });
-  const [topGuestHouses, setTopGuestHouses] = useState({
-    data: [],
-    loading: false,
-    rangeLabel: "",
-  });
+  const [bookingsTrend, setBookingsTrend]   = useState({ data: [], loading: false, rangeLabel: "" });
+  const [topGuestHouses, setTopGuestHouses] = useState({ data: [], loading: false, rangeLabel: "" });
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [draft, setDraft] = useState({ startDate: '', endDate: '' }); // local draft before applying
 
-  // Date range state - default to last 30 days
-  const getDefaultEndDate = () => new Date().toISOString().slice(0, 10);
-  const getDefaultStartDate = () => {
-    const date = new Date();
-    date.setDate(date.getDate() - 29); // 30 days including today
-    return date.toISOString().slice(0, 10);
-  };
+  const getDefaultEnd   = () => new Date().toISOString().slice(0, 10);
+  const getDefaultStart = () => { const d = new Date(); d.setDate(d.getDate() - 29); return d.toISOString().slice(0, 10); };
 
-  const maxDate = getDefaultEndDate();
+  const [dateRange, setDateRange] = useState({ startDate: getDefaultStart(), endDate: getDefaultEnd() });
+  const maxDate = getDefaultEnd();
 
-  const [dateRange, setDateRange] = useState({
-    startDate: getDefaultStartDate(),
-    endDate: getDefaultEndDate(),
-  });
-
-  const formatRangeLabel = (range) => {
+  const fmt = (range) => {
     if (!range?.startDate || !range?.endDate) return "";
-    const formatter = new Intl.DateTimeFormat("en-US", {
-      month: "short",
-      day: "numeric",
-    });
-
-    const start = formatter.format(new Date(range.startDate));
-    const end = formatter.format(new Date(range.endDate));
-    return `${start} – ${end}`;
+    const f = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" });
+    return `${f.format(new Date(range.startDate))} – ${f.format(new Date(range.endDate))}`;
   };
 
   const fetchStats = async () => {
     try {
       setRefreshing(true);
-      const res = await api.get('/api/admin/summary');
+      const res = await api.get("/api/admin/summary");
       setStats(res.data);
-    } catch (err) {
-      console.error("Error fetching admin stats: ", err);
-    } finally {
-      setRefreshing(false);
-    }
+    } catch (err) { console.error(err); }
+    finally { setRefreshing(false); }
   };
 
   const fetchMetrics = useCallback(async () => {
+    setBookingsTrend((p) => ({ ...p, loading: true }));
+    setTopGuestHouses((p) => ({ ...p, loading: true }));
     try {
-      setBookingsTrend((prev) => ({ ...prev, loading: true }));
-      setTopGuestHouses((prev) => ({ ...prev, loading: true }));
-
-      const [trendRes, guestRes] = await Promise.all([
-        api.get('/api/admin/metrics/bookings-per-day', {
-          params: { 
-            startDate: dateRange.startDate,
-            endDate: dateRange.endDate,
-            status: "approved" 
-          },
-        }),
-        api.get('/api/admin/metrics/top-guest-houses', {
-          params: { 
-            startDate: dateRange.startDate,
-            endDate: dateRange.endDate,
-            limit: 5, 
-            status: "approved" 
-          },
-        }),
+      const [tR, gR] = await Promise.all([
+        api.get("/api/admin/metrics/bookings-per-day",  { params: { startDate: dateRange.startDate, endDate: dateRange.endDate, status: "approved" } }),
+        api.get("/api/admin/metrics/top-guest-houses",  { params: { startDate: dateRange.startDate, endDate: dateRange.endDate, limit: 5, status: "approved" } }),
       ]);
-
-      setBookingsTrend({
-        data: trendRes.data?.data || [],
-        loading: false,
-        rangeLabel: formatRangeLabel(trendRes.data?.range),
-      });
-
-      setTopGuestHouses({
-        data: guestRes.data?.data || [],
-        loading: false,
-        rangeLabel: formatRangeLabel(guestRes.data?.range),
-      });
-    } catch (error) {
-      console.error("Error fetching admin metrics: ", error);
-      setBookingsTrend((prev) => ({ ...prev, loading: false }));
-      setTopGuestHouses((prev) => ({ ...prev, loading: false }));
+      setBookingsTrend({ data: tR.data?.data || [], loading: false, rangeLabel: fmt(tR.data?.range) });
+      setTopGuestHouses({ data: gR.data?.data || [], loading: false, rangeLabel: fmt(gR.data?.range) });
+    } catch (err) {
+      console.error(err);
+      setBookingsTrend((p) => ({ ...p, loading: false }));
+      setTopGuestHouses((p) => ({ ...p, loading: false }));
     }
   }, [dateRange.startDate, dateRange.endDate]);
 
-  const handleDateChange = (field, value) => {
-    setDateRange((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
-  };
-
   useEffect(() => {
-    fetchStats(); 
+    fetchStats();
     fetchMetrics();
-
-    // Auto-refresh every 30 seconds
-    const interval = setInterval(() => {
-      fetchStats();
-      fetchMetrics();
-    }, 30000);
-
-    return () => clearInterval(interval);
+    const id = setInterval(() => { fetchStats(); fetchMetrics(); }, 30000);
+    return () => clearInterval(id);
   }, [fetchMetrics]);
 
   return (
-    <div className="admin-dashboard">
-      <h1 className="dashboard-title">Admin Dashboard</h1>
+    <div className="page-root">
+      <div className="page-header-row">
+        {refreshing && <span className="refreshing-text">Refreshing…</span>}
+      </div>
 
       {showTodayBookings && <TodayBookings />}
 
-      {refreshing && (
-        <p style={{ fontSize: "14px", color: "gray" }}>Refreshing…</p>
-      )}
-
+      {/* Stat cards */}
       <div className="card-grid">
-        <div className="dashboard-card">
-          <h2 className="stat-number">{stats.totalBookings}</h2>
-          <p>Total Bookings</p>
-        </div>
-
-        <div className="dashboard-card">
-          <h2 className="stat-number">{stats.totalUsers}</h2>
-          <p>Total Users</p>
-        </div>
-
-        <div className="dashboard-card">
-          <h2 className="stat-number">{stats.totalGuestHouses}</h2>
-          <p>Total Guest Houses</p>
-        </div>
-
-        <div className="dashboard-card danger">
-          <h2 className="stat-number">{stats.rejectedBookings}</h2>
-          <p>Rejected Bookings</p>
-        </div>
-
-        <div className="dashboard-card warning">
-          <h2 className="stat-number">{stats.pendingBookings}</h2>
-          <p>Pending Bookings</p>
-        </div>
-
-        <div className="dashboard-card success">
-          <h2 className="stat-number">{stats.approvedBookings}</h2>
-          <p>Approved Bookings</p>
-        </div>
-
-        <div className="dashboard-card">
-          <h2 className="stat-number">{stats.occupancyRate}%</h2>
-          <p>Occupancy Rate</p>
-        </div>
-
-        <div className="dashboard-card">
-          <h2 className="stat-number">{stats.todaysBookings}</h2>
-          <p>Today's Booking</p>
-        </div>
+        {[
+          { label: "Total Bookings",  val: stats.totalBookings },
+          { label: "Total Admins",    val: stats.totalUsers },
+          { label: "Guest Houses",    val: stats.totalGuestHouses },
+          { label: "Rejected",        val: stats.rejectedBookings,  cls: "danger" },
+          { label: "Pending",         val: stats.pendingBookings,   cls: "warning" },
+          { label: "Approved",        val: stats.approvedBookings,  cls: "success" },
+          { label: "Occupancy Rate",  val: `${stats.occupancyRate}%` },
+          { label: "Today's Bookings",val: stats.todaysBookings },
+        ].map(({ label, val, cls }) => (
+          <div key={label} className={`dashboard-card${cls ? ` ${cls}` : ""}`}>
+            <h2 className="stat-number">{val}</h2>
+            <p>{label}</p>
+          </div>
+        ))}
       </div>
 
-      {/* Date Range Selector */}
+      {/* Date range picker — button + dropdown */}
       <div className="date-range-selector">
-        <label className="date-range-label">Chart Date Range:</label>
-        <div className="date-inputs">
-          <div className="date-input-group">
-            <label htmlFor="start-date">Start Date:</label>
-            <input
-              type="date"
-              id="start-date"
-              className="date-input"
-              value={dateRange.startDate}
-              onChange={(e) => handleDateChange("startDate", e.target.value)}
-              max={dateRange.endDate}
-            />
+        <button
+          className="date-range-btn"
+          onClick={() => { setDraft({ ...dateRange }); setPickerOpen((o) => !o); }}
+        >
+          📅 {dateRange.startDate} → {dateRange.endDate}
+        </button>
+
+        {pickerOpen && (
+          <div className="date-range-dropdown" onClick={(e) => e.stopPropagation()}>
+            <div className="date-range-dropdown-body">
+              <label>
+                From
+                <input type="date" value={draft.startDate} max={draft.endDate}
+                  onChange={(e) => setDraft((p) => ({ ...p, startDate: e.target.value }))} />
+              </label>
+              <label>
+                To
+                <input type="date" value={draft.endDate} min={draft.startDate} max={maxDate}
+                  onChange={(e) => setDraft((p) => ({ ...p, endDate: e.target.value }))} />
+              </label>
+            </div>
+            <div className="date-range-dropdown-footer">
+              <button className="date-range-apply" onClick={() => { setDateRange(draft); setPickerOpen(false); }}>
+                Apply
+              </button>
+              <button className="date-range-cancel" onClick={() => setPickerOpen(false)}>
+                Cancel
+              </button>
+            </div>
           </div>
-          <div className="date-input-group">
-            <label htmlFor="end-date">End Date:</label>
-            <input
-              type="date"
-              id="end-date"
-              className="date-input"
-              value={dateRange.endDate}
-              onChange={(e) => handleDateChange("endDate", e.target.value)}
-              min={dateRange.startDate}
-              max={maxDate}
-            />
-          </div>
-        </div>
+        )}
       </div>
 
-   <div className="metrics-grid">
+      {/* Charts */}
+      <div className="metrics-grid">
         <BookingsPerDayChart
-          key={`bookings-${dateRange.startDate}-${dateRange.endDate}`}
-          data={bookingsTrend.data}
-          loading={bookingsTrend.loading}
-          rangeLabel={bookingsTrend.rangeLabel}
+          key={`b-${dateRange.startDate}-${dateRange.endDate}`}
+          data={bookingsTrend.data} loading={bookingsTrend.loading} rangeLabel={bookingsTrend.rangeLabel}
         />
         <TopGuestHousesChart
-          key={`guesthouses-${dateRange.startDate}-${dateRange.endDate}`}
-          data={topGuestHouses.data}
-          loading={topGuestHouses.loading}
-          rangeLabel={topGuestHouses.rangeLabel}
+          key={`g-${dateRange.startDate}-${dateRange.endDate}`}
+          data={topGuestHouses.data} loading={topGuestHouses.loading} rangeLabel={topGuestHouses.rangeLabel}
         />
-      </div> 
+      </div>
 
-      {/* Calendar Section */}
-       <div className="calendar-section">
+      {/* Calendar */}
+      <div className="calendar-section">
         <h2 className="section-title">Booking Calendar</h2>
-        <p className="section-subtitle">View all approved bookings on the calendar</p>
+        <p className="section-subtitle">All approved bookings at a glance</p>
         <Calendar />
-      </div> 
+      </div>
     </div>
   );
 };
 
-export default AdminDashboard;
+export default Overview;

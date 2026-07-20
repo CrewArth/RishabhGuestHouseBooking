@@ -24,7 +24,6 @@ const bookingSchema = new mongoose.Schema(
     bedId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Bed",
-      required: true,
     },
     checkIn: {
       type: Date,
@@ -55,6 +54,7 @@ const bookingSchema = new mongoose.Schema(
       name: { type: String, trim: true },
       relation: { type: String, trim: true },
       age: { type: Number, min: 0 },
+      verificationImage: { type: String },
     }],
     bookingSource: {
       type: String,

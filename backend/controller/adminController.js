@@ -174,6 +174,58 @@ export const getTopGuestHouses = async (req, res) => {
   }
 };
 
+// PATCH /api/admin/users/:id/assign-guesthouse  (SUPER_ADMIN only)
+export const assignGuestHouse = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { guestHouseId } = req.body; // null to unassign
+
+    const user = await User.findById(id);
+    if (!user) return res.status(404).json({ error: 'Admin not found' });
+    if (user.role !== 'ADMIN') return res.status(400).json({ error: 'Guest house can only be assigned to ADMIN accounts' });
+
+    if (guestHouseId) {
+      const gh = await GuestHouse.findById(guestHouseId);
+      if (!gh) return res.status(404).json({ error: 'Guest house not found' });
+    }
+
+    user.assignedGuestHouseId = guestHouseId || null;
+    await user.save();
+
+    await logAction({
+      action: guestHouseId ? 'GUESTHOUSE_ASSIGNED' : 'GUESTHOUSE_UNASSIGNED',
+      entityType: 'User',
+      entityId: user._id,
+      performedBy: req.user?.email || 'SuperAdmin',
+      details: { assignedGuestHouseId: guestHouseId || null },
+    });
+
+    const populated = await User.findById(id)
+      .populate('assignedGuestHouseId', 'guestHouseName guestHouseId')
+      .lean();
+
+    res.json({ message: guestHouseId ? 'Guest house assigned' : 'Guest house unassigned', user: populated });
+  } catch (err) {
+    console.error('Error assigning guest house:', err);
+    res.status(500).json({ error: 'Server error while assigning guest house' });
+  }
+};
+
+// GET /api/admin/me  — returns the logged-in admin with their assigned guest house
+export const getMe = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id)
+      .populate('assignedGuestHouseId', 'guestHouseName guestHouseId _id location')
+      .lean();
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    res.json({ user });
+  } catch (err) {
+    console.error('Error fetching current user:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
+
 // 🧾 GET /api/admin/users?page=1&limit=10
 export const listUsers = async (req, res) => {
   try {
@@ -182,7 +234,8 @@ export const listUsers = async (req, res) => {
     const skip = (page - 1) * limit;
 
     // Fetch paginated users
-    const users = await User.find({}, "firstName lastName email phone address isActive createdAt")
+    const users = await User.find({}, "firstName lastName email phone address isActive createdAt assignedGuestHouseId")
+      .populate('assignedGuestHouseId', 'guestHouseName guestHouseId')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)

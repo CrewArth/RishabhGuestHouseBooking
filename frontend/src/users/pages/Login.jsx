@@ -3,11 +3,13 @@ import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { useEffect, useState } from "react";
+import { useDispatch } from "react-redux";
 import { ToastContainer, toast } from "react-toastify";
 import 'react-toastify/dist/ReactToastify.css';
 import '../styles/login.css';
 import api from "../../utils/api";
 import { getAuthenticatedRedirectPath, getRedirectPathForRole } from "../../utils/auth";
+import { setCredentials } from "../../redux/authSlice";
 
 // Email Validation Schema
 const schema = yup.object({
@@ -19,6 +21,7 @@ const schema = yup.object({
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
+  const dispatch = useDispatch();
 
   const { register, handleSubmit, setValue, formState: { errors, isValid, isSubmitting } } = useForm({
     resolver: yupResolver(schema),
@@ -52,8 +55,7 @@ export default function LoginPage() {
       }
 
       const res = await api.post("/api/auth/signin", data);
-      localStorage.setItem("token", res.data.token);
-      localStorage.setItem("user", JSON.stringify(res.data.user));
+      dispatch(setCredentials({ user: res.data.user, token: res.data.token }));
 
       toast.success("Login Successful!", { autoClose: 1000 });
 

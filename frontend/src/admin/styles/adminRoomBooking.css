@@ -1,68 +1,169 @@
-.admin-room-booking-page {
+/* ── loading overlay ─────────────────────────────────────── */
+.arb-loading-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(241, 245, 249, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.arb-loading-icon {
+  width: 56px;
+  height: 56px;
+}
+
+/* ── page shell ─────────────────────────────────────────── */
+.arb-page {
   min-height: 100vh;
   background: #f8fafc;
 }
 
-.admin-room-booking-content {
-  max-width: 1100px;
+.arb-content {
+  max-width: 860px;
   margin: 0 auto;
-  padding: 104px 24px 48px;
+  padding: 104px 24px 64px;
 }
 
-.admin-room-booking-heading {
-  margin-bottom: 24px;
+.arb-heading {
+  margin-bottom: 28px;
 }
 
-.admin-room-booking-heading h1,
-.admin-room-booking-form h2 {
+.arb-heading h1 {
   margin: 0;
+  font-size: 1.6rem;
   color: #1f2937;
 }
 
-.admin-room-booking-heading p,
-.admin-room-booking-section-header p {
-  margin: 8px 0 0;
+.arb-heading p {
+  margin: 6px 0 0;
   color: #64748b;
 }
 
-.admin-room-booking-form {
-  display: grid;
-  gap: 20px;
+.arb-loading {
+  color: #64748b;
+  padding: 40px 0;
 }
 
-.admin-room-booking-form section {
-  padding: 24px;
-  border-radius: 14px;
+/* ── stepper ─────────────────────────────────────────────── */
+.arb-stepper {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin-bottom: 28px;
   background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 20px 28px;
+}
+
+.arb-step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  position: relative;
+}
+
+.arb-step-circle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  background: #e2e8f0;
+  color: #64748b;
+  transition: background 0.2s, color 0.2s;
+}
+
+.arb-step.active .arb-step-circle {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.arb-step.done .arb-step-circle {
+  background: #16a34a;
+  color: #ffffff;
+}
+
+.arb-step-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #94a3b8;
+  white-space: nowrap;
+}
+
+.arb-step.active .arb-step-label { color: #1e293b; }
+.arb-step.done  .arb-step-label  { color: #16a34a; }
+
+.arb-step-line {
+  flex: 1;
+  height: 2px;
+  background: #e2e8f0;
+  margin: 0 12px;
+}
+
+.arb-step.done + .arb-step .arb-step-line,
+.arb-step.done .arb-step-line {
+  background: #16a34a;
+}
+
+/* ── card (step container) ───────────────────────────────── */
+.arb-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 28px;
   box-shadow: 0 4px 15px rgba(15, 23, 42, 0.06);
 }
 
-.admin-room-booking-form h2 {
-  margin-bottom: 18px;
-  font-size: 1.2rem;
+.arb-card h2 {
+  margin: 0 0 20px;
+  font-size: 1.15rem;
+  color: #1f2937;
 }
 
-.admin-room-booking-grid {
+.arb-section-title {
+  margin: 28px 0 16px;
+  font-size: 1rem;
+  color: #1f2937;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* ── field grid ──────────────────────────────────────────── */
+.arb-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
 }
 
-.admin-room-booking-form label {
-  display: grid;
-  gap: 7px;
-  color: #374151;
-  font-size: 0.9rem;
+.arb-card label {
+  display: block;
+  font-size: 0.875rem;
   font-weight: 600;
+  color: #374151;
 }
 
-.admin-room-booking-form label span {
-  color: #dc2626;
+.arb-card label span { color: #dc2626; }
+
+.arb-card label input,
+.arb-card label select,
+.arb-card label textarea {
+  display: block;
+  margin-top: 6px;
 }
 
-.admin-room-booking-form input,
-.admin-room-booking-form select,
-.admin-room-booking-form textarea {
+.arb-card input,
+.arb-card select,
+.arb-card textarea {
   box-sizing: border-box;
   width: 100%;
   padding: 10px 12px;
@@ -70,56 +171,82 @@
   border-radius: 7px;
   color: #1f2937;
   font: inherit;
+  background: #fff;
 }
 
-.admin-room-booking-form textarea {
-  resize: vertical;
-}
+.arb-card textarea { resize: vertical; }
 
-.admin-room-booking-form input:focus,
-.admin-room-booking-form select:focus,
-.admin-room-booking-form textarea:focus {
+.arb-card input:focus,
+.arb-card select:focus,
+.arb-card textarea:focus {
   outline: none;
   border-color: #2563eb;
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
 }
 
-.admin-room-booking-form small {
-  overflow: hidden;
+.arb-card small {
   color: #64748b;
   font-weight: 400;
+  overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.admin-room-booking-full-width {
-  grid-column: 1 / -1;
-}
+.arb-full { grid-column: 1 / -1; }
 
-.admin-room-booking-section-header {
+/* ── family members ──────────────────────────────────────── */
+.arb-section-header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 16px;
+  margin: 28px 0 12px;
 }
 
-.admin-room-booking-family-row {
+.arb-family-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 14px;
+  margin-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.arb-family-row {
   display: grid;
-  grid-template-columns: 2fr 1.5fr 100px auto;
+  grid-template-columns: 2fr 1.5fr 90px auto;
   gap: 12px;
-  margin-top: 12px;
 }
 
-.admin-room-booking-actions {
+.arb-family-img-label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.arb-family-img-label input { margin-top: 5px; }
+
+.arb-empty {
+  color: #94a3b8;
+  font-size: 0.875rem;
+  margin: 4px 0 0;
+}
+
+/* ── buttons ─────────────────────────────────────────────── */
+.arb-actions {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
+  margin-top: 28px;
+  padding-top: 20px;
+  border-top: 1px solid #f1f5f9;
 }
 
-.admin-room-booking-actions button,
-.admin-room-booking-secondary,
-.admin-room-booking-remove {
+.arb-btn-primary,
+.arb-btn-secondary,
+.arb-btn-add,
+.arb-btn-remove {
   border: 0;
   border-radius: 7px;
   cursor: pointer;
@@ -127,50 +254,133 @@
   font-weight: 600;
 }
 
-.admin-room-booking-actions button {
-  padding: 11px 18px;
+.arb-btn-primary {
+  padding: 11px 22px;
   background: #2563eb;
   color: #ffffff;
 }
 
-.admin-room-booking-actions button:disabled {
-  cursor: not-allowed;
-  opacity: 0.7;
-}
+.arb-btn-primary:disabled { opacity: 0.7; cursor: not-allowed; }
+.arb-btn-primary:not(:disabled):hover { background: #1d4ed8; }
 
-.admin-room-booking-secondary {
-  padding: 9px 14px;
+.arb-btn-secondary {
+  padding: 11px 18px;
   background: #e2e8f0;
   color: #334155;
 }
 
-.admin-room-booking-remove {
+.arb-btn-secondary:hover { background: #cbd5e1; }
+
+.arb-btn-add {
+  padding: 6px 12px;
+  background: #eff6ff;
+  color: #2563eb;
+  font-size: 0.85rem;
+}
+
+.arb-btn-add:hover { background: #dbeafe; }
+
+.arb-btn-remove {
   padding: 9px 12px;
   background: #fef2f2;
   color: #b91c1c;
+  align-self: end;
 }
 
-@media (max-width: 850px) {
-  .admin-room-booking-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+.arb-btn-remove:hover { background: #fee2e2; }
+
+/* ── review step ─────────────────────────────────────────── */
+.arb-review-hint {
+  margin: -12px 0 20px;
+  font-size: 0.875rem;
+  color: #64748b;
 }
 
-@media (max-width: 600px) {
-  .admin-room-booking-content {
-    padding: 88px 16px 32px;
-  }
+.arb-review-section {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 18px 20px;
+  margin-bottom: 16px;
+}
 
-  .admin-room-booking-form section {
-    padding: 18px;
-  }
+.arb-review-section h3 {
+  margin: 0 0 14px;
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #64748b;
+}
 
-  .admin-room-booking-grid,
-  .admin-room-booking-family-row {
-    grid-template-columns: 1fr;
-  }
+.arb-review-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px 20px;
+}
 
-  .admin-room-booking-section-header {
-    flex-direction: column;
-  }
+.arb-review-grid div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.arb-review-grid span {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.arb-review-grid strong {
+  font-size: 0.9rem;
+  color: #1e293b;
+  font-weight: 600;
+}
+
+.arb-review-full { grid-column: 1 / -1; }
+
+.arb-review-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.arb-review-table th {
+  text-align: left;
+  color: #94a3b8;
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.arb-review-table td {
+  padding: 8px 0;
+  color: #1e293b;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.arb-review-note {
+  margin: 0;
+  color: #334155;
+  font-size: 0.9rem;
+  white-space: pre-wrap;
+}
+
+/* ── responsive ──────────────────────────────────────────── */
+@media (max-width: 700px) {
+  .arb-content { padding: 88px 16px 40px; }
+  .arb-stepper { padding: 16px; gap: 0; }
+  .arb-step-label { display: none; }
+  .arb-grid,
+  .arb-review-grid { grid-template-columns: 1fr 1fr; }
+  .arb-family-row  { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 480px) {
+  .arb-grid,
+  .arb-review-grid,
+  .arb-family-row { grid-template-columns: 1fr; }
 }

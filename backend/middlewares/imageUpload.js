@@ -37,7 +37,12 @@ const uploadOptions = {
 };
 
 export const upload = multer(uploadOptions).single("image");
-export const uploadVerificationImage = multer(uploadOptions).single("verificationImage");
+
+// Accepts verificationImage (1) + up to 10 family member images
+export const uploadVerificationImage = multer(uploadOptions).fields([
+  { name: 'verificationImage', maxCount: 1 },
+  { name: 'familyMemberImages', maxCount: 10 },
+]);
 
 // 🔥 Function to process + upload optimized image
 export const processAndUploadImage = async (req, res, next) => {
@@ -82,28 +87,72 @@ export const processAndUploadImage = async (req, res, next) => {
 
 export const processAndUploadVerificationImage = async (req, res, next) => {
   try {
-    if (!req.file) {
-      return next();
+    const verificationFile = req.files?.verificationImage?.[0];
+
+    // ── main guest verification image ──────────────────────
+    if (verificationFile) {
+      const optimizedImage = await sharp(verificationFile.buffer)
+        .resize(1600, 1600, { fit: "inside", withoutEnlargement: true })
+        .webp({ quality: 80 })
+        .toBuffer();
+      const fileName = `booking-verifications/${Date.now()}_${getBaseName(verificationFile.originalname)}.webp`;
+
+      try {
+        await s3.send(new PutObjectCommand({
+          Bucket: process.env.AWS_S3_BUCKET,
+          Key: fileName,
+          Body: optimizedImage,
+          ContentType: "image/webp",
+        }));
+        req.verificationImageUrl = `https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_REGION}.amazonaws.com/${fileName}`;
+      } catch (error) {
+        console.error("Verification image upload failed, saving locally:", error);
+        req.verificationImageUrl = await saveVerificationImageLocally(req, fileName, optimizedImage);
+      }
     }
 
-    const optimizedImage = await sharp(req.file.buffer)
-      .resize(1600, 1600, { fit: "inside", withoutEnlargement: true })
-      .webp({ quality: 80 })
-      .toBuffer();
-    const fileName = `booking-verifications/${Date.now()}_${getBaseName(req.file.originalname)}.webp`;
+    // ── family member images ────────────────────────────────
+    // Key format: booking-verifications/FULLNAME_DATE/memberName/img.webp
+    // familyMemberImages are indexed: familyMemberImages[0], [1], ...
+    // The index maps to the family member at that position.
+    const familyMemberFiles = req.files?.familyMemberImages || [];
+    const fullName = (req.body.fullName || 'GUEST').trim().toUpperCase().replace(/\s+/g, '_');
+    const date = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    const folderBase = `${fullName}_${date}`;
 
+    // Parse family members to get names for folder paths
+    let familyMembersData = [];
     try {
-      await s3.send(new PutObjectCommand({
-        Bucket: process.env.AWS_S3_BUCKET,
-        Key: fileName,
-        Body: optimizedImage,
-        ContentType: "image/webp",
-      }));
+      familyMembersData = req.body.familyMembers ? JSON.parse(req.body.familyMembers) : [];
+    } catch { familyMembersData = []; }
 
-      req.verificationImageUrl = `https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_REGION}.amazonaws.com/${fileName}`;
-    } catch (error) {
-      console.error("Verification image upload failed, saving locally:", error);
-      req.verificationImageUrl = await saveVerificationImageLocally(req, fileName, optimizedImage);
+    req.familyMemberImageUrls = {};
+
+    for (const file of familyMemberFiles) {
+      // Index is encoded in the filename as "idx_<N>_<originalname>" by the frontend
+      const idxMatch = file.originalname.match(/^idx_(\d+)_/);
+      const fileIndex = idxMatch ? parseInt(idxMatch[1], 10) : familyMemberFiles.indexOf(file);
+      const memberName = (familyMembersData[fileIndex]?.name || `member${fileIndex}`).trim().replace(/\s+/g, '_');
+
+      const optimized = await sharp(file.buffer)
+        .resize(1600, 1600, { fit: "inside", withoutEnlargement: true })
+        .webp({ quality: 80 })
+        .toBuffer();
+
+      const key = `booking-verifications/${folderBase}/${memberName}/img.webp`;
+
+      try {
+        await s3.send(new PutObjectCommand({
+          Bucket: process.env.AWS_S3_BUCKET,
+          Key: key,
+          Body: optimized,
+          ContentType: "image/webp",
+        }));
+        req.familyMemberImageUrls[fileIndex] = `https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`;
+      } catch (err) {
+        console.error(`Family member image upload failed for index ${fileIndex}, saving locally:`, err);
+        req.familyMemberImageUrls[fileIndex] = await saveVerificationImageLocally(req, key, optimized);
+      }
     }
 
     return next();

@@ -1,19 +1,19 @@
-import React, { use } from "react";
+import React from "react";
 import { useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
 import Navbar from "../../components/Navbar"
 import GuestHouseCard from '../components/GuestHouseCard';
 import Footer from "../../components/Footer";
+import { logout } from "../../redux/authSlice";
 
 export default function Dashboard() {
 
     const navigate = useNavigate();
-
-    //Get User Info
-    const user = JSON.parse(localStorage.getItem("user"));
+    const dispatch = useDispatch();
+    const user = useSelector((state) => state.auth.user);
 
     const handleLogout = () => {
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
+        dispatch(logout());
         navigate("/signin");
     }
 

@@ -1,143 +1,164 @@
-/* Root styles */
-.admin-dashboard {
-  padding: 20px 30px;
-  margin-top: 30px; 
-  background-color: #f9fafb;
-  min-height: calc(100vh - 100px);
-  font-family: 'Inter', sans-serif;
-}
+/* =====================================================
+   Overview / Admin Dashboard Page
+   Component: Overview.jsx (rendered inside .main-content)
+===================================================== */
 
-/* Dashboard Title */
-.dashboard-title {
-  text-align: left;
-  font-size: 2rem;
-  font-weight: 700;
-  color: #1f2937;
-  margin-bottom: 30px;
-  padding-left: 4px;
-}
-
-/* Grid of Cards */
+/* ── Stat cards grid ── */
 .card-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 24px;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.75rem;
 }
 
-/* Card Styles */
 .dashboard-card {
-  padding: 28px 20px;
-  border-radius: 14px;
-  background-color: white;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.07);
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1.5rem 1.25rem;
   text-align: center;
-  transition: all 0.25s ease;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .dashboard-card:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+  transform: translateY(-3px);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.09);
 }
 
-/* Card Numbers */
 .stat-number {
-  font-size: 2.5rem;
+  font-size: 2.2rem;
   font-weight: 800;
   color: #2563eb;
-  margin-bottom: 10px;
-  font-family: 'Outfit', sans-serif;
+  margin: 0 0 6px;
+  line-height: 1;
 }
 
-/* Card Labels */
 .dashboard-card p {
-  font-size: 1rem;
-  color: #4b5563;
+  font-size: 0.88rem;
+  color: #64748b;
   font-weight: 500;
+  margin: 0;
 }
 
-/* Variant colors */
-.dashboard-card.danger .stat-number {
-  color: #dc2626;
-}
+.dashboard-card.danger  .stat-number { color: #dc2626; }
+.dashboard-card.warning .stat-number { color: #d97706; }
+.dashboard-card.success .stat-number { color: #16a34a; }
 
-.dashboard-card.warning .stat-number {
-  color: #f59e0b;
-}
-
-.dashboard-card.success .stat-number {
-  color: #16a34a;
-}
-
-/* Date Range Selector */
+/* ── Date range selector ── */
 .date-range-selector {
-  margin-top: 40px;
-  padding: 20px;
-  background-color: white;
-  border-radius: 12px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.07);
-}
-
-.date-range-label {
-  display: block;
-  font-size: 1rem;
-  font-weight: 600;
-  color: #1f2937;
-  margin-bottom: 12px;
-}
-
-.date-inputs {
   display: flex;
-  gap: 20px;
-  align-items: flex-end;
-  flex-wrap: wrap;
+  justify-content: flex-end;
+  margin-bottom: 1.25rem;
+  position: relative;
 }
 
-.date-input-group {
+.date-range-btn {
+  padding: 7px 14px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #475569;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.date-range-btn:hover {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37,99,235,0.08);
+}
+
+.date-range-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 200;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(15,23,42,0.12);
+  padding: 16px;
+  min-width: 260px;
+}
+
+.date-range-dropdown-body {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 12px;
 }
 
-.date-input-group label {
-  font-size: 0.9rem;
-  font-weight: 500;
-  color: #4b5563;
+.date-range-dropdown-body label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #64748b;
 }
 
-.date-input {
-  padding: 8px 12px;
-  border: 1px solid #d1d5db;
+.date-range-dropdown-body input {
+  padding: 7px 10px;
+  border: 1px solid #cbd5e1;
   border-radius: 6px;
-  font-size: 0.95rem;
-  color: #1f2937;
-  background-color: white;
-  cursor: pointer;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  font-size: 0.82rem;
+  color: #1e293b;
+  background: #fff;
 }
 
-.date-input:focus {
+.date-range-dropdown-body input:focus {
   outline: none;
   border-color: #2563eb;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
-.date-input:hover {
-  border-color: #9ca3af;
+.date-range-dropdown-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 14px;
 }
 
-/* Charts layout */
+.date-range-apply {
+  padding: 6px 14px;
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.date-range-apply:hover { background: #1d4ed8; }
+
+.date-range-cancel {
+  padding: 6px 12px;
+  background: #f1f5f9;
+  color: #475569;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.date-range-cancel:hover { background: #e2e8f0; }
+
+/* ── Charts grid ── */
 .metrics-grid {
-  margin-top: 28px;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 28px;
+  gap: 1.5rem;
+  margin-bottom: 1.75rem;
 }
 
 .metrics-card {
-  background-color: #ffffff;
-  border-radius: 16px;
-  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
-  padding: 24px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
 }
 
 .chart-header {
@@ -145,62 +166,72 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 18px;
+  margin-bottom: 16px;
 }
 
 .chart-header h3 {
   margin: 0;
-  font-size: 1.25rem;
+  font-size: 1.05rem;
   font-weight: 600;
-  color: #1f2937;
+  color: #1e293b;
 }
 
 .chart-label {
-  margin: 0;
-  font-size: 0.9rem;
+  margin: 0 0 2px;
+  font-size: 0.75rem;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: #9ca3af;
+  letter-spacing: 0.06em;
+  color: #94a3b8;
 }
 
 .chart-range {
-  font-size: 0.85rem;
-  color: #4b5563;
-  background: #f3f4f6;
+  font-size: 0.8rem;
+  color: #475569;
+  background: #f1f5f9;
   border-radius: 999px;
-  padding: 6px 12px;
+  padding: 4px 10px;
   white-space: nowrap;
+  align-self: flex-start;
 }
 
 .chart-wrapper {
   position: relative;
   width: 100%;
-  height: 260px;
+  height: 250px;
 }
 
 .chart-placeholder {
-  color: #9ca3af;
+  color: #94a3b8;
   text-align: center;
-  padding: 45px 0;
-  font-size: 0.95rem;
+  padding: 40px 0;
+  font-size: 0.9rem;
 }
 
-/* Calendar Section */
+/* ── Calendar section ── */
 .calendar-section {
-  margin-top: 40px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
 }
 
 .section-title {
-  font-size: 1.5rem;
+  font-size: 1.15rem;
   font-weight: 700;
-  color: #1f2937;
-  margin-bottom: 8px;
-  padding-left: 4px;
+  color: #1e293b;
+  margin: 0 0 4px;
 }
 
 .section-subtitle {
-  font-size: 0.95rem;
-  color: #6b7280;
-  margin-bottom: 20px;
-  padding-left: 4px;
+  font-size: 0.875rem;
+  color: #64748b;
+  margin: 0 0 1.25rem;
+}
+
+/* ── Refreshing indicator ── */
+.refreshing-text {
+  font-size: 0.8rem;
+  color: #94a3b8;
+  margin-bottom: 0.5rem;
 }

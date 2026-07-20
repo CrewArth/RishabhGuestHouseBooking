@@ -1,248 +1,197 @@
-// src/pages/BedManagement.jsx
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import BedFormModal from '../components/BedFormModal';
-import '../styles/bedManagement.css';
-import '../styles/auditLogs.css';
 import { toast } from 'react-toastify';
 import api from '../../utils/api';
 
 const BedManagement = () => {
   const [guestHouses, setGuestHouses] = useState([]);
-  const [rooms, setRooms] = useState([]);
-  const [beds, setBeds] = useState([]);
-  const [selectedGH, setSelectedGH] = useState(null);
+  const [rooms, setRooms]             = useState([]);
+  const [beds, setBeds]               = useState([]);
+  const [selectedGH, setSelectedGH]   = useState(null);
   const [selectedRoom, setSelectedRoom] = useState(null);
-  const [selectedBed, setSelectedBed] = useState(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedBed, setSelectedBed]   = useState(null);
+  const [isModalOpen, setIsModalOpen]   = useState(false);
 
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    fetchGuestHouses();
-  }, []);
+  useEffect(() => { fetchGuestHouses(); }, []);
 
   const fetchGuestHouses = async () => {
     try {
       const res = await api.get('/api/guesthouses');
       setGuestHouses(Array.isArray(res.data) ? res.data : []);
-    } catch (err) {
-      console.error('Error fetching guest houses', err);
-    }
+    } catch (err) { console.error(err); }
   };
 
   const fetchRoomsForGH = async (ghId) => {
-    if (!ghId) {
-      setRooms([]);
-      return;
-    }
+    if (!ghId) { setRooms([]); return; }
     try {
       const res = await api.get(`/api/rooms/by-guesthouse?guestHouseId=${ghId}`);
       setRooms(res.data.rooms || []);
-    } catch (err) {
-      console.error('Error fetching rooms for GH', err);
-      setRooms([]);
-    }
+    } catch (err) { setRooms([]); }
   };
 
   const fetchBedsForRoom = async (roomId) => {
-    if (!roomId) {
-      setBeds([]);
-      return;
-    }
+    if (!roomId) { setBeds([]); return; }
     try {
       const res = await api.get(`/api/beds?roomId=${roomId}`);
       setBeds(res.data.beds || []);
-    } catch (err) {
-      console.error('Error fetching beds', err);
-      setBeds([]);
-    }
+    } catch (err) { setBeds([]); }
   };
 
   useEffect(() => {
-    if (selectedGH) {
-      fetchRoomsForGH(selectedGH);
-      setSelectedRoom(null);
-      setBeds([]);
-    }
+    if (selectedGH) { fetchRoomsForGH(selectedGH); setSelectedRoom(null); setBeds([]); }
   }, [selectedGH]);
 
   useEffect(() => {
-    if (selectedRoom) {
-      fetchBedsForRoom(selectedRoom);
-    }
+    if (selectedRoom) fetchBedsForRoom(selectedRoom);
   }, [selectedRoom]);
 
-  const handleAddBed = async (newBed) => {
+  const handleAdd = async (newBed) => {
+    const room = rooms.find((r) => String(r._id) === String(selectedRoom));
+    if (!room) return alert('Select a valid room.');
+    if (beds.filter((b) => b.isActive).length >= room.roomCapacity)
+      return alert(`Room capacity is ${room.roomCapacity}. Cannot add more beds.`);
     try {
-      // client-side capacity check:
-      const room = rooms.find(r => String(r._id) === String(selectedRoom));
-      if (!room) return alert('Please select a valid room.');
-
-      const activeBedsCount = beds.filter(b => b.isActive).length;
-      if (activeBedsCount >= room.roomCapacity) {
-        return alert(`Cannot add more beds. Room capacity is ${room.roomCapacity}.`);
-      }
-
-      const payload = {
-        ...newBed,
-        roomId: selectedRoom,
-        bedType: newBed.bedType || 'single' // preserve schema but default single
-      };
-
-      const res = await api.post('/api/beds', payload);
-      toast.success("Bed created sucessfully")
-
-      // server returns updated beds; prefer fetching to keep consistent
+      await api.post('/api/beds', { ...newBed, roomId: selectedRoom, bedType: newBed.bedType || 'single' });
+      toast.success('Bed created successfully');
       fetchBedsForRoom(selectedRoom);
       setIsModalOpen(false);
-    } catch (err) {
-      console.error('Error adding bed', err);
-      // alert(err?.response?.data?.error || 'Failed to add bed');
-      toast.error(err?.response?.data?.error || 'Failed to add bed')
-    }
+    } catch (err) { toast.error(err?.response?.data?.error || 'Failed to add bed'); }
   };
 
-  const handleEditBed = async (updatedBed) => {
+  const handleEdit = async (updated) => {
     try {
-      await api.put(`/api/beds/${selectedBed._id}`, {
-        ...updatedBed,
-        bedType: updatedBed.bedType || 'single'
-      });
+      await api.put(`/api/beds/${selectedBed._id}`, { ...updated, bedType: updated.bedType || 'single' });
+      toast.success('Bed updated');
       fetchBedsForRoom(selectedRoom);
       setIsModalOpen(false);
-    } catch (err) {
-      console.error('Error updating bed', err);
-      // alert('Failed to update bed');
-      err?.response?.data?.error || 'Failed to update bed'
-    }
+    } catch (err) { toast.error('Failed to update bed'); }
   };
 
-  const toggleAvailability = async (bedId, currentAvailability) => {
+  const toggleAvailability = async (bedId, current) => {
     try {
-      await api.patch(`/api/beds/${bedId}/availability`, {
-        isAvailable: !currentAvailability
-      });
+      await api.patch(`/api/beds/${bedId}/availability`, { isAvailable: !current });
       fetchBedsForRoom(selectedRoom);
-    } catch (err) {
-      console.error('Error toggling availability', err);
-    }
+    } catch (err) { console.error(err); }
   };
 
-  const handleDeleteBed = async (bedId) => {
-    if (!window.confirm('Are you sure you want to delete this bed?')) return;
+  const handleDelete = async (bedId) => {
+    if (!window.confirm('Delete this bed?')) return;
     try {
       await api.delete(`/api/beds/${bedId}`);
+      toast.success('Bed deleted');
       fetchBedsForRoom(selectedRoom);
-    } catch (err) {
-      console.error('Error deleting bed', err);
-      // alert('Failed to delete bed');
-      toast.error(err?.response?.data?.error || 'Failed to add bed')
-    }
+    } catch (err) { toast.error(err?.response?.data?.error || 'Failed to delete bed'); }
   };
 
-  const handleAutoCreateBeds = async () => {
-    console.log("Workingss")
-    // toast.success("Toast is working...")
-    if (!selectedRoom) {
-      toast.error('Please select a room first');
-      return;
-    }
-
-    const room = rooms.find(r => String(r._id) === String(selectedRoom));
-    if (!room) {
-      toast.error('Room not found');
-      return;
-    }
-
-    const existingBedsCount = beds.filter(b => b.isActive).length;
-    const bedsToCreate = room.roomCapacity - existingBedsCount;
-
-    if (bedsToCreate <= 0) {
-      toast.warning(`Room is already at full capacity (${room.roomCapacity} beds)`);
-      return;
-    }
-
-    // if (!window.confirm(
-    //   `This will create ${bedsToCreate} bed(s) for Room ${room.roomNumber}.\n` +
-    //   `Beds will be numbered incrementally starting from ${beds.length > 0 ? Math.max(...beds.map(b => b.bedNumber)) + 1 : 1}.\n\n` +
-    //   `Continue?`
-    // )) {
-    //   return;
-    // }
-
+  const handleAutoCreate = async () => {
+    if (!selectedRoom) return toast.error('Select a room first');
+    const room = rooms.find((r) => String(r._id) === String(selectedRoom));
+    if (!room) return toast.error('Room not found');
+    const existing = beds.filter((b) => b.isActive).length;
+    if (existing >= room.roomCapacity) return toast.warning(`Room already at full capacity (${room.roomCapacity})`);
     try {
-      const res = await api.post('/api/beds/auto-create', {
-        roomId: selectedRoom,
-        bedType: 'single' // default bed type
-      });
-
-      toast.success(res.data.message || `Successfully created ${bedsToCreate} bed(s)`);
+      const res = await api.post('/api/beds/auto-create', { roomId: selectedRoom, bedType: 'single' });
+      toast.success(res.data.message || 'Beds created successfully');
       fetchBedsForRoom(selectedRoom);
-    } catch (err) {
-      console.error('Error auto-creating beds', err);
-      toast.error(err?.response?.data?.error || 'Failed to auto-create beds');
-    }
+    } catch (err) { toast.error(err?.response?.data?.error || 'Failed to auto-create beds'); }
   };
 
   return (
-    <div className="admin-content">
-      <div className="rm-title">
-      <strong><h2>Bed Management</h2></strong>
-      </div>
-
-      <div className="toolbar">
-        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-          <select value={selectedGH || ''} onChange={(e) => setSelectedGH(e.target.value || null)}>
-            <option value="">-- Select Guest House --</option>
-            {guestHouses.map(g => <option key={g.guestHouseId || g._id} value={g.guestHouseId || g._id}>{g.guestHouseName}</option>)}
-          </select>
-
-          <select value={selectedRoom || ''} onChange={(e) => setSelectedRoom(e.target.value || null)} disabled={!selectedGH}>
-            <option value="">-- Select Room --</option>
-            {rooms.map(r => <option key={r._id} value={r._id}>Room {r.roomNumber} (Cap: {r.roomCapacity})</option>)}
-          </select>
-
-          <button onClick={() => {
-            if (!selectedRoom) return alert('Please select room first');
-            setIsModalOpen(true);
-          }} className="btn-primary">Add New Bed</button>
-
-          <button 
-            onClick={handleAutoCreateBeds}
-            className="btn-primary"
-            style={{ backgroundColor: '#16a34a' }}
-            disabled={!selectedRoom}
-          >
-            Auto Create Beds
-          </button>
-
-          <button onClick={() => navigate(-1)} className="btn-secondary">Back</button>
+    <div className="page-root">
+      {/* Header */}
+      <div className="page-header-row">
+        <div>
+          <h1 className="page-title">Bed Management</h1>
+          <p className="page-subtitle">Select a guest house and room to manage beds</p>
         </div>
       </div>
 
-      <div className="table-container" style={{ marginTop: 16 }}>
-        <table className="styled-table">
+      {/* Toolbar: cascading dropdowns + action buttons */}
+      <div className="toolbar-row" style={{ marginBottom: '1.25rem', flexWrap: 'wrap', gap: '10px' }}>
+        <select
+          className="toolbar-select"
+          value={selectedGH || ''}
+          onChange={(e) => setSelectedGH(e.target.value || null)}
+        >
+          <option value="">Select Guest House</option>
+          {guestHouses.map((g) => (
+            <option key={g.guestHouseId || g._id} value={g.guestHouseId || g._id}>
+              {g.guestHouseName}
+            </option>
+          ))}
+        </select>
+
+        <select
+          className="toolbar-select"
+          value={selectedRoom || ''}
+          onChange={(e) => setSelectedRoom(e.target.value || null)}
+          disabled={!selectedGH}
+        >
+          <option value="">Select Room</option>
+          {rooms.map((r) => (
+            <option key={r._id} value={r._id}>
+              Room {r.roomNumber}  (Capacity: {r.roomCapacity})
+            </option>
+          ))}
+        </select>
+
+        <button
+          className="btn-primary-cta"
+          disabled={!selectedRoom}
+          onClick={() => {
+            if (!selectedRoom) return toast.error('Select a room first');
+            setIsModalOpen(true);
+          }}
+        >
+          + Add Bed
+        </button>
+
+        <button
+          className="btn-primary-cta green"
+          disabled={!selectedRoom}
+          onClick={handleAutoCreate}
+        >
+          Auto Create Beds
+        </button>
+      </div>
+
+      {/* Table */}
+      <div className="table-scroll">
+        <table className="data-table">
           <thead>
             <tr>
               <th>Bed Number</th>
+              <th>Type</th>
               <th>Availability</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
-            {beds.length > 0 ? beds.map(b => (
-              <tr key={b._id}>
-                <td>{b.bedNumber}</td>
-                <td>{b.isAvailable ? '✅ Available' : '❌ Booked'}</td>
-                <td>
-                  <button className="btn-edit" onClick={() => { setSelectedBed(b); setIsModalOpen(true); }}>Edit</button>
-                  <button className="btn-warning" onClick={() => toggleAvailability(b._id, b.isAvailable)}>Toggle</button>
-                  <button className="btn-danger" onClick={() => handleDeleteBed(b._id)}>Delete</button>
+            {beds.length === 0 ? (
+              <tr>
+                <td colSpan="4" className="table-empty">
+                  {selectedRoom ? 'No beds found for this room.' : 'Select a guest house and room to view beds.'}
                 </td>
               </tr>
-            )) : (
-              <tr><td colSpan="3" style={{ textAlign: 'center' }}>No beds found</td></tr>
+            ) : (
+              beds.map((b) => (
+                <tr key={b._id}>
+                  <td>Bed {b.bedNumber}</td>
+                  <td style={{ textTransform: 'capitalize' }}>{b.bedType}</td>
+                  <td>
+                    <span className={`badge ${b.isAvailable ? 'active' : 'inactive'}`}>
+                      {b.isAvailable ? 'Available' : 'Booked'}
+                    </span>
+                  </td>
+                  <td>
+                    <div className="actions-cell">
+                      <button className="btn-action edit"   onClick={() => { setSelectedBed(b); setIsModalOpen(true); }}>Edit</button>
+                      <button className="btn-action toggle" onClick={() => toggleAvailability(b._id, b.isAvailable)}>Toggle</button>
+                      <button className="btn-action delete" onClick={() => handleDelete(b._id)}>Delete</button>
+                    </div>
+                  </td>
+                </tr>
+              ))
             )}
           </tbody>
         </table>
@@ -252,7 +201,7 @@ const BedManagement = () => {
         <BedFormModal
           isOpen={isModalOpen}
           onClose={() => { setIsModalOpen(false); setSelectedBed(null); }}
-          onSubmit={selectedBed ? handleEditBed : handleAddBed}
+          onSubmit={selectedBed ? handleEdit : handleAdd}
           initialData={selectedBed}
         />
       )}

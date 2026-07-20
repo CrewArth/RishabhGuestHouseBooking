@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useSelector } from "react-redux";
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
 import "../styles/myBooking.css";
@@ -9,18 +10,7 @@ const MyBookings = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
-  const [user, setUser] = useState(null);
-
-  // Load user from localStorage
-  useEffect(() => {
-    const storedUser = JSON.parse(localStorage.getItem("user"));
-    if (storedUser) {
-      setUser(storedUser);
-    } else {
-      setError("User not found. Please log in again.");
-      setLoading(false);
-    }
-  }, []);
+  const user = useSelector((state) => state.auth.user);
 
   const fetchBookings = async (silent = false) => {
     if (!user?._id) return;

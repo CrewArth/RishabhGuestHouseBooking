@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import '../styles/bookingform.css';
 import Navbar from '../../components/Navbar';
 import { toast } from 'react-toastify';
@@ -10,7 +11,7 @@ const BookingForm = () => {
   const selectedGuestHouse = location.state?.guestHouse;
   const navigate = useNavigate();
 
-  const storedUser = JSON.parse(localStorage.getItem('user')) || null;
+  const storedUser = useSelector((state) => state.auth.user);
 
   const [rooms, setRooms] = useState([]);
   const [beds, setBeds] = useState([]);

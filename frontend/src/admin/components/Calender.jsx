@@ -1,15 +1,20 @@
 import React, { useEffect, useState } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
+import { useNavigate } from 'react-router-dom';
 import '../styles/calendar.css';
 import '../styles/adminBooking.css';
+import '../styles/dashboard.css';
 import api from '../../utils/api';
 
 export default function Calendar() {
+  const navigate = useNavigate();
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedBooking, setSelectedBooking] = useState(null);
+  const [cancelling, setCancelling] = useState(false);
+  const [confirmCancel, setConfirmCancel] = useState(false);
 
   useEffect(() => {
     fetchApprovedBookings();
@@ -25,7 +30,9 @@ export default function Calendar() {
       const calendarEvents = response.data.bookings.map((booking) => {
         const userName = booking.userId
           ? `${booking.userId.firstName || ''} ${booking.userId.lastName || ''}`.trim()
-          : 'Unknown User';
+          : booking.fullName || booking.email || 'Unknown User';
+
+        const userEmail = booking.userId?.email || booking.email || 'N/A';
         
         // FullCalendar's end date is exclusive, so we add 1 day to checkOut
         const checkOutDate = new Date(booking.checkOut);
@@ -41,7 +48,7 @@ export default function Calendar() {
             room: booking.roomId?.roomNumber || 'N/A',
             bed: booking.bedId?.bedNumber || 'N/A',
             bedType: booking.bedId?.bedType || 'N/A',
-            email: booking.userId?.email || 'N/A',
+            email: userEmail,
             checkIn: booking.checkIn,
             checkOut: booking.checkOut,
           },
@@ -58,9 +65,10 @@ export default function Calendar() {
   };
 
   const handleEventClick = (clickInfo) => {
-    const { extendedProps, title } = clickInfo.event;
+    const { extendedProps, title, id } = clickInfo.event;
     
     setSelectedBooking({
+      id,
       guest: title,
       email: extendedProps.email,
       guestHouse: extendedProps.guestHouse,
@@ -70,6 +78,25 @@ export default function Calendar() {
       checkIn: extendedProps.checkIn,
       checkOut: extendedProps.checkOut,
     });
+    setConfirmCancel(false);
+  };
+
+  const handleCancelBooking = async () => {
+    if (!confirmCancel) {
+      setConfirmCancel(true);
+      return;
+    }
+    try {
+      setCancelling(true);
+      await api.patch(`/api/bookings/${selectedBooking.id}/cancel`);
+      setSelectedBooking(null);
+      setConfirmCancel(false);
+      fetchApprovedBookings(); // refresh calendar
+    } catch (err) {
+      console.error('Error cancelling booking:', err);
+    } finally {
+      setCancelling(false);
+    }
   };
 
   const formatDate = (dateStr) => {
@@ -121,27 +148,79 @@ export default function Calendar() {
 
       {/* Booking Details Modal */}
       {selectedBooking && (
-        <div className="modal-backdrop" onClick={() => setSelectedBooking(null)}>
-          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-            <h3>Booking Details</h3>
+        <div className="page-modal-backdrop" onClick={() => { setSelectedBooking(null); setConfirmCancel(false); }}>
+          <div className="page-modal-card" onClick={(e) => e.stopPropagation()}>
 
-            <div className="modal-details">
-              <p><strong>Guest:</strong> {selectedBooking.guest}</p>
-              <p><strong>Email:</strong> {selectedBooking.email}</p>
-              <p><strong>Guest House:</strong> {selectedBooking.guestHouse}</p>
-              <p><strong>Room:</strong> {selectedBooking.room !== 'N/A' ? `Room ${selectedBooking.room}` : 'N/A'}</p>
-              <p><strong>Bed:</strong> {
-                selectedBooking.bed !== 'N/A' 
-                  ? `Bed ${selectedBooking.bed} (${selectedBooking.bedType})` 
-                  : 'N/A'
-              }</p>
-              <p><strong>Check-in:</strong> {formatDate(selectedBooking.checkIn)}</p>
-              <p><strong>Check-out:</strong> {formatDate(selectedBooking.checkOut)}</p>
+            <div className="page-modal-header">
+              <h3>Booking Details</h3>
+              <button className="page-modal-close" onClick={() => setSelectedBooking(null)}>✕</button>
             </div>
 
-            <div className="modal-actions">
-              <button className="btn" onClick={() => setSelectedBooking(null)}>Close</button>
+            <div className="page-modal-body">
+              <div className="modal-detail-grid">
+                <p className="full">
+                  <strong>Guest</strong>
+                  {selectedBooking.guest}
+                </p>
+                <p className="full">
+                  <strong>Email</strong>
+                  {selectedBooking.email}
+                </p>
+                <p>
+                  <strong>Guest House</strong>
+                  {selectedBooking.guestHouse}
+                </p>
+                <p>
+                  <strong>Room</strong>
+                  {selectedBooking.room !== 'N/A' ? `Room ${selectedBooking.room}` : 'N/A'}
+                </p>
+                <p>
+                  <strong>Bed</strong>
+                  {selectedBooking.bed !== 'N/A'
+                    ? `Bed ${selectedBooking.bed} (${selectedBooking.bedType})`
+                    : 'N/A'}
+                </p>
+                <p>
+                  <strong>Check-in</strong>
+                  {formatDate(selectedBooking.checkIn)}
+                </p>
+                <p>
+                  <strong>Check-out</strong>
+                  {formatDate(selectedBooking.checkOut)}
+                </p>
+              </div>
             </div>
+
+            <div className="page-modal-footer">
+              {confirmCancel && (
+                <span style={{ fontSize: '0.85rem', color: '#dc2626', marginRight: 'auto' }}>
+                  Are you sure? This cannot be undone.
+                </span>
+              )}
+              <button
+                className="btn-action delete"
+                onClick={handleCancelBooking}
+                disabled={cancelling}
+              >
+                {cancelling ? 'Cancelling…' : confirmCancel ? 'Confirm Cancel' : 'Cancel Booking'}
+              </button>
+              <button
+                className="btn-action toggle"
+                onClick={() => {
+                  setSelectedBooking(null);
+                  navigate('/admin/book-room', { state: { bookingId: selectedBooking.id } });
+                }}
+              >
+                Edit
+              </button>
+              <button
+                className="btn-action edit"
+                onClick={() => { setSelectedBooking(null); setConfirmCancel(false); }}
+              >
+                Close
+              </button>
+            </div>
+
           </div>
         </div>
       )}

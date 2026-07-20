@@ -52,6 +52,11 @@ const userSchema = new mongoose.Schema({
         type: Boolean,
         default: true
     },
+    assignedGuestHouseId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'GuestHouse',
+        default: null,
+    },
     passwordResetToken: {
         type: String,
         select: false

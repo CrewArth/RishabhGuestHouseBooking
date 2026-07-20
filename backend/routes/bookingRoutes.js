@@ -6,9 +6,12 @@ import {
   getMyBookings,
   approveBooking,
   rejectBooking,
+  cancelBooking,
   checkAvailability,
   getApprovedBookingsForCalendar,
-  exportDailyBookings
+  exportDailyBookings,
+  getBookingById,
+  updateAdminBooking
 } from "../controller/bookingController.js";
 import { createAdminBooking } from "../controller/bookingController.js";
 import { processAndUploadVerificationImage, uploadVerificationImage } from "../middlewares/imageUpload.js";
@@ -22,7 +25,7 @@ router.post("/", createBooking);
 router.post(
   "/admin",
   authenticate,
-  authorize('ADMIN'),
+  authorize('ADMIN', 'SUPER_ADMIN'),
   uploadVerificationImage,
   processAndUploadVerificationImage,
   createAdminBooking
@@ -37,15 +40,29 @@ router.get("/", getAllBookings);
 // Admin exports bookings by day
 router.get("/export/daily", exportDailyBookings);
 
-// Admin approves / rejects booking
+// Admin approves / rejects / cancels booking
 router.patch("/:id/approve", approveBooking);
 router.patch("/:id/reject", rejectBooking);
+router.patch("/:id/cancel", cancelBooking);
 
-// To Check Room or Bed Availibility
+// To Check Room or Bed Availability
 router.get("/availability", checkAvailability);
 
 // Get approved bookings for calendar (admin)
 router.get("/calendar", getApprovedBookingsForCalendar);
+
+// Get single booking by ID — must come after all named GET routes
+router.get("/:id", authenticate, getBookingById);
+
+// Admin updates a booking
+router.put(
+  "/:id/admin",
+  authenticate,
+  authorize('ADMIN', 'SUPER_ADMIN'),
+  uploadVerificationImage,
+  processAndUploadVerificationImage,
+  updateAdminBooking
+);
 
 
 export default router;
