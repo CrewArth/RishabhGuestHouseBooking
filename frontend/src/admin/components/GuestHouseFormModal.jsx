@@ -54,8 +54,12 @@ const GuestHouseFormModal = ({ isOpen, onClose, onSubmit, initialData }) => {
       payload.append("image", formData.image); // Image file to upload
     }
 
-    await onSubmit(payload);
-    onClose();
+    try {
+      await onSubmit(payload);
+      onClose();
+    } catch (err) {
+      // Keep modal open, parent already shows the error toast
+    }
   };
 
   if (!isOpen) return null;

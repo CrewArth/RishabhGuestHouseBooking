@@ -57,6 +57,15 @@ export const createGuestHouse = async (req, res) => {
 
   } catch (error) {
     console.error("Error creating GuestHouse ", error);
+    if (error.code === 11000) {
+      const field = Object.keys(error.keyPattern)[0];
+      const friendlyField = field === 'guestHouseName' ? 'Guest House Name' : field;
+      return res.status(400).json({ message: `${friendlyField} already exists. Please choose a unique name.` });
+    }
+    if (error.name === 'ValidationError') {
+      const messages = Object.values(error.errors).map(err => err.message);
+      return res.status(400).json({ message: messages.join(', ') });
+    }
     res.status(500).json({ message: error?.message || "Error creating guest house" });
   }
 };
@@ -220,6 +229,15 @@ export const updateGuestHouse = async (req, res) => {
     });
   } catch (error) {
     console.error("Error updating Guest House:", error);
+    if (error.code === 11000) {
+      const field = Object.keys(error.keyPattern)[0];
+      const friendlyField = field === 'guestHouseName' ? 'Guest House Name' : field;
+      return res.status(400).json({ message: `${friendlyField} already exists. Please choose a unique name.` });
+    }
+    if (error.name === 'ValidationError') {
+      const messages = Object.values(error.errors).map(err => err.message);
+      return res.status(400).json({ message: messages.join(', ') });
+    }
     res.status(500).json({ message: "Server error while updating Guest House" });
   }
 };
