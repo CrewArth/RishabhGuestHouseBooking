@@ -148,7 +148,7 @@ const BookingForm = () => {
 
       const res = await api.get(`/api/bookings/availability`, {
         params: {
-          guestHouseId: selectedGuestHouse._id || selectedGuestHouse.guestHouseId,
+          guestHouseId: selectedGuestHouse.guestHouseId || selectedGuestHouse._id,
           checkIn: formData.checkInDate,
           checkOut: formData.checkOutDate,
         },
@@ -180,7 +180,7 @@ const BookingForm = () => {
 
     try {
       const bookingData = {
-        guestHouseId: selectedGuestHouse?._id || selectedGuestHouse?.guestHouseId,
+        guestHouseId: selectedGuestHouse?.guestHouseId || selectedGuestHouse?._id,
         roomId: formData.room,
         bedId: formData.bed,
         checkIn: formData.checkInDate,
@@ -287,7 +287,7 @@ const BookingForm = () => {
                       const isUnavailable = unavailableRooms.includes(room._id);
                       return (
                         <option key={room._id} value={room._id} disabled={isUnavailable}>
-                          Room {room.roomNumber} - {room.roomType} {isUnavailable ? '(Full)' : ''}
+                          Room {room.roomNumber} - {room.roomType} {room.price ? `($${room.price}/night)` : ''} {isUnavailable ? '(Full)' : ''}
                         </option>
                       );
                     })}

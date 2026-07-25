@@ -80,7 +80,7 @@ export const createAdminBooking = async (req, res) => {
       : Booking.findOne({ roomId, bedId: null, status: "approved", checkIn: { $lt: checkOutDate }, checkOut: { $gt: checkInDate } });
 
     const [guestHouse, room, bed, overlap] = await Promise.all([
-      GuestHouse.findById(guestHouseId),
+      GuestHouse.findOne({ guestHouseId }),
       Room.findById(roomId),
       bedId ? Bed.findById(bedId) : Promise.resolve(null),
       overlapQuery,
@@ -94,7 +94,7 @@ export const createAdminBooking = async (req, res) => {
       return res.status(404).json({ message: "Selected bed was not found" });
     }
 
-    if (bed && (String(bed.roomId) !== String(room._id) || Number(room.guestHouseId) !== Number(guestHouse.guestHouseId))) {
+    if (bed && (String(bed.roomId) !== String(room._id) || room.guestHouseId !== guestHouse.guestHouseId)) {
       return res.status(400).json({ message: "Selected room and bed do not belong to this guest house" });
     }
 
@@ -156,7 +156,7 @@ export const createBooking = async (req, res) => {
     // Parallelize database queries for better performance
     const [user, guestHouse, overlap] = await Promise.all([
       User.findById(userId),
-      GuestHouse.findById(guestHouseId),
+      GuestHouse.findOne({ guestHouseId }),
       Booking.findOne({
         bedId,
         status: "approved",
@@ -226,25 +226,19 @@ export const getAllBookings = async (req, res) => {
     const query = {};
 
     if (guestHouseId) {
-      // Find the guest house to get its ObjectId (frontend may send numeric guestHouseId or _id)
-      const gh = await GuestHouse.findOne({
-        $or: [
-          { _id: guestHouseId },
-          { guestHouseId: parseInt(guestHouseId, 10) },
-        ],
-      });
-      if (gh) query.guestHouseId = gh._id;
+      // Now booking.guestHouseId is String (GH001, etc.), so just use it directly
+      query.guestHouseId = guestHouseId;
     }
 
     if (startDate || endDate) {
-      const createdAt = {};
-
+      // Filter on checkIn/checkOut dates (when the stay is, not when the booking was made)
+      // Check for any overlap: booking's checkIn < endDate AND booking's checkOut > startDate
       if (startDate) {
         const start = new Date(`${startDate}T00:00:00.000Z`);
         if (Number.isNaN(start.getTime())) {
           return res.status(400).json({ message: "Invalid start date" });
         }
-        createdAt.$gte = start;
+        query.checkOut = { $gt: start };
       }
 
       if (endDate) {
@@ -252,18 +246,33 @@ export const getAllBookings = async (req, res) => {
         if (Number.isNaN(end.getTime())) {
           return res.status(400).json({ message: "Invalid end date" });
         }
-        createdAt.$lte = end;
+        // If we already have a checkOut condition, add checkIn condition
+        if (query.checkOut) {
+          query.checkIn = { $lt: end };
+        } else {
+          query.checkIn = { $lt: end };
+        }
       }
-
-      query.createdAt = createdAt;
     }
 
-    const bookings = await Booking.find(query)
+    // Fetch bookings with populate for userId, roomId, bedId (but not guestHouseId)
+    let bookings = await Booking.find(query)
       .populate("userId", "email firstName lastName")
-      .populate("guestHouseId", "guestHouseName")
       .populate("roomId", "roomNumber")
       .populate("bedId", "bedNumber bedType")
-      .sort({ createdAt: -1 }); // ✅ Sort newest first
+      .sort({ createdAt: -1 }) // ✅ Sort newest first
+      .lean();
+
+    // Manually fetch guest houses and attach to bookings
+    const guestHouseIds = [...new Set(bookings.map(b => b.guestHouseId).filter(Boolean))];
+    const guestHouses = await GuestHouse.find({ guestHouseId: { $in: guestHouseIds } }).lean();
+    const guestHouseMap = {};
+    guestHouses.forEach(gh => { guestHouseMap[gh.guestHouseId] = gh; });
+
+    bookings = bookings.map(b => ({
+      ...b,
+      guestHouseId: guestHouseMap[b.guestHouseId] || b.guestHouseId
+    }));
 
     res.json({ bookings });
   } catch (error) {
@@ -284,15 +293,26 @@ export const exportDailyBookings = async (req, res) => {
     const startOfDay = new Date(`${date}T00:00:00.000Z`);
     const endOfDay = new Date(`${date}T23:59:59.999Z`);
 
-    const bookings = await Booking.find({
+    // Fetch bookings with populate for userId, roomId, bedId (but not guestHouseId)
+    let bookings = await Booking.find({
       createdAt: { $gte: startOfDay, $lte: endOfDay }
     })
       .populate("userId", "firstName lastName email phone")
-      .populate("guestHouseId", "guestHouseName")
       .populate("roomId", "roomNumber")
       .populate("bedId", "bedNumber bedType")
       .sort({ createdAt: -1 })
       .lean();
+
+    // Manually fetch guest houses and attach to bookings
+    const guestHouseIds = [...new Set(bookings.map(b => b.guestHouseId).filter(Boolean))];
+    const guestHouses = await GuestHouse.find({ guestHouseId: { $in: guestHouseIds } }).lean();
+    const guestHouseMap = {};
+    guestHouses.forEach(gh => { guestHouseMap[gh.guestHouseId] = gh; });
+
+    bookings = bookings.map(b => ({
+      ...b,
+      guestHouseId: guestHouseMap[b.guestHouseId] || b.guestHouseId
+    }));
 
     const headers = [
       "Applied On",
@@ -357,11 +377,23 @@ export const exportDailyBookings = async (req, res) => {
 export const getMyBookings = async (req, res) => {
   try {
     const userId = req.user?._id || req.query.userId;
-    const bookings = await Booking.find({ userId })
-      .populate("guestHouseId", "guestHouseName location")
+    // Fetch bookings with populate for roomId, bedId (but not guestHouseId)
+    let bookings = await Booking.find({ userId })
       .populate("roomId", "roomNumber")
       .populate("bedId", "bedNumber bedType")
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean();
+
+    // Manually fetch guest houses and attach to bookings
+    const guestHouseIds = [...new Set(bookings.map(b => b.guestHouseId).filter(Boolean))];
+    const guestHouses = await GuestHouse.find({ guestHouseId: { $in: guestHouseIds } }).lean();
+    const guestHouseMap = {};
+    guestHouses.forEach(gh => { guestHouseMap[gh.guestHouseId] = gh; });
+
+    bookings = bookings.map(b => ({
+      ...b,
+      guestHouseId: guestHouseMap[b.guestHouseId] || b.guestHouseId
+    }));
 
     res.json({ bookings });
   } catch (error) {
@@ -382,7 +414,7 @@ export const approveBooking = async (req, res) => {
     // 2️⃣ Parallelize: Fetch user and guest house simultaneously
     const [user, guestHouse] = await Promise.all([
       User.findById(booking.userId),
-      GuestHouse.findById(booking.guestHouseId)
+      GuestHouse.findOne({ guestHouseId: booking.guestHouseId })
     ]);
 
     if (!user || !guestHouse) {
@@ -433,7 +465,7 @@ export const rejectBooking = async (req, res) => {
     // 2️⃣ Parallelize: Fetch user and guest house simultaneously
     const [user, guestHouse] = await Promise.all([
       User.findById(booking.userId),
-      GuestHouse.findById(booking.guestHouseId)
+      GuestHouse.findOne({ guestHouseId: booking.guestHouseId })
     ]);
 
     if (!user || !guestHouse) {
@@ -483,22 +515,17 @@ export const checkAvailability = async (req, res) => {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
-    // Find the GuestHouse to get both _id (ObjectId) and guestHouseId (Number)
-    const guestHouse = await GuestHouse.findOne({
-      $or: [
-        { _id: guestHouseId },
-        { guestHouseId: parseInt(guestHouseId, 10) }
-      ]
-    });
+    // Find the GuestHouse using guestHouseId (String like GH001)
+    const guestHouse = await GuestHouse.findOne({ guestHouseId });
 
     if (!guestHouse) {
       return res.status(404).json({ message: "Guest house not found" });
     }
 
     // Find all APPROVED bookings overlapping the requested date range
-    // Use guestHouse._id since Booking.guestHouseId is ObjectId
+    // Use guestHouse.guestHouseId (String) since Booking.guestHouseId is String now
     const overlappingBookings = await Booking.find({
-      guestHouseId: guestHouse._id,
+      guestHouseId: guestHouse.guestHouseId,
       status: "approved",
       $or: [
         {
@@ -515,7 +542,7 @@ export const checkAvailability = async (req, res) => {
       ...new Set(overlappingBookings.map(b => b.bedId?._id.toString())),
     ];
 
-    // Get all rooms for this guest house (using guestHouseId as Number)
+    // Get all rooms for this guest house (using guestHouseId as String)
     const rooms = await Room.find({ 
       guestHouseId: guestHouse.guestHouseId, 
       isActive: true 
@@ -587,7 +614,7 @@ export const cancelBooking = async (req, res) => {
 
     const [user, guestHouse] = await Promise.all([
       User.findById(booking.userId),
-      GuestHouse.findById(booking.guestHouseId),
+      GuestHouse.findOne({ guestHouseId: booking.guestHouseId }),
     ]);
 
     const updatedBooking = await Booking.findByIdAndUpdate(
@@ -626,12 +653,24 @@ export const cancelBooking = async (req, res) => {
 };
 export const getApprovedBookingsForCalendar = async (req, res) => {
   try {
-    const bookings = await Booking.find({ status: "approved" })
+    // Fetch bookings with populate for userId, roomId, bedId (but not guestHouseId)
+    let bookings = await Booking.find({ status: "approved" })
       .populate("userId", "firstName lastName email")
-      .populate("guestHouseId", "guestHouseName")
       .populate("roomId", "roomNumber")
       .populate("bedId", "bedNumber bedType")
-      .sort({ checkIn: 1 }); // Sort by check-in date
+      .sort({ checkIn: 1 }) // Sort by check-in date
+      .lean();
+
+    // Manually fetch guest houses and attach to bookings
+    const guestHouseIds = [...new Set(bookings.map(b => b.guestHouseId).filter(Boolean))];
+    const guestHouses = await GuestHouse.find({ guestHouseId: { $in: guestHouseIds } }).lean();
+    const guestHouseMap = {};
+    guestHouses.forEach(gh => { guestHouseMap[gh.guestHouseId] = gh; });
+
+    bookings = bookings.map(b => ({
+      ...b,
+      guestHouseId: guestHouseMap[b.guestHouseId] || b.guestHouseId
+    }));
 
     res.json({ bookings });
   } catch (error) {
@@ -643,12 +682,17 @@ export const getApprovedBookingsForCalendar = async (req, res) => {
 // Get a single booking by ID (admin)
 export const getBookingById = async (req, res) => {
   try {
-    const booking = await Booking.findById(req.params.id)
-      .populate("guestHouseId", "guestHouseName guestHouseId _id")
+    // Fetch booking with populate for roomId, bedId (but not guestHouseId)
+    let booking = await Booking.findById(req.params.id)
       .populate("roomId", "roomNumber roomType _id")
-      .populate("bedId", "bedNumber bedType _id");
+      .populate("bedId", "bedNumber bedType _id")
+      .lean();
 
     if (!booking) return res.status(404).json({ message: "Booking not found" });
+
+    // Manually fetch guest house and attach to booking
+    const guestHouse = await GuestHouse.findOne({ guestHouseId: booking.guestHouseId }).lean();
+    booking.guestHouseId = guestHouse || booking.guestHouseId;
 
     res.json({ booking });
   } catch (error) {
@@ -679,6 +723,16 @@ export const updateAdminBooking = async (req, res) => {
     const checkOutDate = new Date(checkOut);
     if (Number.isNaN(checkInDate.getTime()) || Number.isNaN(checkOutDate.getTime()) || checkOutDate <= checkInDate) {
       return res.status(400).json({ message: "Check-out must be after check-in" });
+    }
+
+    // Verify guest house and room exist
+    const [guestHouse, room] = await Promise.all([
+      GuestHouse.findOne({ guestHouseId }),
+      Room.findById(roomId),
+    ]);
+
+    if (!guestHouse || !room) {
+      return res.status(404).json({ message: "Selected guest house or room was not found" });
     }
 
     // Overlap check — exclude the booking being edited

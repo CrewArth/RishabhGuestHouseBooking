@@ -14,7 +14,7 @@ export const createRoom = async (req, res) => {
     const { error, value } = createRoomSchema.validate(req.body, { abortEarly: false });
     if (error) return sendError(res, 400, 'Validation failed', error.details);
 
-    const { guestHouseId, roomNumber, roomType, roomCapacity, isAvailable } = value;
+    const { guestHouseId, roomNumber, roomType, roomCapacity, price, isAvailable } = value;
 
     // Ensure GuestHouse exists
     const gh = await GuestHouse.findOne({ guestHouseId });
@@ -27,6 +27,7 @@ export const createRoom = async (req, res) => {
       roomNumber,
       roomType: roomType || 'single', // default if missing from client
       roomCapacity,
+      price,
       isAvailable
     });
 
@@ -211,7 +212,7 @@ export const softDeleteRoom = async (req, res) => {
 // Fetch rooms by guestHouseId
 export const getRoomsByGuestHouse = async (req, res) => {
   try {
-    const guestHouseId = parseInt(req.query.guestHouseId, 10);
+    const guestHouseId = req.query.guestHouseId;
 
     if (!guestHouseId) {
       return res.status(400).json({ error: "guestHouseId is required" });

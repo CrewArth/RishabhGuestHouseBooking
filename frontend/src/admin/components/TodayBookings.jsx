@@ -5,13 +5,18 @@ import api from '../../utils/api';
 import editIcon from '../../assets/edit.svg';
 import '../styles/todayBookings.css';
 
-const getLocalDate = () => {
-  const date = new Date();
+const getLocalDate = (date = new Date()) => {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
 
   return `${year}-${month}-${day}`;
+};
+
+const getOneWeekAgo = () => {
+  const date = new Date();
+  date.setDate(date.getDate() - 7);
+  return getLocalDate(date);
 };
 
 const formatDate = (value) => {
@@ -28,10 +33,11 @@ const formatDate = (value) => {
 
 export default function TodayBookings() {
   const today = getLocalDate();
+  const oneWeekAgo = getOneWeekAgo();
   const navigate = useNavigate();
-  const [fromDate, setFromDate] = useState(today);
+  const [fromDate, setFromDate] = useState(oneWeekAgo);
   const [toDate, setToDate] = useState(today);
-  const [appliedFilter, setAppliedFilter] = useState({ startDate: today, endDate: today });
+  const [appliedFilter, setAppliedFilter] = useState({ startDate: oneWeekAgo, endDate: today });
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -46,8 +52,8 @@ export default function TodayBookings() {
         setError('');
         const params = { ...appliedFilter };
         if (assignedGuestHouse) {
-          // assignedGuestHouseId may be an ObjectId string or a populated object
-          params.guestHouseId = assignedGuestHouse._id || assignedGuestHouse;
+          // assignedGuestHouse could be an object or just the guestHouseId string
+          params.guestHouseId = assignedGuestHouse.guestHouseId || assignedGuestHouse;
         }
         const response = await api.get('/api/bookings', { params });
         setBookings(response.data.bookings || []);

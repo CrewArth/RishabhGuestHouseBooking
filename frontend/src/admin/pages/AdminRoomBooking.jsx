@@ -50,7 +50,7 @@ export default function AdminRoomBooking() {
   const [assignedGuestHouse, setAssignedGuestHouse] = useState(null);
 
   const selectedGuestHouse = useMemo(
-    () => assignedGuestHouse || guestHouses.find((gh) => gh._id === form.guestHouseId),
+    () => assignedGuestHouse || guestHouses.find((gh) => gh.guestHouseId === form.guestHouseId || gh._id === form.guestHouseId),
     [form.guestHouseId, guestHouses, assignedGuestHouse]
   );
   const selectedRoom = useMemo(() => rooms.find((r) => r._id === form.roomId), [form.roomId, rooms]);
@@ -62,9 +62,11 @@ export default function AdminRoomBooking() {
       try {
         const meRes = await api.get('/api/admin/me');
         const assigned = meRes.data.user?.assignedGuestHouseId;
-        if (assigned?._id) {
+        if (assigned) {
           setAssignedGuestHouse(assigned);
-          setForm((f) => ({ ...f, guestHouseId: assigned._id }));
+          // Assigned could be an object or just the guestHouseId string
+          const guestHouseId = typeof assigned === 'object' ? assigned.guestHouseId : assigned;
+          setForm((f) => ({ ...f, guestHouseId }));
         } else {
           const ghRes = await api.get('/api/guesthouses');
           setGuestHouses(Array.isArray(ghRes.data) ? ghRes.data : ghRes.data.guestHouses || []);
@@ -75,7 +77,7 @@ export default function AdminRoomBooking() {
           const bRes = await api.get(`/api/bookings/${editBookingId}`);
           const b = bRes.data.booking;
           setForm({
-            guestHouseId: b.guestHouseId?._id || b.guestHouseId || '',
+            guestHouseId: b.guestHouseId || '',
             roomId:       b.roomId?._id        || b.roomId        || '',
             bedId:        b.bedId?._id         || b.bedId         || '',
             checkIn:      b.checkIn ? b.checkIn.split('T')[0] : '',
@@ -124,7 +126,7 @@ export default function AdminRoomBooking() {
       setUnavailableRooms([]); setUnavailableBeds([]); return;
     }
     api.get('/api/bookings/availability', {
-      params: { guestHouseId: selectedGuestHouse._id, checkIn: form.checkIn, checkOut: form.checkOut },
+      params: { guestHouseId: selectedGuestHouse.guestHouseId || selectedGuestHouse._id, checkIn: form.checkIn, checkOut: form.checkOut },
     })
       .then((res) => { setUnavailableRooms(res.data.unavailableRooms || []); setUnavailableBeds(res.data.unavailableBeds || []); })
       .catch(() => toast.error('Unable to check availability.'));
@@ -173,7 +175,8 @@ export default function AdminRoomBooking() {
         await api.post('/api/bookings/admin', data, { headers: { 'Content-Type': 'multipart/form-data' } });
         toast.success('Room booked successfully.');
       }
-      navigate('/admin/dashboard');
+      // Wait a little for the toast to show before navigating
+      setTimeout(() => navigate('/admin/dashboard'), 1500);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Unable to save booking.');
     } finally {
@@ -194,21 +197,23 @@ export default function AdminRoomBooking() {
       <Navbar />
       <main className="arb-content">
 
-        {/* heading */}
-        <div className="arb-heading">
-          <h1>{isEditMode ? 'Edit Booking' : 'Book Room'}</h1>
-          <p>{isEditMode ? 'Update the booking details below.' : 'Create an approved guest-house booking and record guest verification details.'}</p>
-        </div>
+        {/* heading + stepper row */}
+        <div className="arb-header-row">
+          {/* heading */}
+          <div className="arb-heading">
+            <h1>{isEditMode ? 'Edit Booking' : 'Book Room'}</h1>
+          </div>
 
-        {/* stepper */}
-        <div className="arb-stepper">
-          {STEPS.map((label, i) => (
-            <div key={i} className={`arb-step ${i === step ? 'active' : ''} ${i < step ? 'done' : ''}`}>
-              <div className="arb-step-circle">{i < step ? '✓' : i + 1}</div>
-              <span className="arb-step-label">{label}</span>
-              {i < STEPS.length - 1 && <div className="arb-step-line" />}
-            </div>
-          ))}
+          {/* stepper */}
+          <div className="arb-stepper">
+            {STEPS.map((label, i) => (
+              <div key={i} className={`arb-step ${i === step ? 'active' : ''} ${i < step ? 'done' : ''}`}>
+                <div className="arb-step-circle">{i < step ? '✓' : i + 1}</div>
+                <span className="arb-step-label">{label}</span>
+                {i < STEPS.length - 1 && <div className="arb-step-line" />}
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* ── STEP 0 : Stay Details ── */}
@@ -224,7 +229,7 @@ export default function AdminRoomBooking() {
                   <select name="guestHouseId" value={form.guestHouseId} onChange={updateForm} required>
                     <option value="">Select guest house</option>
                     {guestHouses.filter((gh) => !gh.maintenance).map((gh) => (
-                      <option key={gh._id} value={gh._id}>{gh.guestHouseName}</option>
+                      <option key={gh._id} value={gh.guestHouseId}>{gh.guestHouseName}</option>
                     ))}
                   </select>
                 )}

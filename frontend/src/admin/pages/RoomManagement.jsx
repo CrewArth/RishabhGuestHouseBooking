@@ -54,7 +54,7 @@ const RoomManagement = () => {
 
   const handleAdd = async (newRoom) => {
     try {
-      await api.post('/api/rooms', { ...newRoom, roomType: newRoom.roomType || 'single', guestHouseId: Number(selectedGHId) });
+      await api.post('/api/rooms', { ...newRoom, roomType: newRoom.roomType || 'single', guestHouseId: selectedGHId });
       toast.success('Room created successfully');
       fetchRooms(selectedGHId);
     } catch (err) { toast.error(err?.response?.data?.message || 'Failed to add room'); }
@@ -130,18 +130,20 @@ const RoomManagement = () => {
               <tr>
                 <th>Room No.</th>
                 <th>Capacity</th>
+                <th>Price (per night)</th>
                 <th>Availability</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
               {rooms.length === 0 ? (
-                <tr><td colSpan="4" className="table-empty">No rooms found. Select a guest house or add a new room.</td></tr>
+                <tr><td colSpan="5" className="table-empty">No rooms found. Select a guest house or add a new room.</td></tr>
               ) : (
                 rooms.map((room) => (
                   <tr key={room._id}>
                     <td>Room {room.roomNumber}</td>
                     <td>{room.roomCapacity}</td>
+                    <td>{room.price ? `₹${room.price}` : '—'}</td>
                     <td>
                       <span className={`badge ${room.isAvailable ? 'active' : 'maintenance'}`}>
                         {room.isAvailable ? 'Available' : 'Maintenance'}

@@ -80,7 +80,6 @@ const GuestHouseManagement = () => {
       <div className="page-header-row">
         <div>
           <h1 className="page-title">Guest House Management</h1>
-          <p className="page-subtitle">Create, edit, and manage all guest houses</p>
         </div>
         <button 
           className="btn-primary-cta" 

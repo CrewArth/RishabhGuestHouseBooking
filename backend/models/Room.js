@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 
 const roomSchema = new mongoose.Schema({
 
-    guestHouseId: { type: Number, ref: "GuestHouse", required: true },
+    guestHouseId: { type: String, ref: "GuestHouse", required: true },
 
     roomNumber: { type: Number },
     
@@ -11,6 +11,8 @@ const roomSchema = new mongoose.Schema({
     isAvailable: { type: Boolean, default: true },
     
     roomCapacity: {type: Number, required: true},
+
+    price: { type: Number, required: false }, // Add price field
 
     // Soft delete / active flag (needed by controllers & queries)
     isActive: { type: Boolean, default: true },

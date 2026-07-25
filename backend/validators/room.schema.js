@@ -1,10 +1,11 @@
 import Joi from 'joi';
 
 export const createRoomSchema = Joi.object({
-  guestHouseId: Joi.number().integer().min(1).required(),
+  guestHouseId: Joi.string().required(),
   roomNumber: Joi.number().integer().min(1).required(),
   roomType: Joi.string().valid('single', 'double', 'family').required(),
   roomCapacity: Joi.number().integer().min(1).required(),
+  price: Joi.number().integer().min(0).optional(),
   isAvailable: Joi.boolean().optional()
 });
 
@@ -12,12 +13,13 @@ export const updateRoomSchema = Joi.object({
   roomNumber: Joi.number().integer().min(1).optional(),
   roomType: Joi.string().valid('single', 'double', 'family').optional(),
   roomCapacity: Joi.number().integer().min(1).optional(),
+  price: Joi.number().integer().min(0).optional(),
   isAvailable: Joi.boolean().optional(),
   isActive: Joi.boolean().optional()
 }).min(1); // must update at least one field
 
 export const listRoomsQuerySchema = Joi.object({
-  guestHouseId: Joi.number().integer().min(1).optional(),
+  guestHouseId: Joi.string().optional(),
   roomType: Joi.string().valid('single', 'double', 'family').optional(),
   isAvailable: Joi.boolean().optional(),
   isActive: Joi.boolean().optional(),

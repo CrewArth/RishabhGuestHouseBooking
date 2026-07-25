@@ -3,6 +3,7 @@ import Room from '../models/Room.js';
 import Bed from '../models/Bed.js';
 import { logAction } from '../utils/auditLogger.js';
 import { deleteFromS3 } from "../utils/s3Client.js";
+import { generateId } from '../utils/generateId.js';
 
 
 const MAX_GUEST_HOUSES = 4;
@@ -29,8 +30,10 @@ export const createGuestHouse = async (req, res) => {
     }
 
     const imageUrl = req.optimizedImageUrl || null;
+    const newGuestHouseId = await generateId('guesthouse');
 
     const guestHouse = await GuestHouse.create({
+      guestHouseId: newGuestHouseId,
       guestHouseName,
       location,
       description,
@@ -122,7 +125,7 @@ export const toggleMaintenanceMode = async (req, res) => {
 
 // Delete Guest House
 export const deleteGuestHouse = async (req, res) => {
-  const guestHouseId = parseInt(req.params.guestHouseId, 10);
+  const guestHouseId = req.params.guestHouseId;
 
   try {
     // 1️⃣ Validate Guest House
@@ -205,7 +208,7 @@ export const updateGuestHouse = async (req, res) => {
 
     // Update guest house
     const updatedGuestHouse = await GuestHouse.findOneAndUpdate(
-      { guestHouseId: parseInt(guestHouseId, 10) },
+      { guestHouseId },
       updateData,
       { new: true }
     );
@@ -245,7 +248,7 @@ export const updateGuestHouse = async (req, res) => {
 // Get single guest house by ID
 export const getGuestHouseById = async (req, res) => {
   try {
-    const guestHouseId = parseInt(req.params.guestHouseId, 10);
+    const guestHouseId = req.params.guestHouseId;
 
     const guestHouse = await GuestHouse.findOne({ guestHouseId });
 

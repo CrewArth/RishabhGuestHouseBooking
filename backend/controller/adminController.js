@@ -149,7 +149,7 @@ export const getTopGuestHouses = async (req, res) => {
         $lookup: {
           from: "guesthouses",
           localField: "_id",
-          foreignField: "_id",
+          foreignField: "guestHouseId",
           as: "guestHouse",
         },
       },
@@ -184,9 +184,10 @@ export const assignGuestHouse = async (req, res) => {
     if (!user) return res.status(404).json({ error: 'Admin not found' });
     if (user.role !== 'ADMIN') return res.status(400).json({ error: 'Guest house can only be assigned to ADMIN accounts' });
 
+    let guestHouse = null;
     if (guestHouseId) {
-      const gh = await GuestHouse.findById(guestHouseId);
-      if (!gh) return res.status(404).json({ error: 'Guest house not found' });
+      guestHouse = await GuestHouse.findOne({ guestHouseId });
+      if (!guestHouse) return res.status(404).json({ error: 'Guest house not found' });
     }
 
     user.assignedGuestHouseId = guestHouseId || null;
@@ -200,11 +201,13 @@ export const assignGuestHouse = async (req, res) => {
       details: { assignedGuestHouseId: guestHouseId || null },
     });
 
-    const populated = await User.findById(id)
-      .populate('assignedGuestHouseId', 'guestHouseName guestHouseId')
-      .lean();
+    // Manually populate assignedGuestHouse
+    const userObj = user.toObject();
+    if (guestHouse) {
+      userObj.assignedGuestHouseId = guestHouse;
+    }
 
-    res.json({ message: guestHouseId ? 'Guest house assigned' : 'Guest house unassigned', user: populated });
+    res.json({ message: guestHouseId ? 'Guest house assigned' : 'Guest house unassigned', user: userObj });
   } catch (err) {
     console.error('Error assigning guest house:', err);
     res.status(500).json({ error: 'Server error while assigning guest house' });
@@ -214,10 +217,15 @@ export const assignGuestHouse = async (req, res) => {
 // GET /api/admin/me  — returns the logged-in admin with their assigned guest house
 export const getMe = async (req, res) => {
   try {
-    const user = await User.findById(req.user._id)
-      .populate('assignedGuestHouseId', 'guestHouseName guestHouseId _id location')
-      .lean();
+    const user = await User.findById(req.user._id).lean();
     if (!user) return res.status(404).json({ error: 'User not found' });
+
+    // Manually populate assignedGuestHouseId if exists
+    if (user.assignedGuestHouseId) {
+      const guestHouse = await GuestHouse.findOne({ guestHouseId: user.assignedGuestHouseId }).lean();
+      user.assignedGuestHouseId = guestHouse;
+    }
+
     res.json({ user });
   } catch (err) {
     console.error('Error fetching current user:', err);
@@ -234,12 +242,22 @@ export const listUsers = async (req, res) => {
     const skip = (page - 1) * limit;
 
     // Fetch paginated users
-    const users = await User.find({}, "firstName lastName email phone address isActive createdAt assignedGuestHouseId")
-      .populate('assignedGuestHouseId', 'guestHouseName guestHouseId')
+    let users = await User.find({}, "firstName lastName email phone address isActive createdAt assignedGuestHouseId")
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
       .lean();
+
+    // Manually populate assignedGuestHouseId
+    const guestHouseIds = [...new Set(users.map(u => u.assignedGuestHouseId).filter(Boolean))];
+    const guestHouses = await GuestHouse.find({ guestHouseId: { $in: guestHouseIds } }).lean();
+    const guestHouseMap = {};
+    guestHouses.forEach(gh => guestHouseMap[gh.guestHouseId] = gh);
+
+    users = users.map(user => ({
+      ...user,
+      assignedGuestHouseId: guestHouseMap[user.assignedGuestHouseId] || user.assignedGuestHouseId
+    }));
 
     const totalUsers = await User.countDocuments();
     const totalPages = Math.ceil(totalUsers / limit);

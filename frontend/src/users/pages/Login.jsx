@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { useEffect, useState } from "react";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { ToastContainer, toast } from "react-toastify";
 import 'react-toastify/dist/ReactToastify.css';
 import '../styles/login.css';
@@ -22,6 +22,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const siteName = useSelector((state) => state.siteSettings.siteName);
 
   const { register, handleSubmit, setValue, formState: { errors, isValid, isSubmitting } } = useForm({
     resolver: yupResolver(schema),
@@ -79,7 +80,7 @@ export default function LoginPage() {
       <div className="login-container">
         <div className="login-wrapper">
           <div className="login-header">
-            <h1 className="login-title">Welcome Back</h1>
+            <h1 className="login-title">{siteName}</h1>
             <p className="login-subtitle">Sign in to your account</p>
           </div>
 

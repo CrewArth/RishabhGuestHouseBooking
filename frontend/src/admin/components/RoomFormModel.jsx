@@ -6,6 +6,7 @@ const RoomFormModal = ({ isOpen, onClose, onSubmit, initialData }) => {
   const [roomData, setRoomData] = useState({
     roomNumber: '',
     roomCapacity: '',
+    price: '',
   });
 
   useEffect(() => {
@@ -13,9 +14,10 @@ const RoomFormModal = ({ isOpen, onClose, onSubmit, initialData }) => {
       setRoomData({
         roomNumber: initialData.roomNumber || '',
         roomCapacity: initialData.roomCapacity || '',
+        price: initialData.price || '',
       });
     } else {
-      setRoomData({ roomNumber: '', roomCapacity: '' });
+      setRoomData({ roomNumber: '', roomCapacity: '', price: '' });
     }
   }, [initialData]);
 
@@ -51,6 +53,11 @@ const RoomFormModal = ({ isOpen, onClose, onSubmit, initialData }) => {
           <div className="form-group">
             <label>Room Capacity</label>
             <input type="number" name="roomCapacity" value={roomData.roomCapacity} onChange={handleChange} required min="1" />
+          </div>
+
+          <div className="form-group">
+            <label>Price (per night)</label>
+            <input type="number" name="price" value={roomData.price} onChange={handleChange} min="0" />
           </div>
 
           <div className="room-form-buttons">
