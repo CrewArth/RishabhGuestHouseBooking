@@ -11,7 +11,9 @@ import api from '../../utils/api';
  */
 export default function AssignGuestHouseModal({ user, onClose, onSuccess }) {
   const [guestHouses, setGuestHouses] = useState([]);
-  const [selected, setSelected] = useState(user.assignedGuestHouseId?._id || user.assignedGuestHouseId || '');
+  const [selected, setSelected] = useState(
+    user.assignedGuestHouseId?.guestHouseId || user.assignedGuestHouseId?._id || user.assignedGuestHouseId || ''
+  );
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -58,7 +60,7 @@ export default function AssignGuestHouseModal({ user, onClose, onSuccess }) {
             >
               <option value="">None (unassign)</option>
               {guestHouses.map((gh) => (
-                <option key={gh._id} value={gh._id}>{gh.guestHouseName}</option>
+                <option key={gh._id} value={gh.guestHouseId || gh._id}>{gh.guestHouseName}</option>
               ))}
             </select>
           </label>

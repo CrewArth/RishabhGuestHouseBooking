@@ -10,10 +10,10 @@ export default function ProtectedAdminRoute({children}){
         return <Navigate to="/signin" replace />;
     }
 
-    if (role === "SUPER_ADMIN") {
+    if (role === "SUPER_ADMIN" || role === "ADMIN") {
         return children;
     }
 
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to="/signin" replace />;
 
 }

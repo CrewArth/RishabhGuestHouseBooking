@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import '../styles/bookingform.css';
+import '../../admin/styles/adminRoomBooking.css';
 import Navbar from '../../components/Navbar';
 import { toast } from 'react-toastify';
 import api from '../../utils/api';
+import loadingIcon from '../../assets/loading.svg';
 
 const BookingForm = () => {
   const location = useLocation();
@@ -24,7 +26,7 @@ const BookingForm = () => {
   const [unavailableRooms, setUnavailableRooms] = useState([]);
   const [unavailableBeds, setUnavailableBeds] = useState([]);
 
-  const [dateError, setDateError] = useState(''); // ✅ NEW error state
+  const [dateError, setDateError] = useState('');
 
   const [formData, setFormData] = useState({
     checkInDate: '',
@@ -65,16 +67,14 @@ const BookingForm = () => {
     window.scrollTo(0, 0);
   }, []);
 
-  // ✅ Validate dates in real-time
   const validateDates = (checkIn, checkOut) => {
     const today = new Date();
-    today.setHours(0, 0, 0, 0); // Reset time to compare dates only
+    today.setHours(0, 0, 0, 0);
     
     if (checkIn) {
       const checkInDate = new Date(checkIn);
       checkInDate.setHours(0, 0, 0, 0);
       
-      // Check if check-in date is in the past
       if (checkInDate < today) {
         setDateError("Check-in date cannot be in the past. Please select today or a future date.");
         return false;
@@ -91,7 +91,6 @@ const BookingForm = () => {
     return true;
   };
 
-  // Modified handleChange to include validation
   const handleChange = (e) => {
     const { name, value } = e.target;
 
@@ -102,7 +101,6 @@ const BookingForm = () => {
 
     setFormData(updatedData);
 
-    // Run validation on each change
     if (name === "checkInDate" || name === "checkOutDate") {
       validateDates(
         name === "checkInDate" ? value : formData.checkInDate,
@@ -194,22 +192,16 @@ const BookingForm = () => {
 
       const res = await api.post("/api/bookings", bookingData);
         
-      console.log(res.data);
       if (res.status === 201) {
-        // alert("Booking request submitted successfully!");
-        toast.success("Booking request submitted successfully!", { autoClose: 1200 });
-        setTimeout(() => {
-          navigate('/my-bookings');
-        }, 1200);
-        
+        toast.success("Booking request submitted successfully!");
+        navigate('/admin/dashboard', { replace: true });
       } else {
-        toast.error(res.data?.message || "Failed to submit booking")
+        toast.error(res.data?.message || "Failed to submit booking");
+        setSubmitting(false);
       }
     } catch (error) {
       console.error("Error submitting booking:", error);
-      toast(error.response?.data?.message || "Server error submitting booking")
-      
-    } finally {
+      toast.error(error.response?.data?.message || "Server error submitting booking");
       setSubmitting(false);
     }
   };
@@ -364,6 +356,13 @@ const BookingForm = () => {
           </form>
         )}
       </div>
+
+      {/* Fullscreen loading overlay */}
+      {submitting && (
+        <div className="arb-loading-overlay">
+          <img src={loadingIcon} alt="Processing..." className="arb-loading-icon" />
+        </div>
+      )}
     </div>
   );
 };

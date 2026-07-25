@@ -60,7 +60,6 @@ const BookingsPerDayChart = ({ data = [], loading, rangeLabel }) => {
     <div className="metrics-card">
       <div className="chart-header">
         <div>
-          <p className="chart-label">Total bookings per day</p>
           <h3>Daily Booking Trend</h3>
         </div>
         {rangeLabel && <span className="chart-range">{rangeLabel}</span>}

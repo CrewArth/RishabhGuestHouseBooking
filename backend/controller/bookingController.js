@@ -1,4 +1,5 @@
 // controllers/bookingController.js
+import mongoose from "mongoose";
 import Booking from "../models/Booking.js";
 import Bed from "../models/Bed.js";
 import Room from "../models/Room.js";
@@ -226,8 +227,19 @@ export const getAllBookings = async (req, res) => {
     const query = {};
 
     if (guestHouseId) {
-      // Now booking.guestHouseId is String (GH001, etc.), so just use it directly
-      query.guestHouseId = guestHouseId;
+      const isObjectId = mongoose.Types.ObjectId.isValid(guestHouseId);
+      const gh = await GuestHouse.findOne({
+        $or: [
+          { guestHouseId },
+          ...(isObjectId ? [{ _id: guestHouseId }] : [])
+        ]
+      }).lean();
+
+      const targetId = gh ? gh.guestHouseId : guestHouseId;
+      query.$or = [
+        { guestHouseId: targetId },
+        { guestHouseId: guestHouseId }
+      ];
     }
 
     if (startDate || endDate) {
@@ -653,8 +665,8 @@ export const cancelBooking = async (req, res) => {
 };
 export const getApprovedBookingsForCalendar = async (req, res) => {
   try {
-    // Fetch bookings with populate for userId, roomId, bedId (but not guestHouseId)
-    let bookings = await Booking.find({ status: "approved" })
+    // Fetch approved and cancelled bookings for calendar display
+    let bookings = await Booking.find({ status: { $in: ["approved", "cancelled"] } })
       .populate("userId", "firstName lastName email")
       .populate("roomId", "roomNumber")
       .populate("bedId", "bedNumber bedType")

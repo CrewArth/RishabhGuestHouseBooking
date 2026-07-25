@@ -231,3 +231,123 @@
 .settings-reset-btn:hover {
   background: #e2e8f0;
 }
+
+/* ── Allow Widgets Section ── */
+.settings-admin-select {
+  width: 100%;
+  padding: 0.6rem 0.85rem;
+  font-size: 0.95rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  color: #0f172a;
+  outline: none;
+  background-color: #fff;
+  margin-bottom: 1.25rem;
+}
+
+.settings-admin-select:focus {
+  border-color: #0284c7;
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+}
+
+.widget-list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.widget-list-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #334155;
+}
+
+.widget-select-toggle-btn {
+  background: none;
+  border: none;
+  color: #0284c7;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+}
+
+.widget-select-toggle-btn:hover {
+  text-decoration: underline;
+}
+
+.widget-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.widget-item-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.widget-item-card:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.widget-item-card.selected {
+  background: #f0f9ff;
+  border-color: #0284c7;
+}
+
+.widget-checkbox {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  cursor: pointer;
+  accent-color: #0284c7;
+}
+
+.widget-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.widget-name {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.widget-desc {
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+.widget-save-btn {
+  margin-top: 1.25rem;
+  padding: 0.6rem 1.4rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #fff;
+  background: #0284c7;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.18s ease;
+}
+
+.widget-save-btn:hover {
+  background: #0369a1;
+}
+
+.widget-save-btn:disabled {
+  background: #94a3b8;
+  cursor: not-allowed;
+}

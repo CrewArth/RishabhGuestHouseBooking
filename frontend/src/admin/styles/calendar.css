@@ -98,6 +98,15 @@
   box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
 }
 
+.calendar-event.cancelled {
+  background-color: #ef4444;
+}
+
+.calendar-event.cancelled:hover {
+  background-color: #dc2626;
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.3);
+}
+
 .calendar-event b {
   font-weight: 600;
 }

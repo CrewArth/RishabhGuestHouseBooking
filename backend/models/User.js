@@ -56,6 +56,14 @@ const userSchema = new mongoose.Schema({
         type: String,
         default: null,
     },
+    allowedWidgets: {
+        type: [String],
+        default: null,
+    },
+    allowedReports: {
+        type: [String],
+        default: null,
+    },
     passwordResetToken: {
         type: String,
         select: false

@@ -39,16 +39,6 @@ const Navbar = () => {
 
       {/* Right-side Desktop Nav */}
       <div className={`navbar-middle ${isMobileMenuOpen ? "active" : ""}`}>
-        {isLoggedIn && (
-          <>
-            {normalizeRole(user?.role) === "ADMIN" && (
-              <>
-                <Link to="/admin/dashboard" className="nav-link">Dashboard</Link>
-                <Link to="/admin/book-room" className="nav-link">Book Room</Link>
-              </>
-            )}
-          </>
-        )}
       </div>
 
       <div className={`navbar-authentication ${isMobileMenuOpen ? "active" : ""}`}>

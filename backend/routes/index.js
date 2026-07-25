@@ -9,6 +9,7 @@ import auditLogRoutes from './auditLogRoutes.js';
 import adminSummary from './adminRoutes.js';
 import bookingRoutes from './bookingRoutes.js';
 import contactRoutes from './contactRoutes.js';
+import reportRoutes from '../reports/routes/reportRoutes.js';
 
 const router = express.Router();
 
@@ -22,5 +23,6 @@ router.use('/admin', adminSummary);
 router.use('/users', userRoutes);
 router.use('/bookings', bookingRoutes);
 router.use('/contact', contactRoutes);
+router.use('/reports', reportRoutes);
 
 export default router;

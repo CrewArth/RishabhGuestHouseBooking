@@ -1,4 +1,5 @@
 // controller/adminController.js
+import mongoose from 'mongoose';
 import User from '../models/User.js';
 import GuestHouse from '../models/GuestHouse.js';
 import Booking from '../models/Booking.js';
@@ -10,21 +11,34 @@ import { normalizeUser } from '../utils/roles.js';
 // Fetch Dashboard Summary (LIVE STATS)
 export const getAdminSummary = async (req, res) => {
   try {
-    // Count users and guest houses
+    const user = req.user;
+    const bookingQuery = {};
+
+    if (user && user.role === 'ADMIN' && user.assignedGuestHouseId) {
+      const ghId = typeof user.assignedGuestHouseId === 'object'
+        ? user.assignedGuestHouseId.guestHouseId
+        : user.assignedGuestHouseId;
+      if (ghId) {
+        bookingQuery.guestHouseId = ghId;
+      }
+    }
+
     const totalUsers = await User.countDocuments();
     const totalGuestHouses = await GuestHouse.countDocuments();
 
-    // Aggregate booking stats
-    const totalBookings = await Booking.countDocuments();
-    const approvedBookings = await Booking.countDocuments({ status: "approved" });
-    const pendingBookings = await Booking.countDocuments({ status: "pending" });
-    const rejectedBookings = await Booking.countDocuments({ status: "rejected" });
+    const totalBookings = await Booking.countDocuments(bookingQuery);
+    const approvedBookings = await Booking.countDocuments({ ...bookingQuery, status: "approved" });
+    const pendingBookings = await Booking.countDocuments({ ...bookingQuery, status: "pending" });
+    const rejectedBookings = await Booking.countDocuments({ ...bookingQuery, status: "rejected" });
 
-    // Optionally: add "today's bookings" (bonus)
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const todaysBookings = await Booking.countDocuments({
-      createdAt: { $gte: today }
+      ...bookingQuery,
+      $or: [
+        { createdAt: { $gte: today } },
+        { checkIn: { $lte: new Date() }, checkOut: { $gte: today } }
+      ]
     });
 
     const occupancyRate =
@@ -186,19 +200,26 @@ export const assignGuestHouse = async (req, res) => {
 
     let guestHouse = null;
     if (guestHouseId) {
-      guestHouse = await GuestHouse.findOne({ guestHouseId });
+      const isObjectId = mongoose.Types.ObjectId.isValid(guestHouseId);
+      guestHouse = await GuestHouse.findOne({
+        $or: [
+          { guestHouseId: guestHouseId },
+          ...(isObjectId ? [{ _id: guestHouseId }] : []),
+        ],
+      });
       if (!guestHouse) return res.status(404).json({ error: 'Guest house not found' });
     }
 
-    user.assignedGuestHouseId = guestHouseId || null;
+    const assignedId = guestHouse ? guestHouse.guestHouseId : null;
+    user.assignedGuestHouseId = assignedId;
     await user.save();
 
     await logAction({
-      action: guestHouseId ? 'GUESTHOUSE_ASSIGNED' : 'GUESTHOUSE_UNASSIGNED',
+      action: assignedId ? 'GUESTHOUSE_ASSIGNED' : 'GUESTHOUSE_UNASSIGNED',
       entityType: 'User',
       entityId: user._id,
       performedBy: req.user?.email || 'SuperAdmin',
-      details: { assignedGuestHouseId: guestHouseId || null },
+      details: { assignedGuestHouseId: assignedId },
     });
 
     // Manually populate assignedGuestHouse
@@ -207,7 +228,7 @@ export const assignGuestHouse = async (req, res) => {
       userObj.assignedGuestHouseId = guestHouse;
     }
 
-    res.json({ message: guestHouseId ? 'Guest house assigned' : 'Guest house unassigned', user: userObj });
+    res.json({ message: assignedId ? 'Guest house assigned' : 'Guest house unassigned', user: userObj });
   } catch (err) {
     console.error('Error assigning guest house:', err);
     res.status(500).json({ error: 'Server error while assigning guest house' });
@@ -242,7 +263,7 @@ export const listUsers = async (req, res) => {
     const skip = (page - 1) * limit;
 
     // Fetch paginated users
-    let users = await User.find({}, "firstName lastName email phone address isActive createdAt assignedGuestHouseId")
+    let users = await User.find({}, "firstName lastName email phone address role isActive createdAt assignedGuestHouseId allowedWidgets allowedReports")
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
@@ -390,5 +411,39 @@ export const createUserByAdmin = async (req, res) => {
     return res.status(500).json({
       error: "Server error while creating user."
     });
+  }
+};
+
+// PATCH /api/admin/users/:id/widgets (SUPER_ADMIN only)
+export const updateUserWidgets = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { allowedWidgets } = req.body;
+
+    if (allowedWidgets !== null && !Array.isArray(allowedWidgets)) {
+      return res.status(400).json({ error: "allowedWidgets must be an array of widget IDs or null" });
+    }
+
+    const user = await User.findById(id);
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    user.allowedWidgets = allowedWidgets;
+    await user.save();
+
+    await logAction({
+      action: "USER_WIDGETS_UPDATED",
+      entityType: "User",
+      entityId: user._id,
+      performedBy: req.user?.email || "SuperAdmin",
+      details: { allowedWidgets },
+    });
+
+    res.json({
+      message: "Widget permissions updated successfully",
+      user: normalizeUser(user.toObject()),
+    });
+  } catch (err) {
+    console.error("Error updating user widgets:", err);
+    res.status(500).json({ error: "Server error while updating widget permissions" });
   }
 };

@@ -16,14 +16,13 @@
 
 /* ── page shell ─────────────────────────────────────────── */
 .arb-page {
-  min-height: 100vh;
-  background: #f8fafc;
+  /* no full-page shell — lives inside sidebar outlet */
 }
 
 .arb-content {
-  max-width: 860px;
+  max-width: 1000px;
   margin: 0 auto;
-  padding: 104px 24px 64px;
+  padding: 2rem;
 }
 
 /* ── header row (heading + stepper) ──────────────────────── */

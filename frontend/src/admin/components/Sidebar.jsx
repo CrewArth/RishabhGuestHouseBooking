@@ -1,14 +1,19 @@
 import "../styles/sidebar.css";
 import { NavLink } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
-import { mainSidebarData } from '../utils/sidebarData';
+import { useSelector } from 'react-redux';
+import { superAdminSidebarData, adminSidebarData } from '../utils/sidebarData';
 
-// Settings is always the last item — split it out for a visual divider
 const SETTINGS_ID = 'MC_SETTINGS';
 
 const Sidebar = () => {
-  const navItems = mainSidebarData.filter((item) => item.id !== SETTINGS_ID);
-  const settingsItem = mainSidebarData.find((item) => item.id === SETTINGS_ID);
+  const user = useSelector((state) => state.auth.user);
+  const role = String(user?.role || '').toUpperCase();
+
+  const sidebarDataset = role === 'ADMIN' ? adminSidebarData : superAdminSidebarData;
+
+  const navItems = sidebarDataset.filter((item) => item.id !== SETTINGS_ID);
+  const settingsItem = sidebarDataset.find((item) => item.id === SETTINGS_ID);
 
   const renderLink = (item) => (
     <li key={item.id} className="nav-item">
@@ -31,7 +36,7 @@ const Sidebar = () => {
           {navItems.map(renderLink)}
         </ul>
 
-        {/* Settings pinned at the bottom with a divider */}
+        {/* Settings pinned at the bottom with a divider (if present) */}
         {settingsItem && (
           <>
             <div className="sidebar-divider" />

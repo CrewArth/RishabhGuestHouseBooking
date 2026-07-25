@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import Navbar from '../../components/Navbar';
 import api from '../../utils/api';
 import loadingIcon from '../../assets/loading.svg';
 import '../styles/adminRoomBooking.css';
@@ -175,11 +174,9 @@ export default function AdminRoomBooking() {
         await api.post('/api/bookings/admin', data, { headers: { 'Content-Type': 'multipart/form-data' } });
         toast.success('Room booked successfully.');
       }
-      // Wait a little for the toast to show before navigating
-      setTimeout(() => navigate('/admin/dashboard'), 1500);
+      navigate('/admin/dashboard', { replace: true });
     } catch (err) {
       toast.error(err.response?.data?.message || 'Unable to save booking.');
-    } finally {
       setSubmitting(false);
     }
   };
@@ -189,13 +186,11 @@ export default function AdminRoomBooking() {
     : '—';
 
   if (loading) return (
-    <div className="arb-page"><Navbar /><main className="arb-content"><p className="arb-loading">Loading…</p></main></div>
+    <div className="page-root"><p className="arb-loading">Loading…</p></div>
   );
 
   return (
-    <div className="arb-page">
-      <Navbar />
-      <main className="arb-content">
+    <div className="page-root">
 
         {/* heading + stepper row */}
         <div className="arb-header-row">
@@ -482,7 +477,6 @@ export default function AdminRoomBooking() {
           </div>
         )}
 
-      </main>
     </div>
   );
 }

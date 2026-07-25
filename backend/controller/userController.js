@@ -10,6 +10,8 @@ const getTrackedDetails = (payload = {}) => {
     "address",
     "role",
     "isActive",
+    "allowedWidgets",
+    "allowedReports",
   ];
 
   return allowedFields.reduce((acc, field) => {

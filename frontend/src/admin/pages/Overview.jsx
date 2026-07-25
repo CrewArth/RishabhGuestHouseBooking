@@ -1,12 +1,16 @@
 import React, { useEffect, useState, useCallback } from "react";
+import { useSelector } from "react-redux";
 import "../styles/adminDashboard.css";
 import BookingsPerDayChart from "../components/BookingsPerDayChart.jsx";
 import TopGuestHousesChart from "../components/TopGuestHousesChart.jsx";
 import Calendar from "../components/Calender.jsx";
 import TodayBookings from "../components/TodayBookings";
 import api from "../../utils/api";
+import { isWidgetAllowed } from "../../common/widgetsConfig";
 
 const Overview = ({ showTodayBookings = false }) => {
+  const currentUser = useSelector((state) => state.auth?.user);
+
   const [stats, setStats] = useState({
     totalBookings: 0,
     totalUsers: 0,
@@ -22,7 +26,7 @@ const Overview = ({ showTodayBookings = false }) => {
   const [bookingsTrend, setBookingsTrend]   = useState({ data: [], loading: false, rangeLabel: "" });
   const [topGuestHouses, setTopGuestHouses] = useState({ data: [], loading: false, rangeLabel: "" });
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [draft, setDraft] = useState({ startDate: '', endDate: '' }); // local draft before applying
+  const [draft, setDraft] = useState({ startDate: '', endDate: '' });
 
   const getDefaultEnd   = () => new Date().toISOString().slice(0, 10);
   const getDefaultStart = () => { const d = new Date(); d.setDate(d.getDate() - 29); return d.toISOString().slice(0, 10); };
@@ -65,9 +69,27 @@ const Overview = ({ showTodayBookings = false }) => {
   useEffect(() => {
     fetchStats();
     fetchMetrics();
-    const id = setInterval(() => { fetchStats(); fetchMetrics(); }, 30000);
+    const id = setInterval(() => {
+      fetchStats();
+      fetchMetrics();
+    }, 30000);
     return () => clearInterval(id);
   }, [fetchMetrics]);
+
+  const formattedToday = new Intl.DateTimeFormat("en-IN", { day: "2-digit", month: "short", year: "numeric" }).format(new Date());
+
+  const allStatCards = [
+    { id: "totalBookings", label: "Total Bookings", val: stats.totalBookings },
+    { id: "totalUsers", label: "Total Admins", val: stats.totalUsers },
+    { id: "totalGuestHouses", label: "Guest Houses", val: stats.totalGuestHouses },
+    { id: "rejectedBookings", label: "Rejected", val: stats.rejectedBookings, cls: "danger" },
+    { id: "pendingBookings", label: "Pending", val: stats.pendingBookings, cls: "warning" },
+    { id: "approvedBookings", label: "Approved", val: stats.approvedBookings, cls: "success" },
+    { id: "occupancyRate", label: "Occupancy Rate", val: `${stats.occupancyRate}%` },
+    { id: "todaysBookings", label: <>Today's Bookings</>, val: stats.todaysBookings },
+  ];
+
+  const visibleStatCards = allStatCards.filter((card) => isWidgetAllowed(currentUser, card.id));
 
   return (
     <div className="page-root">
@@ -75,28 +97,22 @@ const Overview = ({ showTodayBookings = false }) => {
         {refreshing && <span className="refreshing-text">Refreshing…</span>}
       </div>
 
+      {/* Today's Bookings table */}
       {showTodayBookings && <TodayBookings />}
 
-      {/* Stat cards */}
-      <div className="card-grid">
-        {[
-          { label: "Total Bookings",  val: stats.totalBookings },
-          { label: "Total Admins",    val: stats.totalUsers },
-          { label: "Guest Houses",    val: stats.totalGuestHouses },
-          { label: "Rejected",        val: stats.rejectedBookings,  cls: "danger" },
-          { label: "Pending",         val: stats.pendingBookings,   cls: "warning" },
-          { label: "Approved",        val: stats.approvedBookings,  cls: "success" },
-          { label: "Occupancy Rate",  val: `${stats.occupancyRate}%` },
-          { label: "Today's Bookings",val: stats.todaysBookings },
-        ].map(({ label, val, cls }) => (
-          <div key={label} className={`dashboard-card${cls ? ` ${cls}` : ""}`}>
-            <h2 className="stat-number">{val}</h2>
-            <p>{label}</p>
-          </div>
-        ))}
-      </div>
+      {/* Filtered Stat Cards Grid */}
+      {visibleStatCards.length > 0 && (
+        <div className="card-grid">
+          {visibleStatCards.map(({ id, label, val, cls }) => (
+            <div key={id} className={`dashboard-card${cls ? ` ${cls}` : ""}`}>
+              <h2 className="stat-number">{val}</h2>
+              <p>{label}</p>
+            </div>
+          ))}
+        </div>
+      )}
 
-      {/* Date range picker — button + dropdown */}
+      {/* Date range picker */}
       <div className="date-range-selector">
         <button
           className="date-range-btn"
@@ -110,12 +126,12 @@ const Overview = ({ showTodayBookings = false }) => {
             <div className="date-range-dropdown-body">
               <label>
                 From
-                <input type="date" value={draft.startDate} max={draft.endDate}
+                <input type="date" value={draft.startDate}
                   onChange={(e) => setDraft((p) => ({ ...p, startDate: e.target.value }))} />
               </label>
               <label>
                 To
-                <input type="date" value={draft.endDate} min={draft.startDate} max={maxDate}
+                <input type="date" value={draft.endDate}
                   onChange={(e) => setDraft((p) => ({ ...p, endDate: e.target.value }))} />
               </label>
             </div>

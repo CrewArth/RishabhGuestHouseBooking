@@ -19,6 +19,7 @@ const GuestHouseManagement = lazyLoad(() => import('./admin/pages/GuestHouseMana
 const UsersList = lazyLoad(() => import('./admin/pages/UsersList'));
 const NotFound = lazyLoad(() => import('./components/NotFound'));
 const Settings = lazyLoad(() => import('./admin/pages/Settings'));
+const Reports = lazyLoad(() => import('./admin/pages/Reports'));
 const ForgotPassword = lazyLoad(() => import('./users/pages/ForgotPassword'));
 const ResetPassword = lazyLoad(() => import('./users/pages/ResetPassword'));
 const AboutUs = lazyLoad(() => import('./commonPages/AboutUs'));
@@ -47,7 +48,7 @@ function App() {
   return (
 
     <>
-    <ToastContainer position="top-right" autoClose={2500} />
+    <ToastContainer position="top-right" autoClose={2500} theme="colored" newestOnTop closeOnClick pauseOnHover />
     
     <BrowserRouter>
       <ScrollToTop />
@@ -81,28 +82,10 @@ function App() {
 
         {/* ------------------ USER PROTECTED ROUTES ------------------ */}
         <Route path="/dashboard" element={<Navigate to="/admin/dashboard" replace />} />
-        <Route
-          path="/admin/dashboard"
-          element={
-            <ProtectedRoute>
-              <AdminUserDashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/book-room"
-          element={
-            <ProtectedRoute>
-              <AdminRoomBooking />
-            </ProtectedRoute>
-          }
-        />
         <Route path="/booking" element={<Navigate to="/admin/book-room" replace />} />
         <Route path="/my-bookings" element={<Navigate to="/admin/dashboard" replace />} />
         <Route 
           path="/profile" 
-
-          
           element={
             <ProtectedRoute>
               <Profile />
@@ -110,14 +93,20 @@ function App() {
           }
         />
 
-        {/* ------------------ ADMIN PANEL ROUTES ------------------ */}
+        {/* ------------------ ADMIN & SUPER ADMIN PANEL ROUTES ------------------ */}
         <Route 
           element={
             <ProtectedAdminRoute>
-              <AdminDashboard /> {/* Layout wrapper */}
+              <AdminDashboard /> {/* Sidebar Layout wrapper */}
             </ProtectedAdminRoute>
           }
         >
+          {/* Admin routes */}
+          <Route path="/admin/dashboard" element={<AdminUserDashboard />} />
+          <Route path="/admin/book-room" element={<AdminRoomBooking />} />
+          <Route path="/admin/reports" element={<Reports />} />
+
+          {/* Super Admin routes */}
           <Route path="/super-admin/users" element={<UsersList />} />
           <Route path="/super-admin/dashboard" element={<Overview />} />
           <Route path="/super-admin/guesthouses" element={<GuestHouseManagement />} />
@@ -125,6 +114,7 @@ function App() {
           <Route path="/super-admin/beds" element={<AddBeds />} />
           <Route path="/super-admin/audits" element={<AuditLogs />} />
           <Route path="/super-admin/bookings" element={<Bookings />}/>
+          <Route path="/super-admin/reports" element={<Reports />} />
           <Route path="/super-admin/settings" element={<Settings />} />
         </Route>  
 

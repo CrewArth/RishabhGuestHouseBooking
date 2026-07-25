@@ -1,6 +1,6 @@
-import { Home, Building2, DoorOpen, BookOpen, Bed, FileText, PersonStanding, Settings } from 'lucide-react';
+import { Home, Building2, DoorOpen, BookOpen, Bed, FileText, PersonStanding, Settings, FileBarChart, PlusCircle } from 'lucide-react';
 
-export const mainSidebarData = [
+export const superAdminSidebarData = [
   {
     id: 'MC_ADMIN_DASHBOARD',
     name: 'Dashboard',
@@ -32,6 +32,12 @@ export const mainSidebarData = [
     navigate: '/super-admin/bookings',
   },
   {
+    id: 'MC_REPORTS',
+    name: 'Reports',
+    icon: FileBarChart,
+    navigate: '/super-admin/reports',
+  },
+  {
     id: 'MC_LIST_USERS',
     name: 'Admin Management',
     icon: PersonStanding,
@@ -50,3 +56,26 @@ export const mainSidebarData = [
     navigate: '/super-admin/settings',
   },
 ];
+
+export const adminSidebarData = [
+  {
+    id: 'MC_USER_DASHBOARD',
+    name: 'Dashboard',
+    icon: Home,
+    navigate: '/admin/dashboard',
+  },
+  {
+    id: 'MC_BOOK_ROOM',
+    name: 'Book Room',
+    icon: PlusCircle,
+    navigate: '/admin/book-room',
+  },
+  {
+    id: 'MC_REPORTS',
+    name: 'Reports',
+    icon: FileBarChart,
+    navigate: '/admin/reports',
+  },
+];
+
+export const mainSidebarData = superAdminSidebarData;

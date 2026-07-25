@@ -88,7 +88,9 @@ export default function TodayBookings() {
     <section className="today-bookings" aria-labelledby="today-bookings-title">
       <div className="today-bookings-header">
         <div>
-          <h2 id="today-bookings-title" style={{fontWeight: "bold", marginBottom: "30px"}}>Today&apos;s Bookings</h2>
+          <h2 id="today-bookings-title" style={{fontWeight: "bold", marginBottom: "30px"}}>
+            Today&apos;s Bookings <span style={{ color: '#6c757d', fontSize: '0.8em', fontWeight: 'normal', marginLeft: '8px' }}>({formatDate(today)})</span>
+          </h2>
         </div>
 
         <div className="today-bookings-filters">
@@ -98,7 +100,7 @@ export default function TodayBookings() {
           </label>
           <label>
             To
-            <input type="date" value={toDate} min={fromDate} onChange={(event) => setToDate(event.target.value)} />
+            <input type="date" value={toDate} onChange={(event) => setToDate(event.target.value)} />
           </label>
           <button type="button" onClick={applyFilter}>Filter</button>
           <button type="button" className="today-bookings-secondary" onClick={showToday}>Today</button>

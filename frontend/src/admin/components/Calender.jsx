@@ -33,6 +33,7 @@ export default function Calendar() {
           : booking.fullName || booking.email || 'Unknown User';
 
         const userEmail = booking.userId?.email || booking.email || 'N/A';
+        const isCancelled = booking.status === 'cancelled';
         
         // FullCalendar's end date is exclusive, so we add 1 day to checkOut
         const checkOutDate = new Date(booking.checkOut);
@@ -40,9 +41,12 @@ export default function Calendar() {
         
         return {
           id: booking._id,
-          title: userName,
+          title: `${userName}${isCancelled ? ' (Cancelled)' : ''}`,
           start: booking.checkIn,
           end: checkOutDate.toISOString().split('T')[0], // Format as YYYY-MM-DD
+          backgroundColor: isCancelled ? '#ef4444' : '#2563eb',
+          borderColor: isCancelled ? '#dc2626' : '#1d4ed8',
+          textColor: '#ffffff',
           extendedProps: {
             guestHouse: booking.guestHouseId?.guestHouseName || 'N/A',
             room: booking.roomId?.roomNumber || 'N/A',
@@ -51,13 +55,14 @@ export default function Calendar() {
             email: userEmail,
             checkIn: booking.checkIn,
             checkOut: booking.checkOut,
+            status: booking.status,
           },
         };
       });
 
       setEvents(calendarEvents);
     } catch (err) {
-      console.error('Error fetching approved bookings:', err);
+      console.error('Error fetching calendar bookings:', err);
       setError('Failed to load calendar bookings');
     } finally {
       setLoading(false);
@@ -77,6 +82,7 @@ export default function Calendar() {
       bedType: extendedProps.bedType,
       checkIn: extendedProps.checkIn,
       checkOut: extendedProps.checkOut,
+      status: extendedProps.status,
     });
     setConfirmCancel(false);
   };
@@ -181,6 +187,12 @@ export default function Calendar() {
                     : 'N/A'}
                 </p>
                 <p>
+                  <strong>Status</strong>
+                  <span className={`today-bookings-status ${selectedBooking.status || 'approved'}`}>
+                    {selectedBooking.status || 'approved'}
+                  </span>
+                </p>
+                <p>
                   <strong>Check-in</strong>
                   {formatDate(selectedBooking.checkIn)}
                 </p>
@@ -197,13 +209,15 @@ export default function Calendar() {
                   Are you sure? This cannot be undone.
                 </span>
               )}
-              <button
-                className="btn-action delete"
-                onClick={handleCancelBooking}
-                disabled={cancelling}
-              >
-                {cancelling ? 'Cancelling…' : confirmCancel ? 'Confirm Cancel' : 'Cancel Booking'}
-              </button>
+              {selectedBooking.status !== 'cancelled' && (
+                <button
+                  className="btn-action delete"
+                  onClick={handleCancelBooking}
+                  disabled={cancelling}
+                >
+                  {cancelling ? 'Cancelling…' : confirmCancel ? 'Confirm Cancel' : 'Cancel Booking'}
+                </button>
+              )}
               <button
                 className="btn-action toggle"
                 onClick={() => {
@@ -229,8 +243,9 @@ export default function Calendar() {
 }
 
 function renderEventContent(eventInfo) {
+  const isCancelled = eventInfo.event.extendedProps.status === 'cancelled';
   return (
-    <div className="calendar-event">
+    <div className={`calendar-event ${isCancelled ? 'cancelled' : ''}`}>
       <b>{eventInfo.event.title}</b>
     </div>
   );

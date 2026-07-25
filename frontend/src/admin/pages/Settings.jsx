@@ -1,11 +1,16 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { updateSiteSettings, resetSiteSettings } from '../../redux/siteSettingsSlice';
 import '../styles/settings.css';
 import fallbackLogo from '../../assets/logo.png';
+import { WIDGETS, getAllWidgetIds } from '../../common/widgetsConfig';
+import api from '../../utils/api';
 
 export default function Settings() {
   const dispatch = useDispatch();
+  const currentUser = useSelector((state) => state.auth?.user);
+  const isSuperAdmin = currentUser?.role === 'SUPER_ADMIN' || currentUser?.role === 'admin';
+
   const { siteName, logoUrl } = useSelector((state) => state.siteSettings);
 
   const [nameInput, setNameInput] = useState(siteName);
@@ -14,6 +19,87 @@ export default function Settings() {
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
   const fileInputRef = useRef(null);
+
+  /* ── Allow Widgets state ── */
+  const [adminUsers, setAdminUsers] = useState([]);
+  const [selectedAdminId, setSelectedAdminId] = useState('');
+  const [selectedWidgets, setSelectedWidgets] = useState([]);
+  const [savingWidgets, setSavingWidgets] = useState(false);
+  const [widgetSuccess, setWidgetSuccess] = useState('');
+  const [widgetError, setWidgetError] = useState('');
+
+  useEffect(() => {
+    if (isSuperAdmin) {
+      api.get('/api/admin/users?limit=100')
+        .then((res) => {
+          const list = res.data?.users || [];
+          setAdminUsers(list);
+          if (list.length > 0) {
+            setSelectedAdminId(list[0]._id);
+            const userWidgets = list[0].allowedWidgets;
+            setSelectedWidgets(Array.isArray(userWidgets) ? userWidgets : getAllWidgetIds());
+          }
+        })
+        .catch((err) => console.error('Failed to load admin list for widget settings:', err));
+    }
+  }, [isSuperAdmin]);
+
+  const handleAdminChange = (adminId) => {
+    setSelectedAdminId(adminId);
+    setWidgetSuccess('');
+    setWidgetError('');
+    const targetUser = adminUsers.find((u) => u._id === adminId);
+    if (targetUser) {
+      const userWidgets = targetUser.allowedWidgets;
+      setSelectedWidgets(Array.isArray(userWidgets) ? userWidgets : getAllWidgetIds());
+    }
+  };
+
+  const handleToggleWidget = (widgetId) => {
+    setSelectedWidgets((prev) =>
+      prev.includes(widgetId)
+        ? prev.filter((id) => id !== widgetId)
+        : [...prev, widgetId]
+    );
+  };
+
+  const handleToggleSelectAll = () => {
+    const allIds = getAllWidgetIds();
+    if (selectedWidgets.length === allIds.length) {
+      setSelectedWidgets([]);
+    } else {
+      setSelectedWidgets(allIds);
+    }
+  };
+
+  const handleSaveWidgets = async () => {
+    if (!selectedAdminId) return;
+    setSavingWidgets(true);
+    setWidgetSuccess('');
+    setWidgetError('');
+
+    try {
+      await api.patch(`/api/admin/users/${selectedAdminId}/widgets`, {
+        allowedWidgets: selectedWidgets,
+      });
+
+      setAdminUsers((prev) =>
+        prev.map((u) =>
+          u._id === selectedAdminId
+            ? { ...u, allowedWidgets: selectedWidgets }
+            : u
+        )
+      );
+
+      setWidgetSuccess('✓ Widget permissions saved successfully!');
+      setTimeout(() => setWidgetSuccess(''), 3000);
+    } catch (err) {
+      console.error('Failed to save widget permissions:', err);
+      setWidgetError(err.response?.data?.error || 'Failed to update widget permissions.');
+    } finally {
+      setSavingWidgets(false);
+    }
+  };
 
   /* ── Logo file selection ── */
   const handleFileChange = (e) => {
@@ -54,12 +140,10 @@ export default function Settings() {
 
     setError('');
 
-    // logoFile chosen → convert to data-URL and store
-    // previewUrl already holds the data-URL from FileReader
     dispatch(
       updateSiteSettings({
         siteName: nameInput.trim(),
-        logoUrl: previewUrl, // data-URL string or null
+        logoUrl: previewUrl,
       })
     );
 
@@ -82,7 +166,7 @@ export default function Settings() {
       <header className="settings-header">
         <h1 className="settings-title">Site Settings</h1>
         <p className="settings-subtitle">
-          Customise the navbar logo and site name. Changes apply instantly across all pages.
+          Customise the navbar logo, site name, and widget permissions. Changes apply instantly.
         </p>
       </header>
 
@@ -164,6 +248,88 @@ export default function Settings() {
         />
         <span className="settings-char-count">{nameInput.length} / 60</span>
       </section>
+
+      {/* ── Allow Widgets (Super Admin Only) ── */}
+      {isSuperAdmin && (
+        <section className="settings-card">
+          <h2 className="settings-card-title">Allow Widgets</h2>
+          <p className="settings-card-desc">
+            Select an admin account and customize which dashboard widgets they are allowed to view.
+          </p>
+
+          {adminUsers.length === 0 ? (
+            <p className="settings-card-desc" style={{ fontStyle: 'italic' }}>
+              Loading admin accounts…
+            </p>
+          ) : (
+            <>
+              <label className="settings-card-title" style={{ fontSize: '0.85rem', marginBottom: '4px', display: 'block' }}>
+                Select Admin Account:
+              </label>
+              <select
+                value={selectedAdminId}
+                onChange={(e) => handleAdminChange(e.target.value)}
+                className="settings-admin-select"
+              >
+                {adminUsers.map((u) => (
+                  <option key={u._id} value={u._id}>
+                    {u.firstName} {u.lastName} ({u.email}) — [{u.role || 'ADMIN'}]
+                  </option>
+                ))}
+              </select>
+
+              <div className="widget-list-header">
+                <span className="widget-list-title">
+                  Assigned Widgets ({selectedWidgets.length} / {WIDGETS.length}):
+                </span>
+                <button
+                  type="button"
+                  className="widget-select-toggle-btn"
+                  onClick={handleToggleSelectAll}
+                >
+                  {selectedWidgets.length === WIDGETS.length ? 'Deselect All' : 'Select All'}
+                </button>
+              </div>
+
+              <div className="widget-grid">
+                {WIDGETS.map((widget) => {
+                  const isChecked = selectedWidgets.includes(widget.id);
+                  return (
+                    <div
+                      key={widget.id}
+                      className={`widget-item-card ${isChecked ? 'selected' : ''}`}
+                      onClick={() => handleToggleWidget(widget.id)}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => {}} // handled by parent onClick
+                        className="widget-checkbox"
+                      />
+                      <div className="widget-info">
+                        <span className="widget-name">{widget.name}</span>
+                        <span className="widget-desc">{widget.description}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {widgetError && <p className="settings-error" style={{ marginTop: '1rem' }}>{widgetError}</p>}
+              {widgetSuccess && <p className="settings-success" style={{ marginTop: '1rem' }}>{widgetSuccess}</p>}
+
+              <button
+                type="button"
+                className="widget-save-btn"
+                onClick={handleSaveWidgets}
+                disabled={savingWidgets}
+              >
+                {savingWidgets ? 'Saving…' : 'Save Widget Access'}
+              </button>
+            </>
+          )}
+        </section>
+      )}
 
       {/* ── Error / success ── */}
       {error && <p className="settings-error">{error}</p>}

@@ -6,6 +6,7 @@ import {
   getTopGuestHouses,
   createUserByAdmin,
   assignGuestHouse,
+  updateUserWidgets,
   getMe,
 } from '../controller/adminController.js';
 import { authenticate, authorize } from '../middlewares/auth.js';
@@ -17,6 +18,7 @@ router.get('/me', authenticate, getMe);
 router.get('/users', listUsers);
 router.post('/users', createUserByAdmin);
 router.patch('/users/:id/assign-guesthouse', authenticate, authorize('SUPER_ADMIN'), assignGuestHouse);
+router.patch('/users/:id/widgets', authenticate, authorize('SUPER_ADMIN'), updateUserWidgets);
 router.get('/metrics/bookings-per-day', getBookingsPerDay);
 router.get('/metrics/top-guest-houses', getTopGuestHouses);
 

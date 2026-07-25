@@ -1,0 +1,250 @@
+.reports-page {
+  padding: 2rem;
+  max-width: 1000px;
+}
+
+.reports-header {
+  margin-bottom: 1.75rem;
+}
+
+.reports-title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 0.35rem;
+}
+
+.reports-subtitle {
+  font-size: 0.9rem;
+  color: #64748b;
+  margin: 0;
+}
+
+/* ── Tabs ── */
+.reports-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 2px;
+}
+
+.reports-tab-btn {
+  padding: 0.6rem 1.25rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #64748b;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.reports-tab-btn:hover {
+  color: #0284c7;
+}
+
+.reports-tab-btn.active {
+  color: #0284c7;
+  border-bottom-color: #0284c7;
+}
+
+/* ── Cards ── */
+.reports-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+}
+
+.reports-card-title {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 0.35rem;
+}
+
+.reports-card-desc {
+  font-size: 0.85rem;
+  color: #64748b;
+  margin: 0 0 1.25rem;
+}
+
+/* ── Report Selector Grid ── */
+.reports-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.report-select-card {
+  padding: 1rem;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  background: #f8fafc;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.report-select-card:hover {
+  border-color: #cbd5e1;
+  background: #f1f5f9;
+}
+
+.report-select-card.selected {
+  border-color: #0284c7;
+  background: #f0f9ff;
+  box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.15);
+}
+
+.report-select-name {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #0f172a;
+  margin-bottom: 0.25rem;
+}
+
+.report-select-desc {
+  font-size: 0.8rem;
+  color: #64748b;
+  line-height: 1.35;
+}
+
+/* ── Filters Form ── */
+.reports-filter-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.reports-filter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.reports-filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.reports-filter-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #334155;
+}
+
+.reports-filter-input,
+.reports-filter-select {
+  width: 100%;
+  padding: 0.6rem 0.85rem;
+  font-size: 0.9rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  color: #0f172a;
+  outline: none;
+  background-color: #fff;
+  transition: border-color 0.18s ease;
+}
+
+.reports-filter-input:focus,
+.reports-filter-select:focus {
+  border-color: #0284c7;
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+}
+
+.reports-generate-btn {
+  align-self: flex-start;
+  padding: 0.65rem 1.6rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #fff;
+  background: #0284c7;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.18s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.reports-generate-btn:hover {
+  background: #0369a1;
+}
+
+.reports-generate-btn:disabled {
+  background: #94a3b8;
+  cursor: not-allowed;
+}
+
+/* ── Permissions Manager ── */
+.reports-admin-select {
+  width: 100%;
+  padding: 0.6rem 0.85rem;
+  font-size: 0.95rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  color: #0f172a;
+  outline: none;
+  background-color: #fff;
+  margin-bottom: 1.25rem;
+}
+
+.reports-permission-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+  margin-bottom: 0.75rem;
+}
+
+.reports-permission-item:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.reports-permission-item.selected {
+  background: #f0f9ff;
+  border-color: #0284c7;
+}
+
+.reports-checkbox {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  cursor: pointer;
+  accent-color: #0284c7;
+}
+
+.reports-save-btn {
+  margin-top: 1.25rem;
+  padding: 0.6rem 1.4rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #fff;
+  background: #0284c7;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.18s ease;
+}
+
+.reports-save-btn:hover {
+  background: #0369a1;
+}
+
+.reports-save-btn:disabled {
+  background: #94a3b8;
+  cursor: not-allowed;
+}

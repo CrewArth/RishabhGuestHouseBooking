@@ -4,8 +4,7 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { ToastContainer, toast } from "react-toastify";
-import 'react-toastify/dist/ReactToastify.css';
+import { toast } from "react-toastify";
 import '../styles/login.css';
 import api from "../../utils/api";
 import { getAuthenticatedRedirectPath, getRedirectPathForRole } from "../../utils/auth";
@@ -33,9 +32,13 @@ export default function LoginPage() {
 
   useEffect(() => {
     const savedEmail = localStorage.getItem("rememberedEmail");
+    const savedPassword = localStorage.getItem("rememberedPassword");
     if (savedEmail) {
-      setValue("email", savedEmail);
+      setValue("email", savedEmail, { shouldValidate: true, shouldTouch: true, shouldDirty: true });
       setRememberMe(true);
+    }
+    if (savedPassword) {
+      setValue("password", savedPassword, { shouldValidate: true, shouldTouch: true, shouldDirty: true });
     }
   }, [setValue]);
 
@@ -51,8 +54,10 @@ export default function LoginPage() {
     try {
       if (rememberMe) {
         localStorage.setItem("rememberedEmail", data.email);
+        localStorage.setItem("rememberedPassword", data.password);
       } else {
         localStorage.removeItem("rememberedEmail");
+        localStorage.removeItem("rememberedPassword");
       }
 
       const res = await api.post("/api/auth/signin", data);
@@ -75,8 +80,6 @@ export default function LoginPage() {
 
   return (
     <>
-      <ToastContainer position="top-right" theme="colored" />
-
       <div className="login-container">
         <div className="login-wrapper">
           <div className="login-header">
@@ -90,6 +93,7 @@ export default function LoginPage() {
               <input
                 type="email"
                 placeholder="you@example.com"
+                autoComplete="username"
                 className={`form-input ${errors.email ? 'input-error' : ''}`}
                 {...register("email")}
               />
@@ -102,6 +106,7 @@ export default function LoginPage() {
                 <input
                   type={showPassword ? "text" : "password"}
                   placeholder="Enter your password"
+                  autoComplete="current-password"
                   className={`form-input ${errors.password ? 'input-error' : ''}`}
                   {...register("password")}
                 />
