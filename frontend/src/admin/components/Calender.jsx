@@ -225,6 +225,9 @@ export default function Calendar({ assignedGhId = null }) {
                   setSelectedBooking(null);
                   navigate('/admin/book-room', { state: { bookingId: selectedBooking.id } });
                 }}
+                disabled={selectedBooking.status === 'cancelled'}
+                title={selectedBooking.status === 'cancelled' ? 'Cannot edit a cancelled booking' : 'Edit booking'}
+                style={selectedBooking.status === 'cancelled' ? { opacity: 0.45, cursor: 'not-allowed' } : {}}
               >
                 Edit
               </button>

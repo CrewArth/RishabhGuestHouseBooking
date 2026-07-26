@@ -1,163 +1,186 @@
 // middlewares/imageUpload.js
-import fs from "fs/promises";
-import path from "path";
-import { fileURLToPath } from "url";
 import multer from "multer";
 import sharp from "sharp";
 import { s3 } from "../utils/s3Client.js";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
+import GuestHouse from "../models/GuestHouse.js";
 import dotenv from "dotenv";
 dotenv.config();
 
-const storage = multer.memoryStorage(); // store in memory to process with Sharp
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const imagesDir = path.resolve(__dirname, "..", "images");
+// ── Helpers ────────────────────────────────────────────────────────────────
 
-const getBaseName = (originalname) => path.parse(originalname).name.replace(/[^a-zA-Z0-9_-]/g, "_");
+/** Sanitise any string for safe use in an S3 key segment. */
+const slugify = (str) =>
+  String(str || 'unknown')
+    .trim()
+    .replace(/\s+/g, '_')
+    .replace(/[^a-zA-Z0-9_-]/g, '')
+    .substring(0, 60) || 'unknown';
 
-const saveVerificationImageLocally = async (req, fileName, buffer) => {
-  const localPath = path.join(imagesDir, fileName);
-  await fs.mkdir(path.dirname(localPath), { recursive: true });
-  await fs.writeFile(localPath, buffer);
-  return `${req.protocol}://${req.get("host")}/images/${fileName.replace(/\\/g, "/")}`;
+/** Today's date as YYYY-MM-DD (UTC). */
+const todayUtc = () => new Date().toISOString().split('T')[0];
+
+/** Resolve the guestHouseName string from either a plain ID or an object. */
+const resolveGuestHouseName = async (guestHouseIdOrObj) => {
+  if (!guestHouseIdOrObj) return 'unknown';
+  if (typeof guestHouseIdOrObj === 'object' && guestHouseIdOrObj.guestHouseName) {
+    return guestHouseIdOrObj.guestHouseName;
+  }
+  try {
+    const gh = await GuestHouse.findOne({ guestHouseId: String(guestHouseIdOrObj) }).lean();
+    return gh?.guestHouseName || String(guestHouseIdOrObj);
+  } catch {
+    return String(guestHouseIdOrObj);
+  }
 };
 
-const uploadOptions = {
-  storage,
-  limits: { fileSize: 5 * 1024 * 1024 },
-  fileFilter: (req, file, cb) => {
-    if (!file.mimetype.startsWith("image/")) {
-      cb(new Error("Only image files are allowed"), false);
-      return;
-    }
+/** Upload a buffer to S3 and return its public URL. Throws on failure. */
+const uploadToS3 = async (key, buffer, contentType = 'image/webp') => {
+  await s3.send(new PutObjectCommand({
+    Bucket: process.env.AWS_S3_BUCKET,
+    Key: key,
+    Body: buffer,
+    ContentType: contentType,
+  }));
+  return `https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`;
+};
 
+// ── Multer config ──────────────────────────────────────────────────────────
+
+const multerOptions = {
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB raw upload cap
+  fileFilter: (_req, file, cb) => {
+    if (!file.mimetype.startsWith('image/')) {
+      return cb(new Error('Only image files are allowed'), false);
+    }
     cb(null, true);
   },
 };
 
-export const upload = multer(uploadOptions).single("image");
+/** Single "image" field — used for guest house / room images. */
+export const upload = multer(multerOptions).single('image');
 
-// Accepts verificationImage (1) + up to 10 family member images
-export const uploadVerificationImage = multer(uploadOptions).fields([
+/** Multi-field upload — verificationImage (1) + familyMemberImages (up to 10). */
+export const uploadVerificationImage = multer(multerOptions).fields([
   { name: 'verificationImage', maxCount: 1 },
   { name: 'familyMemberImages', maxCount: 10 },
 ]);
 
-// 🔥 Function to process + upload optimized image
+// ── Middleware 1: Guest House / Room images ────────────────────────────────
+/**
+ * S3 path:  super-admin/{GuestHouseName}/{timestamp}_{originalName}.webp
+ *
+ * Resolves guest house name from:
+ *   - req.body.guestHouseName  (create)
+ *   - req.body.guestHouseId    (update — looks up by ID)
+ *   - req.params.guestHouseId  (update route param fallback)
+ *
+ * Attaches: req.optimizedImageUrl
+ */
 export const processAndUploadImage = async (req, res, next) => {
+  if (!req.file) return next();
+
   try {
-    if (req.file) {
-      // 1️⃣ Resize + convert to WebP (very lightweight)
-      const optimizedImage = await sharp(req.file.buffer)
-        .resize(1280, 720, { fit: "cover" }) // fixed resolution
-        .webp({ quality: 70 }) // compress
-        .toBuffer();
+    // Resolve guest house name
+    const rawName =
+      req.body.guestHouseName ||
+      (await resolveGuestHouseName(req.body.guestHouseId || req.params.guestHouseId));
 
-      // 2️⃣ Generate unique name
-      const fileName = `guesthouses/${Date.now()}_${req.file.originalname.split(".")[0]}.webp`;
+    const ghSlug    = slugify(rawName);
+    const baseName  = slugify(req.file.originalname.replace(/\.[^.]+$/, ''));
+    const key       = `super-admin/${ghSlug}/${Date.now()}_${baseName}.webp`;
 
-      // 3️⃣ Upload to S3
-      try {
-        const uploadParams = {
-          Bucket: process.env.AWS_S3_BUCKET,
-          Key: fileName,
-          Body: optimizedImage,
-          ContentType: "image/webp",
-        };
+    // Compress: resize to max 1280×720, convert to WebP at 72% quality
+    const compressed = await sharp(req.file.buffer)
+      .resize(1280, 720, { fit: 'inside', withoutEnlargement: true })
+      .webp({ quality: 72 })
+      .toBuffer();
 
-        await s3.send(new PutObjectCommand(uploadParams));
-      } catch (error) {
-        console.error("Error Uploading Image: ", error);
-      }
-
-      // 4️⃣ Attach final URL to request
-      req.optimizedImageUrl = `https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_REGION}.amazonaws.com/${fileName}`;
-      /* This image URL is later used to store in MongoDB database.  */
-
-      console.log("Optimized image uploaded:", req.optimizedImageUrl);
-    }
-
-    next();
+    req.optimizedImageUrl = await uploadToS3(key, compressed);
+    console.log(`[S3] Guest house image uploaded: ${key}`);
+    return next();
   } catch (err) {
-    console.error("Image optimization failed:", err);
-    return res.status(500).json({ message: "Image processing failed" });
+    console.error('[S3] processAndUploadImage failed:', err);
+    return res.status(500).json({ message: 'Image upload failed' });
   }
 };
 
+// ── Middleware 2: Booking verification images ──────────────────────────────
+/**
+ * S3 paths:
+ *   Main guest:   admin/{GuestHouseName}/{YYYY-MM-DD}/{FamilyHead}/verification.webp
+ *   Family member: admin/{GuestHouseName}/{YYYY-MM-DD}/{FamilyHead}/members/{MemberName}/img.webp
+ *
+ * Resolves guest house name from req.body.guestHouseId (DB lookup).
+ * Family head name from req.body.fullName.
+ *
+ * Attaches: req.verificationImageUrl, req.familyMemberImageUrls (object keyed by index)
+ */
 export const processAndUploadVerificationImage = async (req, res, next) => {
   try {
-    const verificationFile = req.files?.verificationImage?.[0];
+    const date        = todayUtc();
+    const ghName      = await resolveGuestHouseName(req.body.guestHouseId);
+    const ghSlug      = slugify(ghName);
+    const headSlug    = slugify(req.body.fullName || 'GUEST');
+    const folderBase  = `admin/${ghSlug}/${date}/${headSlug}`;
 
-    // ── main guest verification image ──────────────────────
+    // ── Main guest verification image ────────────────────────────────────
+    const verificationFile = req.files?.verificationImage?.[0];
+    req.verificationImageUrl = null;
+
     if (verificationFile) {
-      const optimizedImage = await sharp(verificationFile.buffer)
-        .resize(1600, 1600, { fit: "inside", withoutEnlargement: true })
+      const compressed = await sharp(verificationFile.buffer)
+        .resize(1600, 1600, { fit: 'inside', withoutEnlargement: true })
         .webp({ quality: 80 })
         .toBuffer();
-      const fileName = `booking-verifications/${Date.now()}_${getBaseName(verificationFile.originalname)}.webp`;
 
+      const key = `${folderBase}/${headSlug}_${slugify(req.body.identityType || 'document')}.webp`;
       try {
-        await s3.send(new PutObjectCommand({
-          Bucket: process.env.AWS_S3_BUCKET,
-          Key: fileName,
-          Body: optimizedImage,
-          ContentType: "image/webp",
-        }));
-        req.verificationImageUrl = `https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_REGION}.amazonaws.com/${fileName}`;
-      } catch (error) {
-        console.error("Verification image upload failed, saving locally:", error);
-        req.verificationImageUrl = await saveVerificationImageLocally(req, fileName, optimizedImage);
+        req.verificationImageUrl = await uploadToS3(key, compressed);
+        console.log(`[S3] Verification image uploaded: ${key}`);
+      } catch (err) {
+        console.error('[S3] Verification image upload failed:', err);
+        return res.status(500).json({ message: 'Verification image upload failed' });
       }
     }
 
-    // ── family member images ────────────────────────────────
-    // Key format: booking-verifications/FULLNAME_DATE/memberName/img.webp
-    // familyMemberImages are indexed: familyMemberImages[0], [1], ...
-    // The index maps to the family member at that position.
+    // ── Family member images ──────────────────────────────────────────────
     const familyMemberFiles = req.files?.familyMemberImages || [];
-    const fullName = (req.body.fullName || 'GUEST').trim().toUpperCase().replace(/\s+/g, '_');
-    const date = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-    const folderBase = `${fullName}_${date}`;
-
-    // Parse family members to get names for folder paths
-    let familyMembersData = [];
-    try {
-      familyMembersData = req.body.familyMembers ? JSON.parse(req.body.familyMembers) : [];
-    } catch { familyMembersData = []; }
-
     req.familyMemberImageUrls = {};
 
-    for (const file of familyMemberFiles) {
-      // Index is encoded in the filename as "idx_<N>_<originalname>" by the frontend
-      const idxMatch = file.originalname.match(/^idx_(\d+)_/);
-      const fileIndex = idxMatch ? parseInt(idxMatch[1], 10) : familyMemberFiles.indexOf(file);
-      const memberName = (familyMembersData[fileIndex]?.name || `member${fileIndex}`).trim().replace(/\s+/g, '_');
+    let familyMembersData = [];
+    try {
+      familyMembersData = req.body.familyMembers
+        ? JSON.parse(req.body.familyMembers)
+        : [];
+    } catch { familyMembersData = []; }
 
-      const optimized = await sharp(file.buffer)
-        .resize(1600, 1600, { fit: "inside", withoutEnlargement: true })
+    for (const file of familyMemberFiles) {
+      // Index encoded in originalname as "idx_N_<name>" by the frontend
+      const idxMatch  = file.originalname.match(/^idx_(\d+)_/);
+      const fileIndex = idxMatch ? parseInt(idxMatch[1], 10) : familyMemberFiles.indexOf(file);
+      const memberName = slugify(familyMembersData[fileIndex]?.name || `member${fileIndex}`);
+
+      const compressed = await sharp(file.buffer)
+        .resize(1600, 1600, { fit: 'inside', withoutEnlargement: true })
         .webp({ quality: 80 })
         .toBuffer();
 
-      const key = `booking-verifications/${folderBase}/${memberName}/img.webp`;
-
+      const key = `${folderBase}/members/${memberName}/img.webp`;
       try {
-        await s3.send(new PutObjectCommand({
-          Bucket: process.env.AWS_S3_BUCKET,
-          Key: key,
-          Body: optimized,
-          ContentType: "image/webp",
-        }));
-        req.familyMemberImageUrls[fileIndex] = `https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`;
+        req.familyMemberImageUrls[fileIndex] = await uploadToS3(key, compressed);
+        console.log(`[S3] Family member image uploaded: ${key}`);
       } catch (err) {
-        console.error(`Family member image upload failed for index ${fileIndex}, saving locally:`, err);
-        req.familyMemberImageUrls[fileIndex] = await saveVerificationImageLocally(req, key, optimized);
+        console.error(`[S3] Family member image upload failed (index ${fileIndex}):`, err);
+        // Non-fatal: continue without this image rather than failing the whole booking
+        req.familyMemberImageUrls[fileIndex] = null;
       }
     }
 
     return next();
-  } catch (error) {
-    console.error("Verification image upload failed:", error);
-    return res.status(500).json({ message: "Verification image upload failed" });
+  } catch (err) {
+    console.error('[S3] processAndUploadVerificationImage failed:', err);
+    return res.status(500).json({ message: 'Verification image upload failed' });
   }
 };
