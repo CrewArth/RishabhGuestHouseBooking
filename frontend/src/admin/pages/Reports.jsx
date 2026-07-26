@@ -3,12 +3,32 @@ import { useSelector } from 'react-redux';
 import { toast } from 'react-toastify';
 import api from '../../utils/api';
 import { REPORTS, isReportAllowed } from '../../common/reportsConfig';
+import { MONTHS } from '../../common/months';
 import { FileText, Download, CheckCircle, Lock } from 'lucide-react';
 import '../styles/reports.css';
 
 const Reports = () => {
   const currentUser = useSelector((state) => state.auth.user);
   const isSuperAdmin = String(currentUser?.role || '').toUpperCase() === 'SUPER_ADMIN';
+  const logoUrl = useSelector((state) => state.siteSettings.logoUrl);
+
+  // Resize + compress a base64 data URL down to a small thumbnail for PDF embedding.
+  // Keeps the image recognisable while staying well under the request size limit.
+  const compressLogo = (dataUrl, maxSize = 120) =>
+    new Promise((resolve) => {
+      if (!dataUrl) return resolve(null);
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const scale = Math.min(maxSize / img.width, maxSize / img.height, 1);
+        canvas.width  = Math.round(img.width  * scale);
+        canvas.height = Math.round(img.height * scale);
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL('image/png', 0.85));
+      };
+      img.onerror = () => resolve(null);
+      img.src = dataUrl;
+    });
 
   const [activeTab, setActiveTab] = useState('generate'); // 'generate' | 'permissions'
 
@@ -27,6 +47,12 @@ const Reports = () => {
   const [guestHouses, setGuestHouses] = useState([]);
   const [generating, setGenerating] = useState(false);
 
+  // Month / Year filters (for monthlyRevenueByGuestHouse)
+  const currentDate = new Date();
+  const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth() + 1); // 1-based
+  const [selectedYear,  setSelectedYear]  = useState(currentDate.getFullYear());
+  const yearOptions = Array.from({ length: 10 }, (_, i) => currentDate.getFullYear() - i);
+
   // Permissions Tab state (Super Admin)
   const [admins, setAdmins] = useState([]);
   const [selectedAdminId, setSelectedAdminId] = useState('');
@@ -40,13 +66,22 @@ const Reports = () => {
       .get('/api/guesthouses')
       .then((res) => {
         const list = Array.isArray(res.data) ? res.data : res.data?.guestHouses || [];
-        setGuestHouses(list);
-        if (list.length > 0) {
-          setGuestHouseId(list[0].guestHouseId || list[0]._id);
+
+        // ADMIN: restrict to their assigned guest house only
+        const assignedId = currentUser?.assignedGuestHouseId;
+        if (assignedId && String(currentUser?.role).toUpperCase() === 'ADMIN') {
+          const assigned = list.filter(
+            (gh) => gh.guestHouseId === assignedId || gh._id === assignedId
+          );
+          setGuestHouses(assigned);
+          if (assigned.length > 0) setGuestHouseId(assigned[0].guestHouseId || assigned[0]._id);
+        } else {
+          setGuestHouses(list);
+          if (list.length > 0) setGuestHouseId(list[0].guestHouseId || list[0]._id);
         }
       })
       .catch((err) => console.error('Error fetching guest houses:', err));
-  }, []);
+  }, [currentUser]);
 
   // Fetch Admins list for Super Admin permissions tab
   useEffect(() => {
@@ -101,20 +136,37 @@ const Reports = () => {
       return;
     }
 
+    if (selectedReportId === 'monthlyRevenueByGuestHouse' && !guestHouseId) {
+      toast.error('Please select a Guest House');
+      return;
+    }
+
     try {
       setGenerating(true);
 
+      const compressedLogo = await compressLogo(logoUrl);
+
+      // Build filter payload based on what the selected report needs
+      const filterPayload = { logoUrl: compressedLogo };
+      if (currentReportConfig?.supportedFilters.includes('fromDate'))     filterPayload.fromDate     = fromDate;
+      if (currentReportConfig?.supportedFilters.includes('toDate'))       filterPayload.toDate       = toDate;
+      if (currentReportConfig?.supportedFilters.includes('guestHouseId')) filterPayload.guestHouseId = guestHouseId;
+      if (currentReportConfig?.supportedFilters.includes('month'))        filterPayload.month        = selectedMonth;
+      if (currentReportConfig?.supportedFilters.includes('year'))         filterPayload.year         = selectedYear;
+
       const response = await api.post(
         `/api/reports/${selectedReportId}/generate`,
-        {
-          fromDate,
-          toDate,
-          guestHouseId,
-        },
-        {
-          responseType: 'blob',
-        }
+        filterPayload,
+        { responseType: 'blob' }
       );
+
+      // Check if server returned a JSON error instead of a PDF (e.g. no data found)
+      if (response.data?.type === 'application/json') {
+        const text = await response.data.text();
+        const json = JSON.parse(text);
+        toast.error(json.error || 'No data found for the selected filters.');
+        return;
+      }
 
       // Create blob URL and trigger download
       const blob = new Blob([response.data], { type: 'application/pdf' });
@@ -130,7 +182,19 @@ const Reports = () => {
       toast.success('PDF report generated successfully!');
     } catch (err) {
       console.error('Error generating PDF:', err);
-      toast.error('Failed to generate report PDF.');
+
+      // axios responseType:blob wraps error responses as blobs — parse them
+      if (err.response?.data instanceof Blob) {
+        try {
+          const text = await err.response.data.text();
+          const json = JSON.parse(text);
+          toast.error(json.error || 'Failed to generate report PDF.');
+        } catch {
+          toast.error('Failed to generate report PDF.');
+        }
+      } else {
+        toast.error(err.response?.data?.error || 'Failed to generate report PDF.');
+      }
     } finally {
       setGenerating(false);
     }
@@ -203,7 +267,6 @@ const Reports = () => {
               </p>
             ) : (
               <div className="reports-filter-field" style={{ maxWidth: 420 }}>
-                <label className="reports-filter-label">Available Reports</label>
                 <select
                   className="reports-filter-select"
                   value={selectedReportId}
@@ -264,11 +327,52 @@ const Reports = () => {
                         value={guestHouseId}
                         onChange={(e) => setGuestHouseId(e.target.value)}
                         required
+                        disabled={
+                          String(currentUser?.role).toUpperCase() === 'ADMIN' &&
+                          !!currentUser?.assignedGuestHouseId
+                        }
                       >
                         {guestHouses.map((gh) => (
                           <option key={gh._id} value={gh.guestHouseId || gh._id}>
                             {gh.guestHouseName} ({gh.guestHouseId})
                           </option>
+                        ))}
+                      </select>
+                      
+                    </div>
+                  )}
+
+                  {currentReportConfig.supportedFilters.includes('month') && (
+                    <div className="reports-filter-field">
+                      <label className="reports-filter-label">
+                        Month <span style={{ color: '#dc2626' }}>*</span>
+                      </label>
+                      <select
+                        className="reports-filter-select"
+                        value={selectedMonth}
+                        onChange={(e) => setSelectedMonth(Number(e.target.value))}
+                        required
+                      >
+                        {MONTHS.map((m) => (
+                          <option key={m.value} value={m.value}>{m.label}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  {currentReportConfig.supportedFilters.includes('year') && (
+                    <div className="reports-filter-field">
+                      <label className="reports-filter-label">
+                        Year <span style={{ color: '#dc2626' }}>*</span>
+                      </label>
+                      <select
+                        className="reports-filter-select"
+                        value={selectedYear}
+                        onChange={(e) => setSelectedYear(Number(e.target.value))}
+                        required
+                      >
+                        {yearOptions.map((yr) => (
+                          <option key={yr} value={yr}>{yr}</option>
                         ))}
                       </select>
                     </div>

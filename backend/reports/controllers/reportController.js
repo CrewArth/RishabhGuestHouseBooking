@@ -45,6 +45,11 @@ export const generatePdf = async (req, res) => {
     return res.send(pdfBuffer);
   } catch (err) {
     console.error("Error generating report PDF:", err);
+
+    if (err.code === 'NO_DATA') {
+      return res.status(404).json({ error: err.message });
+    }
+
     res.status(400).json({ error: err.message || "Failed to generate report PDF" });
   }
 };

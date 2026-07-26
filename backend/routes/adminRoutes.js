@@ -13,13 +13,13 @@ import { authenticate, authorize } from '../middlewares/auth.js';
 
 const router = express.Router();
 
-router.get('/summary', getAdminSummary);
+router.get('/summary', authenticate, getAdminSummary);
 router.get('/me', authenticate, getMe);
-router.get('/users', listUsers);
-router.post('/users', createUserByAdmin);
+router.get('/users', authenticate, listUsers);
+router.post('/users', authenticate, authorize('SUPER_ADMIN'), createUserByAdmin);
 router.patch('/users/:id/assign-guesthouse', authenticate, authorize('SUPER_ADMIN'), assignGuestHouse);
 router.patch('/users/:id/widgets', authenticate, authorize('SUPER_ADMIN'), updateUserWidgets);
-router.get('/metrics/bookings-per-day', getBookingsPerDay);
-router.get('/metrics/top-guest-houses', getTopGuestHouses);
+router.get('/metrics/bookings-per-day', authenticate, getBookingsPerDay);
+router.get('/metrics/top-guest-houses', authenticate, getTopGuestHouses);
 
 export default router;

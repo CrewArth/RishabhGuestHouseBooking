@@ -134,3 +134,104 @@
     flex-direction: column;
   }
 }
+
+/* ── Cancel button in actions cell ── */
+.tb-cancel-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: #fef2f2;
+  color: #dc2626;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.tb-cancel-btn:hover {
+  background: #dc2626;
+  color: #ffffff;
+}
+
+/* ── Confirmation modal ── */
+.tb-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.tb-modal {
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 32px 28px 24px;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.18);
+  text-align: center;
+}
+
+.tb-modal-icon {
+  font-size: 2.2rem;
+  margin-bottom: 12px;
+}
+
+.tb-modal-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 10px;
+}
+
+.tb-modal-body {
+  font-size: 0.9rem;
+  color: #475569;
+  line-height: 1.55;
+  margin: 0 0 24px;
+}
+
+.tb-modal-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.tb-modal-btn {
+  flex: 1;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.tb-modal-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.tb-modal-btn--cancel {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.tb-modal-btn--cancel:hover:not(:disabled) {
+  background: #e2e8f0;
+}
+
+.tb-modal-btn--confirm {
+  background: #dc2626;
+  color: #ffffff;
+}
+
+.tb-modal-btn--confirm:hover:not(:disabled) {
+  background: #b91c1c;
+}

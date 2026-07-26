@@ -665,12 +665,20 @@ export const cancelBooking = async (req, res) => {
 };
 export const getApprovedBookingsForCalendar = async (req, res) => {
   try {
-    // Fetch approved and cancelled bookings for calendar display
-    let bookings = await Booking.find({ status: { $in: ["approved", "cancelled"] } })
+    // Scope to assigned guest house for ADMIN role
+    const query = { status: { $in: ["approved", "cancelled"] } };
+    const user = req.user;
+    if (user?.role === 'ADMIN' && user.assignedGuestHouseId) {
+      const ghId = typeof user.assignedGuestHouseId === 'object'
+        ? user.assignedGuestHouseId.guestHouseId
+        : user.assignedGuestHouseId;
+      if (ghId) query.guestHouseId = ghId;
+    }
+    let bookings = await Booking.find(query)
       .populate("userId", "firstName lastName email")
       .populate("roomId", "roomNumber")
       .populate("bedId", "bedNumber bedType")
-      .sort({ checkIn: 1 }) // Sort by check-in date
+      .sort({ checkIn: 1 })
       .lean();
 
     // Manually fetch guest houses and attach to bookings

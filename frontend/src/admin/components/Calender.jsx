@@ -7,7 +7,7 @@ import '../styles/adminBooking.css';
 import '../styles/dashboard.css';
 import api from '../../utils/api';
 
-export default function Calendar() {
+export default function Calendar({ assignedGhId = null }) {
   const navigate = useNavigate();
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -18,13 +18,14 @@ export default function Calendar() {
 
   useEffect(() => {
     fetchApprovedBookings();
-  }, []);
+  }, [assignedGhId]);
 
   const fetchApprovedBookings = async () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await api.get('/api/bookings/calendar');
+      const params = assignedGhId ? { guestHouseId: assignedGhId } : {};
+      const response = await api.get('/api/bookings/calendar', { params });
       
       // Transform bookings into FullCalendar events
       const calendarEvents = response.data.bookings.map((booking) => {

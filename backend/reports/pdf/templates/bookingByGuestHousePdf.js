@@ -29,42 +29,68 @@ const formatDateTimeStr = (val) => {
 };
 
 /**
+ * Attempts to embed a base64 logo into the PDF doc.
+ * Returns true if successful, false if the logo is missing or invalid.
+ */
+const drawLogo = (doc, logoUrl, x, y, size) => {
+  if (!logoUrl || typeof logoUrl !== 'string') return false;
+  try {
+    // logoUrl is a data URL: "data:<mime>;base64,<data>"
+    const matches = logoUrl.match(/^data:([^;]+);base64,(.+)$/);
+    if (!matches) return false;
+    const imageData = Buffer.from(matches[2], 'base64');
+    doc.image(imageData, x, y, { width: size, height: size, fit: [size, size] });
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+/**
  * Generates PDF for "Booking by Guest House" report.
  *
  * @param {Object} data - { guestHouse, bookings }
  * @param {Object} filters - { fromDate, toDate }
- * @param {Object} meta - { createdBy }
+ * @param {Object} meta - { createdBy, logoUrl }
  * @returns {Promise<Buffer>}
  */
 export const generateBookingByGuestHousePdf = async (data, filters, meta) => {
   const { doc, getBuffer } = createPdfStream();
   const { guestHouse, bookings = [] } = data;
   const performerName = meta?.createdBy || 'Admin';
+  const logoUrl = meta?.logoUrl || null;
   const generatedOn = formatDateTimeStr(new Date());
 
-  const startY = 40;
-  let y = startY;
+  // Layout constants
+  const LEFT = 25;
+  const RIGHT = 575;
+  const TABLE_WIDTH = RIGHT - LEFT; // 550
 
-  // 1. Header (Centered at top)
+  let y = 40;
+
+  // 1. Header — logo top-left, title centred
+  const LOGO_SIZE = 40;
+  const logoDrawn = drawLogo(doc, logoUrl, LEFT, y, LOGO_SIZE);
+
   doc.fontSize(18).font('Helvetica-Bold').fillColor('#0f172a')
-    .text(guestHouse?.guestHouseName || 'Guest House', { align: 'center' });
+    .text(guestHouse?.guestHouseName || 'Guest House', LEFT, y, { align: 'center', width: TABLE_WIDTH });
   y = doc.y + 4;
 
   doc.fontSize(12).font('Helvetica-Bold').fillColor('#334155')
-    .text('Booking by Guest House Report', { align: 'center' });
+    .text('Booking by Guest House Report', LEFT, y, { align: 'center', width: TABLE_WIDTH });
   y = doc.y + 12;
 
   // Divider line
-  doc.moveTo(40, y).lineTo(555, y).strokeColor('#cbd5e1').lineWidth(1).stroke();
+  doc.moveTo(LEFT, y).lineTo(RIGHT, y).strokeColor('#cbd5e1').lineWidth(1).stroke();
   y += 14;
 
   // 2. Filters Section
-  doc.fontSize(10).font('Helvetica-Bold').fillColor('#1e293b').text('Filters', 40, y);
+  doc.fontSize(10).font('Helvetica-Bold').fillColor('#1e293b').text('Filters', LEFT, y);
   y += 14;
 
   const drawFilterRow = (label, value) => {
-    doc.fontSize(9).font('Helvetica-Bold').fillColor('#475569').text(`${label}:`, 40, y, { width: 90 });
-    doc.fontSize(9).font('Helvetica').fillColor('#0f172a').text(value || 'All', 130, y);
+    doc.fontSize(9).font('Helvetica-Bold').fillColor('#475569').text(`${label}:`, LEFT, y, { width: 90 });
+    doc.fontSize(9).font('Helvetica').fillColor('#0f172a').text(value || 'All', LEFT + 90, y);
     y += 14;
   };
 
@@ -73,44 +99,44 @@ export const generateBookingByGuestHousePdf = async (data, filters, meta) => {
   drawFilterRow('Guest House', `${guestHouse.guestHouseName} (${guestHouse.guestHouseId})`);
 
   y += 8;
-  doc.moveTo(40, y).lineTo(555, y).strokeColor('#e2e8f0').lineWidth(0.5).stroke();
+  doc.moveTo(LEFT, y).lineTo(RIGHT, y).strokeColor('#e2e8f0').lineWidth(0.5).stroke();
   y += 14;
 
-  // 3. Table Column Layout Definition
+  // 3. Table Column Layout
+  // Total width = 550 (LEFT=25 to RIGHT=575)
   const cols = [
-    { label: 'Booking No', x: 40, w: 65, align: 'left' },
-    { label: 'Guest Name', x: 105, w: 110, align: 'left' },
-    { label: 'Room / Bed', x: 215, w: 85, align: 'left' },
-    { label: 'Check In', x: 300, w: 70, align: 'center' },
-    { label: 'Check Out', x: 370, w: 70, align: 'center' },
-    { label: 'Status', x: 440, w: 55, align: 'center' },
-    { label: 'Applied', x: 495, w: 60, align: 'center' },
+    { label: 'Booking No', x: LEFT,       w: 55,  align: 'left'   },
+    { label: 'Guest Name', x: LEFT + 55,  w: 100, align: 'left'   },
+    { label: 'Phone',      x: LEFT + 155, w: 75,  align: 'left'   },
+    { label: 'Room / Bed', x: LEFT + 230, w: 70,  align: 'left'   },
+    { label: 'Check In',   x: LEFT + 300, w: 65,  align: 'center' },
+    { label: 'Check Out',  x: LEFT + 365, w: 65,  align: 'center' },
+    { label: 'Status',     x: LEFT + 430, w: 55,  align: 'center' },
+    { label: 'Applied',    x: LEFT + 485, w: 65,  align: 'center' },
   ];
 
   const drawTableHeader = (currentY) => {
-    // Header Background
-    doc.rect(40, currentY, 515, 20).fill('#f1f5f9');
+    doc.rect(LEFT, currentY, TABLE_WIDTH, 20).fill('#f1f5f9');
 
     doc.font('Helvetica-Bold').fontSize(8.5).fillColor('#1e293b');
     cols.forEach((c) => {
       doc.text(c.label, c.x + 3, currentY + 5, { width: c.w - 6, align: c.align });
     });
 
-    doc.rect(40, currentY, 515, 20).strokeColor('#cbd5e1').lineWidth(0.5).stroke();
+    doc.rect(LEFT, currentY, TABLE_WIDTH, 20).strokeColor('#cbd5e1').lineWidth(0.5).stroke();
     return currentY + 20;
   };
 
   y = drawTableHeader(y);
 
-  // Render Rows
+  // 4. Render Rows
   if (bookings.length === 0) {
-    doc.rect(40, y, 515, 25).strokeColor('#e2e8f0').lineWidth(0.5).stroke();
+    doc.rect(LEFT, y, TABLE_WIDTH, 25).strokeColor('#e2e8f0').lineWidth(0.5).stroke();
     doc.font('Helvetica-Oblique').fontSize(9).fillColor('#64748b')
-      .text('No bookings found matching the selected filters.', 45, y + 8, { align: 'center', width: 505 });
+      .text('No bookings found matching the selected filters.', LEFT + 5, y + 8, { align: 'center', width: TABLE_WIDTH - 10 });
     y += 25;
   } else {
     bookings.forEach((b, index) => {
-      // Check for page break (leave room for footer at 777)
       if (y > 730) {
         doc.addPage();
         y = 40;
@@ -119,9 +145,8 @@ export const generateBookingByGuestHousePdf = async (data, filters, meta) => {
 
       const rowHeight = 22;
 
-      // Alternating row background
       if (index % 2 === 1) {
-        doc.rect(40, y, 515, rowHeight).fill('#f8fafc');
+        doc.rect(LEFT, y, TABLE_WIDTH, rowHeight).fill('#f8fafc');
       }
 
       doc.font('Helvetica').fontSize(8).fillColor('#0f172a');
@@ -134,48 +159,47 @@ export const generateBookingByGuestHousePdf = async (data, filters, meta) => {
       const gName = b.guestName?.trim() || b.fullName || '—';
       doc.text(gName, cols[1].x + 3, y + 6, { width: cols[1].w - 6, align: cols[1].align, ellipsis: true });
 
+      // Phone
+      const gPhone = b.guestPhone?.trim() || '—';
+      doc.text(gPhone, cols[2].x + 3, y + 6, { width: cols[2].w - 6, align: cols[2].align, ellipsis: true });
+
       // Room / Bed
       let roomBedStr = b.roomNumber ? `R-${b.roomNumber}` : '—';
       if (b.bedNumber) roomBedStr += ` / B-${b.bedNumber}`;
-      doc.text(roomBedStr, cols[2].x + 3, y + 6, { width: cols[2].w - 6, align: cols[2].align, ellipsis: true });
+      doc.text(roomBedStr, cols[3].x + 3, y + 6, { width: cols[3].w - 6, align: cols[3].align, ellipsis: true });
 
       // Check In
-      doc.text(formatDateStr(b.checkIn), cols[3].x + 3, y + 6, { width: cols[3].w - 6, align: cols[3].align });
+      doc.text(formatDateStr(b.checkIn), cols[4].x + 3, y + 6, { width: cols[4].w - 6, align: cols[4].align });
 
       // Check Out
-      doc.text(formatDateStr(b.checkOut), cols[4].x + 3, y + 6, { width: cols[4].w - 6, align: cols[4].align });
+      doc.text(formatDateStr(b.checkOut), cols[5].x + 3, y + 6, { width: cols[5].w - 6, align: cols[5].align });
 
       // Status
       const statusText = String(b.status || 'pending').toUpperCase();
-      doc.text(statusText, cols[5].x + 3, y + 6, { width: cols[5].w - 6, align: cols[5].align });
+      doc.text(statusText, cols[6].x + 3, y + 6, { width: cols[6].w - 6, align: cols[6].align });
 
       // Applied Date
-      doc.text(formatDateStr(b.createdAt), cols[6].x + 3, y + 6, { width: cols[6].w - 6, align: cols[6].align });
+      doc.text(formatDateStr(b.createdAt), cols[7].x + 3, y + 6, { width: cols[7].w - 6, align: cols[7].align });
 
-      // Border line for row
-      doc.rect(40, y, 515, rowHeight).strokeColor('#e2e8f0').lineWidth(0.5).stroke();
-
+      doc.rect(LEFT, y, TABLE_WIDTH, rowHeight).strokeColor('#e2e8f0').lineWidth(0.5).stroke();
       y += rowHeight;
     });
   }
 
-  // 4. Header & Footer pagination pass
+  // 5. Footer on every page
   const range = doc.bufferedPageRange();
   for (let i = range.start; i < range.start + range.count; i++) {
     doc.switchToPage(i);
 
     const footerY = 785;
 
-    // Line above footer
-    doc.moveTo(40, footerY - 8).lineTo(555, footerY - 8).strokeColor('#cbd5e1').lineWidth(0.5).stroke();
+    doc.moveTo(LEFT, footerY - 8).lineTo(RIGHT, footerY - 8).strokeColor('#cbd5e1').lineWidth(0.5).stroke();
 
-    // Bottom-Left: Created By
     doc.font('Helvetica-Bold').fontSize(8).fillColor('#64748b')
-      .text(`Created By: ${performerName}`, 40, footerY, { lineBreak: false });
+      .text(`Created By: ${performerName}`, LEFT, footerY, { lineBreak: false });
 
-    // Bottom-Right: Generated On
     doc.font('Helvetica').fontSize(8).fillColor('#64748b')
-      .text(`Generated On: ${generatedOn}   |   Page ${i + 1} of ${range.count}`, 250, footerY, { align: 'right', width: 305, lineBreak: false });
+      .text(`Generated On: ${generatedOn}   |   Page ${i + 1} of ${range.count}`, LEFT + 150, footerY, { align: 'right', width: TABLE_WIDTH - 150, lineBreak: false });
   }
 
   doc.end();

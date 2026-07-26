@@ -10,7 +10,7 @@ import indexRoutes from './routes/index.js'
 dotenv.config();
 
 const app = express();
-app.use(express.json());
+app.use(express.json({ limit: '2mb' }));
 app.use(cors());
 
 const __filename = fileURLToPath(import.meta.url);

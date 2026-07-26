@@ -12,7 +12,9 @@ const roomSchema = new mongoose.Schema({
     
     roomCapacity: {type: Number, required: true},
 
-    price: { type: Number, required: false }, // Add price field
+    price: { type: Number, required: false },
+
+    discountPercentage: { type: Number, required: false, default: 0, min: 0, max: 100 },
 
     // Soft delete / active flag (needed by controllers & queries)
     isActive: { type: Boolean, default: true },

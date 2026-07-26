@@ -8,20 +8,26 @@ import { adminCreatedUserEmail } from '../utils/emailTemplates/adminCreatedUser.
 import { logAction } from '../utils/auditLogger.js';
 import { normalizeUser } from '../utils/roles.js';
 
+/**
+ * Returns a MongoDB filter object scoped to the user's assigned guest house.
+ * SUPER_ADMIN → no filter (empty object, sees everything).
+ * ADMIN with assignedGuestHouseId → { guestHouseId: <id> }.
+ * ADMIN without assignment → no restriction (same as SUPER_ADMIN).
+ */
+const getGuestHouseFilter = (user) => {
+  if (user?.role === 'ADMIN' && user.assignedGuestHouseId) {
+    const ghId = typeof user.assignedGuestHouseId === 'object'
+      ? user.assignedGuestHouseId.guestHouseId
+      : user.assignedGuestHouseId;
+    if (ghId) return { guestHouseId: ghId };
+  }
+  return {};
+};
+
 // Fetch Dashboard Summary (LIVE STATS)
 export const getAdminSummary = async (req, res) => {
   try {
-    const user = req.user;
-    const bookingQuery = {};
-
-    if (user && user.role === 'ADMIN' && user.assignedGuestHouseId) {
-      const ghId = typeof user.assignedGuestHouseId === 'object'
-        ? user.assignedGuestHouseId.guestHouseId
-        : user.assignedGuestHouseId;
-      if (ghId) {
-        bookingQuery.guestHouseId = ghId;
-      }
-    }
+    const bookingQuery = getGuestHouseFilter(req.user);
 
     const totalUsers = await User.countDocuments();
     const totalGuestHouses = await GuestHouse.countDocuments();
@@ -94,6 +100,7 @@ export const getBookingsPerDay = async (req, res) => {
     );
 
     const matchStage = {
+      ...getGuestHouseFilter(req.user),
       createdAt: { $gte: startDate, $lte: endDate },
     };
 
@@ -142,6 +149,7 @@ export const getTopGuestHouses = async (req, res) => {
     const limit = Math.min(parseInt(req.query.limit, 10) || 5, 20);
 
     const matchStage = {
+      ...getGuestHouseFilter(req.user),
       createdAt: { $gte: startDate, $lte: endDate },
     };
 

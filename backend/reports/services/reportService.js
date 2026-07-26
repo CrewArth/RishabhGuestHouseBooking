@@ -1,6 +1,7 @@
 import { REPORTS, getReportById, isReportAllowed } from '../constants/reportsRegistry.js';
 import { fetchReportData } from '../repositories/reportRepository.js';
 import { generateBookingByGuestHousePdf } from '../pdf/templates/bookingByGuestHousePdf.js';
+import { generateMonthlyRevenueByGuestHousePdf } from '../pdf/templates/monthlyRevenueByGuestHousePdf.js';
 import User from '../../models/User.js';
 import GuestHouse from '../../models/GuestHouse.js';
 import { logAction } from '../../utils/auditLogger.js';
@@ -38,15 +39,44 @@ export const generateReportPdf = async (reportId, filters, user) => {
     throw new Error(`Access denied for report '${reportId}'`);
   }
 
+  // Enforce guest house restriction for ADMIN role
+  const { logoUrl, ...reportFilters } = filters;
+
+  if (user.role === 'ADMIN' && user.assignedGuestHouseId) {
+    const assignedId = typeof user.assignedGuestHouseId === 'object'
+      ? user.assignedGuestHouseId.guestHouseId
+      : user.assignedGuestHouseId;
+
+    if (assignedId && reportFilters.guestHouseId && reportFilters.guestHouseId !== assignedId) {
+      throw new Error(`You are only permitted to generate reports for your assigned guest house.`);
+    }
+
+    // Also enforce the assigned guest house if none was provided
+    if (assignedId && !reportFilters.guestHouseId) {
+      reportFilters.guestHouseId = assignedId;
+    }
+  }
+
   // Fetch report dataset via Aggregation Pipelines
-  const data = await fetchReportData(reportId, filters);
+  const data = await fetchReportData(reportId, reportFilters);
+
+  // Reject if no data found — caller will return a non-PDF error response
+  const rowCount = data?.bookings?.length ?? data?.rows?.length ?? 0;
+  if (rowCount === 0) {
+    const noDataError = new Error('No data found for the selected filters.');
+    noDataError.code = 'NO_DATA';
+    throw noDataError;
+  }
 
   const performerName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email || 'Admin';
 
   let pdfBuffer;
   switch (reportId) {
     case 'bookingByGuestHouse':
-      pdfBuffer = await generateBookingByGuestHousePdf(data, filters, { createdBy: performerName });
+      pdfBuffer = await generateBookingByGuestHousePdf(data, reportFilters, { createdBy: performerName, logoUrl: logoUrl || null });
+      break;
+    case 'monthlyRevenueByGuestHouse':
+      pdfBuffer = await generateMonthlyRevenueByGuestHousePdf(data, reportFilters, { createdBy: performerName, logoUrl: logoUrl || null });
       break;
     default:
       throw new Error(`PDF generation template for report '${reportId}' is not implemented.`);
@@ -58,7 +88,7 @@ export const generateReportPdf = async (reportId, filters, user) => {
     entityType: "Report",
     entityId: reportId,
     performedBy: user.email || "Admin",
-    details: { reportId, filters },
+    details: { reportId, filters: reportFilters },
   }).catch((err) => console.error("Report generation audit log error:", err));
 
   return pdfBuffer;

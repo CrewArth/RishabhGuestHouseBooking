@@ -14,20 +14,19 @@ export const createRoom = async (req, res) => {
     const { error, value } = createRoomSchema.validate(req.body, { abortEarly: false });
     if (error) return sendError(res, 400, 'Validation failed', error.details);
 
-    const { guestHouseId, roomNumber, roomType, roomCapacity, price, isAvailable } = value;
+    const { guestHouseId, roomNumber, roomType, roomCapacity, price, discountPercentage, isAvailable } = value;
 
     // Ensure GuestHouse exists
     const gh = await GuestHouse.findOne({ guestHouseId });
     if (!gh) return sendError(res, 404, `Guest House ${guestHouseId} not found`);
 
-
-    // Create room (unique index will enforce duplicates)
     const room = await Room.create({
       guestHouseId,
       roomNumber,
-      roomType: roomType || 'single', // default if missing from client
+      roomType: roomType || 'single',
       roomCapacity,
       price,
+      discountPercentage: discountPercentage ?? 0,
       isAvailable
     });
 

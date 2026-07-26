@@ -7,17 +7,19 @@ const RoomFormModal = ({ isOpen, onClose, onSubmit, initialData }) => {
     roomNumber: '',
     roomCapacity: '',
     price: '',
+    discountPercentage: '',
   });
 
   useEffect(() => {
     if (initialData) {
       setRoomData({
-        roomNumber: initialData.roomNumber || '',
-        roomCapacity: initialData.roomCapacity || '',
-        price: initialData.price || '',
+        roomNumber:         initialData.roomNumber         || '',
+        roomCapacity:       initialData.roomCapacity       || '',
+        price:              initialData.price              ?? '',
+        discountPercentage: initialData.discountPercentage ?? '',
       });
     } else {
-      setRoomData({ roomNumber: '', roomCapacity: '', price: '' });
+      setRoomData({ roomNumber: '', roomCapacity: '', price: '', discountPercentage: '' });
     }
   }, [initialData]);
 
@@ -28,14 +30,28 @@ const RoomFormModal = ({ isOpen, onClose, onSubmit, initialData }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    // basic client validation
+
     if (!roomData.roomNumber || !roomData.roomCapacity || Number(roomData.roomCapacity) < 1) {
       alert('Please provide a valid room number and capacity (min 1).');
       return;
     }
-    onSubmit(roomData); // parent will supply guestHouseId & default roomType if needed
+
+    const discount = Number(roomData.discountPercentage) || 0;
+    if (discount < 0 || discount > 100) {
+      alert('Discount must be between 0 and 100.');
+      return;
+    }
+
+    onSubmit(roomData);
     onClose();
   };
+
+  // Live computed values
+  const price    = parseFloat(roomData.price) || 0;
+  const discount = parseFloat(roomData.discountPercentage) || 0;
+  const discountAmount = price > 0 && discount > 0 ? (price * discount) / 100 : 0;
+  const finalPrice     = price - discountAmount;
+  const showPreview    = price > 0 && discount > 0;
 
   if (!isOpen) return null;
 
@@ -47,18 +63,71 @@ const RoomFormModal = ({ isOpen, onClose, onSubmit, initialData }) => {
         <form onSubmit={handleSubmit} className="room-form">
           <div className="form-group">
             <label>Room Number</label>
-            <input type="number" name="roomNumber" value={roomData.roomNumber} onChange={handleChange} required min="1" />
+            <input
+              type="number"
+              name="roomNumber"
+              value={roomData.roomNumber}
+              onChange={handleChange}
+              required
+              min="1"
+            />
           </div>
 
           <div className="form-group">
             <label>Room Capacity</label>
-            <input type="number" name="roomCapacity" value={roomData.roomCapacity} onChange={handleChange} required min="1" />
+            <input
+              type="number"
+              name="roomCapacity"
+              value={roomData.roomCapacity}
+              onChange={handleChange}
+              required
+              min="1"
+            />
           </div>
 
           <div className="form-group">
             <label>Price (per night)</label>
-            <input type="number" name="price" value={roomData.price} onChange={handleChange} min="0" />
+            <input
+              type="number"
+              name="price"
+              value={roomData.price}
+              onChange={handleChange}
+              min="0"
+              step="0.01"
+            />
           </div>
+
+          <div className="form-group">
+            <label>Discount (%)</label>
+            <input
+              type="number"
+              name="discountPercentage"
+              value={roomData.discountPercentage}
+              onChange={handleChange}
+              min="0"
+              max="100"
+              step="0.01"
+              placeholder="0"
+            />
+          </div>
+
+          {/* Live price preview */}
+          {showPreview && (
+            <div className="discount-preview">
+              <span className="discount-preview-row">
+                <span className="discount-label">Original Price:</span>
+                <span className="discount-value">{price.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+              </span>
+              <span className="discount-preview-row">
+                <span className="discount-label">Discount ({discount}%):</span>
+                <span className="discount-value discount-amount">- {discountAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+              </span>
+              <span className="discount-preview-row discount-final-row">
+                <span className="discount-label">Final Price:</span>
+                <span className="discount-value discount-final">{finalPrice.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+              </span>
+            </div>
+          )}
 
           <div className="room-form-buttons">
             <button type="button" className="btn cancel" onClick={onClose}>Cancel</button>

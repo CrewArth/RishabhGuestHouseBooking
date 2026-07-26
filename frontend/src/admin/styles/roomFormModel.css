@@ -82,3 +82,47 @@
 .btn.cancel:hover {
   background: #475569;
 }
+
+/* ---------------------- DISCOUNT PREVIEW ---------------------- */
+.discount-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+
+.discount-preview-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  color: #475569;
+}
+
+.discount-label {
+  font-weight: 500;
+}
+
+.discount-value {
+  font-family: monospace;
+  font-size: 13px;
+}
+
+.discount-amount {
+  color: #dc2626;
+}
+
+.discount-final-row {
+  border-top: 1px dashed #cbd5e1;
+  padding-top: 6px;
+  margin-top: 2px;
+}
+
+.discount-final {
+  font-size: 14px;
+  font-weight: 700;
+  color: #16a34a;
+}

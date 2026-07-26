@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom';
 import api from '../../utils/api';
 import editIcon from '../../assets/edit.svg';
 import '../styles/todayBookings.css';
-
 const getLocalDate = (date = new Date()) => {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -41,6 +40,10 @@ export default function TodayBookings() {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+
+  // Cancel confirmation modal state
+  const [cancelTarget, setCancelTarget] = useState(null); // booking to cancel
+  const [cancelling, setCancelling] = useState(false);
 
   // If the admin has an assigned guest house, scope all queries to it
   const assignedGuestHouse = useSelector((state) => state.auth.user?.assignedGuestHouseId);
@@ -84,8 +87,56 @@ export default function TodayBookings() {
     setAppliedFilter({ startDate: today, endDate: today });
   };
 
+  const handleCancelConfirm = async () => {
+    if (!cancelTarget) return;
+    try {
+      setCancelling(true);
+      await api.patch(`/api/bookings/${cancelTarget._id}/cancel`);
+      setBookings((prev) =>
+        prev.map((b) => b._id === cancelTarget._id ? { ...b, status: 'cancelled' } : b)
+      );
+      setCancelTarget(null);
+    } catch (err) {
+      console.error('Error cancelling booking:', err);
+    } finally {
+      setCancelling(false);
+    }
+  };
+
   return (
     <section className="today-bookings" aria-labelledby="today-bookings-title">
+      {/* ── Cancel confirmation modal ── */}
+      {cancelTarget && (
+        <div className="tb-modal-backdrop" onClick={() => setCancelTarget(null)}>
+          <div className="tb-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="tb-modal-icon">🗑️</div>
+            <h3 className="tb-modal-title">Cancel Booking?</h3>
+            <p className="tb-modal-body">
+              Are you sure you want to cancel the booking for&nbsp;
+              <strong>
+                {`${cancelTarget.userId?.firstName || ''} ${cancelTarget.userId?.lastName || ''}`.trim() || cancelTarget.fullName || 'this guest'}
+              </strong>?
+              <br />This action cannot be undone.
+            </p>
+            <div className="tb-modal-actions">
+              <button
+                className="tb-modal-btn tb-modal-btn--cancel"
+                onClick={() => setCancelTarget(null)}
+                disabled={cancelling}
+              >
+                No, Keep It
+              </button>
+              <button
+                className="tb-modal-btn tb-modal-btn--confirm"
+                onClick={handleCancelConfirm}
+                disabled={cancelling}
+              >
+                {cancelling ? 'Cancelling…' : 'Yes, Cancel'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="today-bookings-header">
         <div>
           <h2 id="today-bookings-title" style={{fontWeight: "bold", marginBottom: "30px"}}>
@@ -142,14 +193,31 @@ export default function TodayBookings() {
                     </td>
                     <td><span className={`today-bookings-status ${booking.status}`}>{booking.status}</span></td>
                     <td>
-                      <button
-                        className="btn-action edit"
-                        onClick={() => navigate('/admin/book-room', { state: { bookingId: booking._id } })}
-                        title="Edit booking"
-                        style={{ background: 'transparent', border: 'none', boxShadow: 'none', padding: '4px' }}
-                      >
-                        <img src={editIcon} alt="Edit" style={{ width: 16, height: 16 }} />
-                      </button>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <button
+                          className="btn-action edit"
+                          onClick={() => navigate('/admin/book-room', { state: { bookingId: booking._id } })}
+                          title="Edit booking"
+                          style={{ background: 'transparent', border: 'none', boxShadow: 'none', padding: '4px' }}
+                        >
+                          <img src={editIcon} alt="Edit" style={{ width: 16, height: 16 }} />
+                        </button>
+
+                        {booking.status !== 'cancelled' && (
+                          <button
+                            className="tb-cancel-btn"
+                            onClick={() => setCancelTarget(booking)}
+                            title="Cancel booking"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <polyline points="3 6 5 6 21 6" />
+                              <path d="M19 6l-1 14H6L5 6" />
+                              <path d="M10 11v6M14 11v6" />
+                              <path d="M9 6V4h6v2" />
+                            </svg>
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))

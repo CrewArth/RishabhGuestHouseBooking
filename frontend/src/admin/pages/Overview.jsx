@@ -11,6 +11,11 @@ import { isWidgetAllowed } from "../../common/widgetsConfig";
 const Overview = ({ showTodayBookings = false }) => {
   const currentUser = useSelector((state) => state.auth?.user);
 
+  // Derive the assigned guest house ID for ADMIN role once
+  const assignedGhId = (String(currentUser?.role || '').toUpperCase() === 'ADMIN' && currentUser?.assignedGuestHouseId)
+    ? currentUser.assignedGuestHouseId
+    : null;
+
   const [stats, setStats] = useState({
     totalBookings: 0,
     totalUsers: 0,
@@ -54,8 +59,8 @@ const Overview = ({ showTodayBookings = false }) => {
     setTopGuestHouses((p) => ({ ...p, loading: true }));
     try {
       const [tR, gR] = await Promise.all([
-        api.get("/api/admin/metrics/bookings-per-day",  { params: { startDate: dateRange.startDate, endDate: dateRange.endDate, status: "approved" } }),
-        api.get("/api/admin/metrics/top-guest-houses",  { params: { startDate: dateRange.startDate, endDate: dateRange.endDate, limit: 5, status: "approved" } }),
+        api.get("/api/admin/metrics/bookings-per-day",  { params: { startDate: dateRange.startDate, endDate: dateRange.endDate, status: "approved", ...(assignedGhId && { guestHouseId: assignedGhId }) } }),
+        api.get("/api/admin/metrics/top-guest-houses",  { params: { startDate: dateRange.startDate, endDate: dateRange.endDate, limit: 5, status: "approved", ...(assignedGhId && { guestHouseId: assignedGhId }) } }),
       ]);
       setBookingsTrend({ data: tR.data?.data || [], loading: false, rangeLabel: fmt(tR.data?.range) });
       setTopGuestHouses({ data: gR.data?.data || [], loading: false, rangeLabel: fmt(gR.data?.range) });
@@ -163,7 +168,7 @@ const Overview = ({ showTodayBookings = false }) => {
       <div className="calendar-section">
         <h2 className="section-title">Booking Calendar</h2>
         <p className="section-subtitle">All approved bookings at a glance</p>
-        <Calendar />
+        <Calendar assignedGhId={assignedGhId} />
       </div>
     </div>
   );

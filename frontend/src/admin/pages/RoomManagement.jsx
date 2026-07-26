@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import RoomFormModal from '../components/RoomFormModel';
 import { toast } from 'react-toastify';
 import api from '../../utils/api';
+import { RupeeIcon } from '../../common/icons';
 
 const RoomManagement = () => {
   const [rooms, setRooms]               = useState([]);
@@ -131,19 +132,28 @@ const RoomManagement = () => {
                 <th>Room No.</th>
                 <th>Capacity</th>
                 <th>Price (per night)</th>
+                <th>Discount</th>
+                <th>Final Price</th>
                 <th>Availability</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
               {rooms.length === 0 ? (
-                <tr><td colSpan="5" className="table-empty">No rooms found. Select a guest house or add a new room.</td></tr>
+                <tr><td colSpan="7" className="table-empty">No rooms found. Select a guest house or add a new room.</td></tr>
               ) : (
-                rooms.map((room) => (
+                rooms.map((room) => {
+                  const price    = room.price    ?? 0;
+                  const discount = room.discountPercentage ?? 0;
+                  const finalPrice = price - (price * discount) / 100;
+
+                  return (
                   <tr key={room._id}>
                     <td>Room {room.roomNumber}</td>
                     <td>{room.roomCapacity}</td>
-                    <td>{room.price ? `₹${room.price}` : '—'}</td>
+                    <td>{price ? `${RupeeIcon}${price.toLocaleString('en-IN')}` : '—'}</td>
+                    <td>{discount ? `${discount}%` : '—'}</td>
+                    <td>{price ? `${RupeeIcon}${finalPrice.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '—'}</td>
                     <td>
                       <span className={`badge ${room.isAvailable ? 'active' : 'maintenance'}`}>
                         {room.isAvailable ? 'Available' : 'Maintenance'}
@@ -157,7 +167,8 @@ const RoomManagement = () => {
                       </div>
                     </td>
                   </tr>
-                ))
+                  );
+                })
               )}
             </tbody>
           </table>

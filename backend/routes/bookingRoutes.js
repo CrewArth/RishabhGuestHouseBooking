@@ -49,7 +49,7 @@ router.patch("/:id/cancel", cancelBooking);
 router.get("/availability", checkAvailability);
 
 // Get approved bookings for calendar (admin)
-router.get("/calendar", getApprovedBookingsForCalendar);
+router.get("/calendar", authenticate, getApprovedBookingsForCalendar);
 
 // Get single booking by ID — must come after all named GET routes
 router.get("/:id", authenticate, getBookingById);

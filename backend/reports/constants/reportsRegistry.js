@@ -10,6 +10,13 @@ export const REPORTS = [
     defaultEnabled: true,
     supportedFilters: ["fromDate", "toDate", "guestHouseId"],
   },
+  {
+    id: "monthlyRevenueByGuestHouse",
+    name: "Monthly Revenue by Guest House",
+    description: "Revenue report showing room-wise earnings for a selected guest house during a specific month.",
+    defaultEnabled: true,
+    supportedFilters: ["month", "year", "guestHouseId"],
+  },
 ];
 
 export const getAllReportIds = () => REPORTS.map((r) => r.id);
