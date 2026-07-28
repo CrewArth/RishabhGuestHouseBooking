@@ -5,7 +5,13 @@ import { s3 } from "../utils/s3Client.js";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import GuestHouse from "../models/GuestHouse.js";
 import dotenv from "dotenv";
+import fs from "fs";
+import path from "path";
+import os from "os";
 dotenv.config();
+
+// Get the user's Desktop folder path for local fallback storage
+const getDesktopPath = () => path.join(os.homedir(), "Desktop", "RishabhGuestHouseImages");
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -34,15 +40,37 @@ const resolveGuestHouseName = async (guestHouseIdOrObj) => {
   }
 };
 
-/** Upload a buffer to S3 and return its public URL. Throws on failure. */
-const uploadToS3 = async (key, buffer, contentType = 'image/webp') => {
-  await s3.send(new PutObjectCommand({
-    Bucket: process.env.AWS_S3_BUCKET,
-    Key: key,
-    Body: buffer,
-    ContentType: contentType,
-  }));
-  return `https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`;
+/** Upload a buffer to local Desktop storage (same folder structure as S3) and return local file URL. */
+const uploadToLocal = async (key, buffer) => {
+  const localPath = path.join(getDesktopPath(), key);
+  const dir = path.dirname(localPath);
+  
+  // Create directory recursively if it doesn't exist
+  await fs.promises.mkdir(dir, { recursive: true });
+  await fs.promises.writeFile(localPath, buffer);
+  
+  // Return file:// URL for local access
+  return `file:///${localPath.replace(/\\/g, '/')}`;
+};
+
+/** Upload a buffer to S3 first; if it fails, fall back to local Desktop storage. */
+const uploadImage = async (key, buffer, contentType = 'image/webp') => {
+  try {
+    await s3.send(new PutObjectCommand({
+      Bucket: process.env.AWS_S3_BUCKET,
+      Key: key,
+      Body: buffer,
+      ContentType: contentType,
+    }));
+    const s3Url = `https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`;
+    console.log(`[S3] Uploaded: ${key}`);
+    return s3Url;
+  } catch (s3Err) {
+    console.warn(`[S3] Upload failed for ${key}, falling back to local storage:`, s3Err.message);
+    const localUrl = await uploadToLocal(key, buffer);
+    console.log(`[LOCAL] Saved to: ${localUrl}`);
+    return localUrl;
+  }
 };
 
 // ── Multer config ──────────────────────────────────────────────────────────
@@ -97,11 +125,10 @@ export const processAndUploadImage = async (req, res, next) => {
       .webp({ quality: 72 })
       .toBuffer();
 
-    req.optimizedImageUrl = await uploadToS3(key, compressed);
-    console.log(`[S3] Guest house image uploaded: ${key}`);
+    req.optimizedImageUrl = await uploadImage(key, compressed);
     return next();
   } catch (err) {
-    console.error('[S3] processAndUploadImage failed:', err);
+    console.error('[IMAGE] processAndUploadImage failed:', err);
     return res.status(500).json({ message: 'Image upload failed' });
   }
 };
@@ -137,10 +164,9 @@ export const processAndUploadVerificationImage = async (req, res, next) => {
 
       const key = `${folderBase}/${headSlug}_${slugify(req.body.identityType || 'document')}.webp`;
       try {
-        req.verificationImageUrl = await uploadToS3(key, compressed);
-        console.log(`[S3] Verification image uploaded: ${key}`);
+        req.verificationImageUrl = await uploadImage(key, compressed);
       } catch (err) {
-        console.error('[S3] Verification image upload failed:', err);
+        console.error('[IMAGE] Verification image upload failed:', err);
         return res.status(500).json({ message: 'Verification image upload failed' });
       }
     }
@@ -169,10 +195,9 @@ export const processAndUploadVerificationImage = async (req, res, next) => {
 
       const key = `${folderBase}/members/${memberName}/img.webp`;
       try {
-        req.familyMemberImageUrls[fileIndex] = await uploadToS3(key, compressed);
-        console.log(`[S3] Family member image uploaded: ${key}`);
+        req.familyMemberImageUrls[fileIndex] = await uploadImage(key, compressed);
       } catch (err) {
-        console.error(`[S3] Family member image upload failed (index ${fileIndex}):`, err);
+        console.error(`[IMAGE] Family member image upload failed (index ${fileIndex}):`, err);
         // Non-fatal: continue without this image rather than failing the whole booking
         req.familyMemberImageUrls[fileIndex] = null;
       }

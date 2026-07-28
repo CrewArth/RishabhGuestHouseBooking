@@ -25,9 +25,9 @@ export const WIDGETS = [
     defaultEnabled: true,
   },
   {
-    id: "rejectedBookings",
-    name: "Rejected",
-    description: "Stat card showing count of rejected bookings.",
+    id: "cancelledBookings",
+    name: "Cancelled",
+    description: "Stat card showing count of cancelled bookings.",
     defaultEnabled: true,
   },
   {

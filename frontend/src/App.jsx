@@ -20,6 +20,7 @@ const UsersList = lazyLoad(() => import('./admin/pages/UsersList'));
 const NotFound = lazyLoad(() => import('./components/NotFound'));
 const Settings = lazyLoad(() => import('./admin/pages/Settings'));
 const Reports = lazyLoad(() => import('./admin/pages/Reports'));
+const GuestHouseBookings = lazyLoad(() => import('./admin/pages/GuestHouseBookings'));
 const ForgotPassword = lazyLoad(() => import('./users/pages/ForgotPassword'));
 const ResetPassword = lazyLoad(() => import('./users/pages/ResetPassword'));
 const AboutUs = lazyLoad(() => import('./commonPages/AboutUs'));
@@ -104,6 +105,7 @@ function App() {
           {/* Admin routes */}
           <Route path="/admin/dashboard" element={<AdminUserDashboard />} />
           <Route path="/admin/book-room" element={<AdminRoomBooking />} />
+          <Route path="/admin/guest-house-bookings" element={<GuestHouseBookings />} />
           <Route path="/admin/reports" element={<Reports />} />
 
           {/* Super Admin routes */}

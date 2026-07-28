@@ -1,6 +1,12 @@
 import { S3Client, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import dotenv from "dotenv";
+import fs from "fs";
+import path from "path";
+import os from "os";
 dotenv.config();
+
+// Get the user's Desktop folder path for local fallback storage
+const getDesktopPath = () => path.join(os.homedir(), "Desktop", "GuestHouseImages");
 
 export const s3 = new S3Client({
   region: process.env.AWS_REGION,
@@ -25,6 +31,41 @@ const extractS3Key = (url) => {
 };
 
 
+const deleteLocalFileFromUrl = async (fileUrl) => {
+  try {
+    // Check if it's a local file:// URL
+    if (!fileUrl.startsWith("file:///")) return false;
+
+    // Convert file URL to local path (handle Windows paths correctly)
+    let localPath = fileUrl.replace("file:///", "");
+    // On Windows, paths like /C:/Users/... need the leading slash removed
+    if (process.platform === "win32" && localPath.match(/^\/[a-zA-Z]:\//)) {
+      localPath = localPath.slice(1);
+    }
+    // Convert forward slashes to platform-specific separator
+    localPath = path.resolve(localPath);
+
+    // Only proceed if the path is inside our Desktop storage folder
+    const desktopBase = getDesktopPath();
+    if (!localPath.startsWith(desktopBase)) {
+      console.warn("Local file path is outside Desktop storage, skipping deletion:", localPath);
+      return false;
+    }
+
+    if (fs.existsSync(localPath)) {
+      await fs.promises.unlink(localPath);
+      console.log(`[LOCAL] Deleted file: ${localPath}`);
+      return true;
+    } else {
+      console.log(`[LOCAL] File not found (already deleted?): ${localPath}`);
+      return true;
+    }
+  } catch (err) {
+    console.error("[LOCAL] Error deleting local file:", err);
+    return false;
+  }
+};
+
 export const deleteFromS3 = async (imageUrl) => {
   console.log("🟡 deleteFromS3 CALLED:", imageUrl);
   
@@ -33,8 +74,14 @@ export const deleteFromS3 = async (imageUrl) => {
     return { success: true, skipped: true };
   }
 
+  // Handle local file:// URLs first
+  if (imageUrl.startsWith("file:///")) {
+    const deleted = await deleteLocalFileFromUrl(imageUrl);
+    return { success: deleted, local: true };
+  }
+
+  // Try S3 deletion
   const key = extractS3Key(imageUrl);
-  console.log("🔍 Extracted Key:", key);
 
   if (!key) {
     console.log("❌ Unable to extract S3 key from URL");
