@@ -35,6 +35,7 @@ export const getAdminSummary = async (req, res) => {
     const totalBookings = await Booking.countDocuments(bookingQuery);
     const approvedBookings = await Booking.countDocuments({ ...bookingQuery, status: "approved" });
     const pendingBookings = await Booking.countDocuments({ ...bookingQuery, status: "pending" });
+    const cancelledBookings = await Booking.countDocuments({ ...bookingQuery, status: "cancelled" });
     const rejectedBookings = await Booking.countDocuments({ ...bookingQuery, status: "rejected" });
 
     const today = new Date();
@@ -56,6 +57,7 @@ export const getAdminSummary = async (req, res) => {
       totalBookings,
       approvedBookings,
       pendingBookings,
+      cancelledBookings,
       rejectedBookings,
       todaysBookings,
       occupancyRate

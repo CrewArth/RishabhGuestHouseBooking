@@ -135,7 +135,8 @@
   }
 }
 
-/* ── Cancel button in actions cell ── */
+/* ── Action buttons in the bookings table ── */
+.tb-action-btn,
 .tb-cancel-btn {
   display: inline-flex;
   align-items: center;
@@ -151,9 +152,42 @@
   transition: background 0.15s ease, color 0.15s ease;
 }
 
-.tb-cancel-btn:hover {
+.tb-action-btn:hover:not(:disabled),
+.tb-cancel-btn:hover:not(:disabled) {
   background: #dc2626;
   color: #ffffff;
+}
+
+.tb-checkout-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 30px;
+  padding: 6px 10px;
+  border: none;
+  border-radius: 6px;
+  background: #2563eb;
+  color: #ffffff;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+
+.tb-checkout-btn:hover:not(:disabled) {
+  background: #1d4ed8;
+  transform: translateY(-1px);
+}
+
+.tb-checkout-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.tb-action-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 /* ── Confirmation modal ── */

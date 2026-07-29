@@ -17,7 +17,7 @@ export const registerUser = async (req, res) => {
 export const loginUser = async (req, res) => {
   try {
     //Get Credentials
-    const { email, password } = req.body;
+    const { email, password, logoUrl } = req.body;
     const user = await User.findOne({ email });
 
     if (!user) return res.status(404).json({ message: "User Not Found!" });
@@ -29,6 +29,17 @@ export const loginUser = async (req, res) => {
       return res.status(400).json({ message: "Invalid Credentials" });
 
     const token = generateToken(user);
+    const refreshCookieValue = encodeURIComponent(
+      JSON.stringify({ token, logoUrl: logoUrl || null })
+    );
+
+    res.cookie('refreshAccessToken', refreshCookieValue, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    });
+
     res.status(200).json({ user: normalizeUser(user.toObject()), token });
   } catch (error) {
     res.status(500).json({ message: error.message });

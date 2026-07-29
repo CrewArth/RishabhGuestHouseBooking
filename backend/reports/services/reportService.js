@@ -2,6 +2,7 @@ import { REPORTS, getReportById, isReportAllowed } from '../constants/reportsReg
 import { fetchReportData } from '../repositories/reportRepository.js';
 import { generateBookingByGuestHousePdf } from '../pdf/templates/bookingByGuestHousePdf.js';
 import { generateMonthlyRevenueByGuestHousePdf } from '../pdf/templates/monthlyRevenueByGuestHousePdf.js';
+import { generateInvoicePdf } from '../pdf/templates/invoicePdf.js';
 import User from '../../models/User.js';
 import GuestHouse from '../../models/GuestHouse.js';
 import { logAction } from '../../utils/auditLogger.js';
@@ -57,15 +58,18 @@ export const generateReportPdf = async (reportId, filters, user) => {
     }
   }
 
-  // Fetch report dataset via Aggregation Pipelines
-  const data = await fetchReportData(reportId, reportFilters);
+  let data = {};
+  if (reportId !== 'invoice') {
+    // Fetch report dataset via Aggregation Pipelines
+    data = await fetchReportData(reportId, reportFilters);
 
-  // Reject if no data found — caller will return a non-PDF error response
-  const rowCount = data?.bookings?.length ?? data?.rows?.length ?? 0;
-  if (rowCount === 0) {
-    const noDataError = new Error('No data found for the selected filters.');
-    noDataError.code = 'NO_DATA';
-    throw noDataError;
+    // Reject if no data found — caller will return a non-PDF error response
+    const rowCount = data?.bookings?.length ?? data?.rows?.length ?? 0;
+    if (rowCount === 0) {
+      const noDataError = new Error('No data found for the selected filters.');
+      noDataError.code = 'NO_DATA';
+      throw noDataError;
+    }
   }
 
   const performerName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email || 'Admin';
@@ -78,6 +82,14 @@ export const generateReportPdf = async (reportId, filters, user) => {
     case 'monthlyRevenueByGuestHouse':
       pdfBuffer = await generateMonthlyRevenueByGuestHousePdf(data, reportFilters, { createdBy: performerName, logoUrl: logoUrl || null });
       break;
+    case 'invoice': {
+      const invoice = reportFilters.invoice;
+      if (!invoice) {
+        throw new Error('Invoice payload is required to generate invoice PDF.');
+      }
+      pdfBuffer = await generateInvoicePdf(invoice, { createdBy: performerName, logoUrl: logoUrl || null });
+      break;
+    }
     default:
       throw new Error(`PDF generation template for report '${reportId}' is not implemented.`);
   }

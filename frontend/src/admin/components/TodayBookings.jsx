@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import api from '../../utils/api';
-import editIcon from '../../assets/edit.svg';
+import PaymentPage from '../pages/PaymentPage';
 import '../styles/todayBookings.css';
 const getLocalDate = (date = new Date()) => {
   const year = date.getFullYear();
@@ -30,6 +30,25 @@ const formatDate = (value) => {
   }).format(new Date(value));
 };
 
+const isSameDay = (left, right) => {
+  const first = new Date(left);
+  const second = new Date(right);
+
+  if (Number.isNaN(first.getTime()) || Number.isNaN(second.getTime())) {
+    return false;
+  }
+
+  return first.getFullYear() === second.getFullYear()
+    && first.getMonth() === second.getMonth()
+    && first.getDate() === second.getDate();
+};
+
+const isCheckoutEligible = (booking) => {
+  if (!booking?.checkOut) return false;
+  if (['cancelled', 'rejected'].includes(booking?.status)) return false;
+  return isSameDay(booking.checkOut, new Date());
+};
+
 export default function TodayBookings() {
   const today = getLocalDate();
   const oneWeekAgo = getOneWeekAgo();
@@ -44,6 +63,7 @@ export default function TodayBookings() {
   // Cancel confirmation modal state
   const [cancelTarget, setCancelTarget] = useState(null); // booking to cancel
   const [cancelling, setCancelling] = useState(false);
+  const [checkoutTarget, setCheckoutTarget] = useState(null);
 
   // If the admin has an assigned guest house, scope all queries to it
   const assignedGuestHouse = useSelector((state) => state.auth.user?.assignedGuestHouseId);
@@ -106,6 +126,18 @@ export default function TodayBookings() {
   return (
     <section className="today-bookings" aria-labelledby="today-bookings-title">
       {/* ── Cancel confirmation modal ── */}
+      {checkoutTarget && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 3000 }}>
+          <PaymentPage
+            isOpen
+            bookingId={checkoutTarget._id}
+            onClose={() => setCheckoutTarget(null)}
+            onInvoiceGenerated={() => setCheckoutTarget(null)}
+          />
+        </div>
+      )}
+
+
       {cancelTarget && (
         <div className="tb-modal-backdrop" onClick={() => setCancelTarget(null)}>
           <div className="tb-modal" onClick={(e) => e.stopPropagation()}>
@@ -172,55 +204,80 @@ export default function TodayBookings() {
                 <th>Check Out</th>
                 <th>Room / Bed</th>
                 <th>Status</th>
+                <th>Checkout</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
               {bookings.length === 0 ? (
                 <tr>
-                  <td colSpan="6" className="today-bookings-empty">No bookings found for this date range.</td>
+                  <td colSpan="8" className="today-bookings-empty">No bookings found for this date range.</td>
                 </tr>
               ) : (
-                bookings.map((booking) => (
-                  <tr key={booking._id}>
-                    <td>{`${booking.userId?.firstName || ''} ${booking.userId?.lastName || ''}`.trim() || booking.fullName || '—'}</td>
-                    <td>{booking.guestHouseId?.guestHouseName || '—'}</td>
-                    <td>{formatDate(booking.checkIn)}</td>
-                    <td>{formatDate(booking.checkOut)}</td>
-                    <td>
-                      {booking.roomId?.roomNumber ? `Room ${booking.roomId.roomNumber}` : '—'}
-                      {booking.bedId?.bedNumber ? ` / Bed ${booking.bedId.bedNumber}` : ''}
-                    </td>
-                    <td><span className={`today-bookings-status ${booking.status}`}>{booking.status}</span></td>
-                    <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <button
-                          className="btn-action edit"
-                          onClick={() => navigate('/admin/book-room', { state: { bookingId: booking._id } })}
-                          title="Edit booking"
-                          style={{ background: 'transparent', border: 'none', boxShadow: 'none', padding: '4px' }}
-                        >
-                          <img src={editIcon} alt="Edit" style={{ width: 16, height: 16 }} />
-                        </button>
+                bookings.map((booking) => {
+                  const isCancelled = booking.status === 'cancelled';
 
-                        {booking.status !== 'cancelled' && (
+                  return (
+                    <tr key={booking._id}>
+                      <td>{`${booking.userId?.firstName || ''} ${booking.userId?.lastName || ''}`.trim() || booking.fullName || '—'}</td>
+                      <td>{booking.guestHouseId?.guestHouseName || '—'}</td>
+                      <td>{formatDate(booking.checkIn)}</td>
+                      <td>{formatDate(booking.checkOut)}</td>
+                      <td>
+                        {booking.roomId?.roomNumber ? `Room ${booking.roomId.roomNumber}` : '—'}
+                        {booking.bedId?.bedNumber ? ` / Bed ${booking.bedId.bedNumber}` : ''}
+                      </td>
+                      <td><span className={`today-bookings-status ${booking.status}`}>{booking.status}</span></td>
+                      <td>
+                        <button
+                          type="button"
+                          className="tb-checkout-btn"
+                          onClick={() => {
+                            console.log('opening checkout modal', booking._id);
+                            setCheckoutTarget(booking);
+                          }}
+                          disabled={!isCheckoutEligible(booking)}
+                          title={isCheckoutEligible(booking) ? 'Proceed to payment' : 'Checkout available on the checkout date'}
+                        >
+                          Checkout
+                        </button>
+                      </td>
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                           <button
-                            className="tb-cancel-btn"
-                            onClick={() => setCancelTarget(booking)}
-                            title="Cancel booking"
+                            className="tb-action-btn"
+                            onClick={() => {
+                              if (isCancelled) return;
+                              navigate('/admin/book-room', { state: { bookingId: booking._id } });
+                            }}
+                            title={isCancelled ? 'Cannot edit a cancelled booking' : 'Edit booking'}
+                            disabled={isCancelled}
                           >
                             <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <polyline points="3 6 5 6 21 6" />
-                              <path d="M19 6l-1 14H6L5 6" />
-                              <path d="M10 11v6M14 11v6" />
-                              <path d="M9 6V4h6v2" />
+                              <path d="M12 20h9" />
+                              <path d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4Z" />
                             </svg>
                           </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))
+
+                          {booking.status !== 'cancelled' && (
+                            <button
+                              className="tb-cancel-btn"
+                              onClick={() => setCancelTarget(booking)}
+                              title="Cancel booking"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="3 6 5 6 21 6" />
+                                <path d="M19 6l-1 14H6L5 6" />
+                                <path d="M10 11v6M14 11v6" />
+                                <path d="M9 6V4h6v2" />
+                              </svg>
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>

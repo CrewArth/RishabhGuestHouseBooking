@@ -22,6 +22,7 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const siteName = useSelector((state) => state.siteSettings.siteName);
+  const logoUrl = useSelector((state) => state.siteSettings.logoUrl);
 
   const { register, handleSubmit, setValue, formState: { errors, isValid, isSubmitting } } = useForm({
     resolver: yupResolver(schema),
@@ -60,7 +61,7 @@ export default function LoginPage() {
         localStorage.removeItem("rememberedPassword");
       }
 
-      const res = await api.post("/api/auth/signin", data);
+      const res = await api.post("/api/auth/signin", { ...data, logoUrl });
       dispatch(setCredentials({ user: res.data.user, token: res.data.token }));
 
       toast.success("Login Successful!", { autoClose: 1000 });
