@@ -101,6 +101,60 @@ body {
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
 }
 
+/* Multi-select room dropdown */
+.room-multiselect .search-wrapper {
+  width: 100%;
+  min-height: 40px;
+  padding: 0.4rem 0.7rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  background: #ffffff;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+
+.room-multiselect .search-wrapper:hover {
+  border-color: #93c5fd;
+}
+
+.room-multiselect .search-wrapper input {
+  color: #374151;
+  font-size: 0.95rem;
+  padding: 0;
+  margin: 0;
+}
+
+.room-multiselect .chip {
+  background: linear-gradient(135deg, #2563eb, #3b82f6);
+  color: #ffffff;
+  border-radius: 999px;
+  padding: 0.3rem 0.7rem;
+  margin: 0.2rem;
+  font-size: 0.85rem;
+}
+
+.room-multiselect .optionListContainer {
+  border: 1px solid #dbeafe;
+  border-radius: 0.5rem;
+  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.12);
+  z-index: 60;
+}
+
+.room-multiselect .option {
+  padding: 0.7rem 0.85rem;
+  color: #374151;
+}
+
+.room-multiselect .option:hover,
+.room-multiselect .option.selected {
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-weight: 600;
+}
+
+.room-multiselect .closeIcon {
+  color: #64748b;
+}
+
 /* Error Styles */
 .form-control input.error-input,
 .form-control select.error-input,

@@ -107,10 +107,6 @@ const InvoicePage = ({ isModal = false, onClose, invoice: invoiceProp }) => {
           <div style={{ fontSize: '1.6rem', fontWeight: 700, marginTop: '6px' }}>{currency(invoice.bookingTotal || 0)}</div>
         </div>
       </div>
-
-      <div style={{ fontSize: '0.82rem', color: '#6b7280', borderTop: '1px solid #e5e7eb', paddingTop: '16px' }}>
-        If you have any questions about this invoice, please contact GuestHouse Booking at (000) 000-0000 or support@guesthousebooking.example.
-      </div>
     </div>
   );
 

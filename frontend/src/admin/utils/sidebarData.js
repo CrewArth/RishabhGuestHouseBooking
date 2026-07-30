@@ -55,6 +55,12 @@ export const superAdminSidebarData = [
     icon: Settings,
     navigate: '/super-admin/settings',
   },
+  {
+    id: 'MC_TAXES',
+    name: 'Taxes & Management',
+    icon: FileText,
+    navigate: '/super-admin/taxes',
+  },
 ];
 
 export const adminSidebarData = [
@@ -75,6 +81,12 @@ export const adminSidebarData = [
     name: 'Guest House List',
     icon: List,
     navigate: '/admin/guest-house-bookings',
+  },
+  {
+    id: 'MC_RECEIPTS',
+    name: 'Receipts',
+    icon: FileText,
+    navigate: '/admin/receipts',
   },
   {
     id: 'MC_REPORTS',

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import api from '../../utils/api';
 import PaymentPage from '../pages/PaymentPage';
 import '../styles/todayBookings.css';
@@ -59,6 +60,8 @@ export default function TodayBookings() {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const rowsPerPage = 10;
 
   // Cancel confirmation modal state
   const [cancelTarget, setCancelTarget] = useState(null); // booking to cancel
@@ -107,6 +110,14 @@ export default function TodayBookings() {
     setAppliedFilter({ startDate: today, endDate: today });
   };
 
+  const totalPages = Math.max(1, Math.ceil(bookings.length / rowsPerPage));
+  const startIndex = (currentPage - 1) * rowsPerPage;
+  const paginatedBookings = bookings.slice(startIndex, startIndex + rowsPerPage);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [appliedFilter]);
+
   const handleCancelConfirm = async () => {
     if (!cancelTarget) return;
     try {
@@ -123,18 +134,39 @@ export default function TodayBookings() {
     }
   };
 
+  const handleViewInvoice = async (booking) => {
+    if (!booking?.isCheckedOut) return;
+
+    try {
+      const response = await api.get(`/api/payments/booking/${booking._id}/invoice`);
+      const invoice = response.data?.invoice || response.data?.invoiceDoc?.invoiceData;
+
+      if (!invoice) {
+        toast.error('Invoice is not available for this booking yet.');
+        return;
+      }
+
+      navigate('/admin/invoice', { state: { invoice } });
+    } catch (err) {
+      console.error('Error fetching invoice:', err);
+      toast.error('Unable to load invoice right now.');
+    }
+  };
+
   return (
     <section className="today-bookings" aria-labelledby="today-bookings-title">
       {/* ── Cancel confirmation modal ── */}
       {checkoutTarget && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 3000 }}>
-          <PaymentPage
-            isOpen
-            bookingId={checkoutTarget._id}
-            onClose={() => setCheckoutTarget(null)}
-            onInvoiceGenerated={() => setCheckoutTarget(null)}
-          />
-        </div>
+        <PaymentPage
+          isOpen
+          bookingId={checkoutTarget._id}
+          onClose={() => setCheckoutTarget(null)}
+          onInvoiceGenerated={() => {
+            // mark the booking as checked out in local state so UI updates immediately
+            setBookings((prev) => prev.map((b) => (b._id === checkoutTarget._id ? { ...b, isCheckedOut: true } : b)));
+            setCheckoutTarget(null);
+          }}
+        />
       )}
 
 
@@ -214,7 +246,7 @@ export default function TodayBookings() {
                   <td colSpan="8" className="today-bookings-empty">No bookings found for this date range.</td>
                 </tr>
               ) : (
-                bookings.map((booking) => {
+                paginatedBookings.map((booking) => {
                   const isCancelled = booking.status === 'cancelled';
 
                   return (
@@ -236,10 +268,10 @@ export default function TodayBookings() {
                             console.log('opening checkout modal', booking._id);
                             setCheckoutTarget(booking);
                           }}
-                          disabled={!isCheckoutEligible(booking)}
-                          title={isCheckoutEligible(booking) ? 'Proceed to payment' : 'Checkout available on the checkout date'}
+                          disabled={!isCheckoutEligible(booking) || booking.isCheckedOut}
+                          title={booking.isCheckedOut ? 'Already checked out' : isCheckoutEligible(booking) ? 'Proceed to payment' : 'Checkout available on the checkout date'}
                         >
-                          Checkout
+                          {booking.isCheckedOut ? 'Checked out' : 'Checkout'}
                         </button>
                       </td>
                       <td>
@@ -247,17 +279,30 @@ export default function TodayBookings() {
                           <button
                             className="tb-action-btn"
                             onClick={() => {
-                              if (isCancelled) return;
+                              if (isCancelled || booking.isCheckedOut) return;
                               navigate('/admin/book-room', { state: { bookingId: booking._id } });
                             }}
-                            title={isCancelled ? 'Cannot edit a cancelled booking' : 'Edit booking'}
-                            disabled={isCancelled}
+                            title={isCancelled ? 'Cannot edit a cancelled booking' : booking.isCheckedOut ? 'Cannot edit a checked-out booking' : 'Edit booking'}
+                            disabled={isCancelled || booking.isCheckedOut}
                           >
                             <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                               <path d="M12 20h9" />
                               <path d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4Z" />
                             </svg>
                           </button>
+
+                          {booking.isCheckedOut && (
+                            <button
+                              className="tb-action-btn"
+                              onClick={() => handleViewInvoice(booking)}
+                              title="View invoice"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+                                <circle cx="12" cy="12" r="3" />
+                              </svg>
+                            </button>
+                          )}
 
                           {booking.status !== 'cancelled' && (
                             <button
@@ -281,6 +326,30 @@ export default function TodayBookings() {
               )}
             </tbody>
           </table>
+
+          {bookings.length > rowsPerPage && (
+            <div className="today-bookings-pagination">
+              <button
+                type="button"
+                className="today-bookings-page-btn"
+                onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                disabled={currentPage === 1}
+              >
+                Previous
+              </button>
+              <span className="today-bookings-page-info">
+                Page {currentPage} of {totalPages}
+              </span>
+              <button
+                type="button"
+                className="today-bookings-page-btn"
+                onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+                disabled={currentPage === totalPages}
+              >
+                Next
+              </button>
+            </div>
+          )}
         </div>
       )}
     </section>

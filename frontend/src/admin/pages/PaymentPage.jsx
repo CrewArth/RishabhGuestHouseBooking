@@ -32,7 +32,7 @@ const compressLogo = (dataUrl, maxSize = 120) =>
     img.src = dataUrl;
   });
 
-const PaymentPage = ({ isOpen = false, onClose, bookingId: bookingIdProp, onInvoiceGenerated }) => {
+const PaymentPage = ({ isOpen = false, onClose, bookingId: bookingIdProp, onInvoiceGenerated, initialPaymentAmount }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const bookingId = bookingIdProp || location.state?.bookingId;
@@ -43,9 +43,14 @@ const PaymentPage = ({ isOpen = false, onClose, bookingId: bookingIdProp, onInvo
   const [error, setError] = useState('');
   const [extras, setExtras] = useState([{ name: '', quantity: '1', unitPrice: '0', total: 0 }]);
   const [paymentMethod, setPaymentMethod] = useState('Cash');
-  const [paymentAmount, setPaymentAmount] = useState('');
+  const [paymentAmount, setPaymentAmount] = useState(initialPaymentAmount ? String(initialPaymentAmount) : '');
+  const [taxes, setTaxes] = useState([]);
   const logoUrl = useSelector((state) => state.siteSettings.logoUrl);
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    setPaymentAmount(initialPaymentAmount ? String(initialPaymentAmount) : '');
+  }, [initialPaymentAmount]);
 
   useEffect(() => {
     if (!bookingId) {
@@ -81,14 +86,40 @@ const PaymentPage = ({ isOpen = false, onClose, bookingId: bookingIdProp, onInvo
 
   const nightlyRate = 2000;
   const roomCharges = nights * nightlyRate;
-  const taxes = 0;
-  const subtotal = roomCharges + taxes;
+  const subtotal = roomCharges;
 
   const extrasTotal = useMemo(() => extras.reduce((sum, item) => sum + Number(item.total || 0), 0), [extras]);
-  const bookingTotal = subtotal + extrasTotal;
+  // Taxes: fetch active taxes and apply on (subtotal + extras)
+  const taxableBase = subtotal + extrasTotal;
+  const taxBreakdown = useMemo(() => {
+    if (!Array.isArray(taxes) || taxes.length === 0) return [];
+    return taxes.map((t) => ({
+      _id: t._id,
+      name: t.name,
+      percentage: Number(t.percentage) || 0,
+      amount: ((Number(t.percentage) || 0) / 100) * taxableBase,
+    }));
+  }, [taxes, taxableBase]);
+
+  const taxesTotal = useMemo(() => taxBreakdown.reduce((s, i) => s + (i.amount || 0), 0), [taxBreakdown]);
+  const bookingTotal = subtotal + extrasTotal + taxesTotal;
   const paymentAmountValue = Number(paymentAmount || 0);
   const remainingBalance = Math.max(0, bookingTotal - paymentAmountValue);
   const isPaymentValid = paymentAmountValue > 0 && paymentAmountValue <= bookingTotal;
+
+  useEffect(() => {
+    const fetchTaxes = async () => {
+      try {
+        const res = await api.get('/api/taxes');
+        const active = (res.data.taxes || []).filter((t) => t.isActive);
+        setTaxes(active);
+      } catch (err) {
+        console.error('Unable to fetch taxes', err);
+        setTaxes([]);
+      }
+    };
+    fetchTaxes();
+  }, []);
 
   const updateExtra = (index, field, value) => {
     const nextExtras = [...extras];
@@ -129,12 +160,33 @@ const PaymentPage = ({ isOpen = false, onClose, bookingId: bookingIdProp, onInvo
         bookingDate: booking?.checkIn || new Date().toISOString(),
         amountPaid: paymentAmountValue,
         extrasTotal,
+        taxesTotal,
+        taxBreakdown,
         bookingTotal,
         outstandingBalance: remainingBalance,
         paymentMethod,
         createdAt: new Date().toISOString(),
         bookingDetails: booking,
       };
+
+      // Create payment record in backend (marks booking as checked out)
+      try {
+        await api.post('/api/payments', {
+          bookingId,
+          amountPaid: paymentAmountValue,
+          paymentMethod,
+          taxesTotal,
+          taxBreakdown,
+          invoiceId: invoice.id,
+          invoice: invoice,
+        });
+        // update local booking state to reflect checked-out
+        setBooking((b) => ({ ...(b || {}), isCheckedOut: true }));
+      } catch (err) {
+        console.error('Failed to save payment record:', err);
+        // proceed but warn
+        toast.warn('Payment recorded locally but failed to persist to server.');
+      }
 
       const compressedLogo = await compressLogo(logoUrl);
       const response = await api.post(
@@ -216,7 +268,7 @@ const PaymentPage = ({ isOpen = false, onClose, bookingId: bookingIdProp, onInvo
               { label: 'Guests', value: (booking.familyMembers?.length || 0) + 1 },
               { label: 'Nights', value: nights },
               { label: 'Room Charges', value: currency(roomCharges) },
-              { label: 'Taxes', value: currency(taxes) },
+              { label: 'Taxes', value: currency(taxesTotal) },
               { label: 'Booking Subtotal', value: currency(subtotal) },
             ].map((item) => (
               <div key={item.label} style={{ padding: '16px', borderRadius: '12px', background: '#f8fafc', border: '1px solid #e2e8f0' }}>
@@ -261,7 +313,7 @@ const PaymentPage = ({ isOpen = false, onClose, bookingId: bookingIdProp, onInvo
     }
 
     return (
-      <div style={{ display: 'grid', gap: '22px' }}>
+        <div style={{ display: 'grid', gap: '22px' }}>
         <div style={{ display: 'grid', gap: '16px', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
           <div style={{ ...summaryCardStyle, borderLeft: '4px solid #2563eb' }}>
             <span style={{ color: '#64748b' }}>Total Due</span>
@@ -272,6 +324,24 @@ const PaymentPage = ({ isOpen = false, onClose, bookingId: bookingIdProp, onInvo
             <strong style={{ fontSize: '1.6rem' }}>{currency(remainingBalance)}</strong>
           </div>
         </div>
+
+          {taxBreakdown.length > 0 && (
+            <div style={{ background: '#fff', padding: '12px', borderRadius: '10px', border: '1px solid #e6edf3' }}>
+              <div style={{ marginBottom: 8, fontWeight: 700 }}>Taxes</div>
+              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                {taxBreakdown.map((t) => (
+                  <div key={t._id} style={{ minWidth: 160, background: '#f8fafc', padding: 8, borderRadius: 8, border: '1px solid #eef2f6' }}>
+                    <div style={{ fontSize: '0.9rem', color: '#475569' }}>{t.name} ({t.percentage}%)</div>
+                    <div style={{ fontWeight: 700 }}>{currency(t.amount)}</div>
+                  </div>
+                ))}
+                <div style={{ minWidth: 160, background: '#fff7ed', padding: 8, borderRadius: 8, border: '1px solid #fde2bf' }}>
+                  <div style={{ fontSize: '0.9rem', color: '#975a16' }}>Total Taxes</div>
+                  <div style={{ fontWeight: 700 }}>{currency(taxesTotal)}</div>
+                </div>
+              </div>
+            </div>
+          )}
 
         <div>
           <h3 style={{ marginBottom: '12px' }}>Select Payment Method</h3>

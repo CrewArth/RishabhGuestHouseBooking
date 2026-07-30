@@ -95,6 +95,38 @@
   text-align: center;
 }
 
+.today-bookings-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid #eef2f7;
+}
+
+.today-bookings-page-btn {
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  color: #374151;
+  border-radius: 6px;
+  padding: 7px 12px;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+}
+
+.today-bookings-page-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.today-bookings-page-info {
+  color: #4b5563;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
 .today-bookings-error {
   color: #b91c1c !important;
 }

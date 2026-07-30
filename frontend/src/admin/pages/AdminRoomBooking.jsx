@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import PhoneInput from 'react-phone-number-input';
+import { Multiselect } from 'multiselect-react-dropdown';
+import 'react-phone-number-input/style.css';
 import api from '../../utils/api';
 import loadingIcon from '../../assets/loading.svg';
 import '../styles/adminRoomBooking.css';
@@ -9,7 +12,7 @@ const todayStr = () => new Date().toISOString().split('T')[0];
 
 const initialForm = {
   guestHouseId: '',
-  roomId: '',
+  roomIds: [],
   bedId: '',
   checkIn: '',
   checkOut: '',
@@ -28,6 +31,13 @@ const initialForm = {
 };
 
 const STEPS = ['Stay Details', 'Guest Details', 'Identity & Emergency', 'Review & Confirm'];
+
+const normalizeGuestHouseId = (value) => {
+  if (!value) return '';
+  if (typeof value === 'string') return value;
+  if (typeof value === 'object') return value.guestHouseId || value._id || '';
+  return '';
+};
 
 export default function AdminRoomBooking() {
   const navigate = useNavigate();
@@ -49,11 +59,19 @@ export default function AdminRoomBooking() {
   const [assignedGuestHouse, setAssignedGuestHouse] = useState(null);
 
   const selectedGuestHouse = useMemo(
-    () => assignedGuestHouse || guestHouses.find((gh) => gh.guestHouseId === form.guestHouseId || gh._id === form.guestHouseId),
+    () => assignedGuestHouse || guestHouses.find((gh) => normalizeGuestHouseId(gh.guestHouseId) === form.guestHouseId || gh._id === form.guestHouseId),
     [form.guestHouseId, guestHouses, assignedGuestHouse]
   );
-  const selectedRoom = useMemo(() => rooms.find((r) => r._id === form.roomId), [form.roomId, rooms]);
   const selectedBed  = useMemo(() => beds.find((b) => b._id === form.bedId),   [form.bedId, beds]);
+  const selectedRoomNames = useMemo(() => {
+    if (!Array.isArray(form.roomIds) || form.roomIds.length === 0) return [];
+    return form.roomIds
+      .map((roomId) => {
+        const room = rooms.find((item) => item._id === roomId);
+        return room ? `Room ${room.roomNumber} · ${room.roomType}` : null;
+      })
+      .filter(Boolean);
+  }, [form.roomIds, rooms]);
 
   // ── data fetching ───────────────────────────────────────────
   useEffect(() => {
@@ -76,8 +94,10 @@ export default function AdminRoomBooking() {
           const bRes = await api.get(`/api/bookings/${editBookingId}`);
           const b = bRes.data.booking;
           setForm({
-            guestHouseId: b.guestHouseId || '',
-            roomId:       b.roomId?._id        || b.roomId        || '',
+            guestHouseId: normalizeGuestHouseId(b.guestHouseId),
+            roomIds: Array.isArray(b.roomIds)
+              ? b.roomIds.map((room) => room?._id || room).filter(Boolean)
+              : [b.roomId?._id || b.roomId || ''].filter(Boolean),
             bedId:        b.bedId?._id         || b.bedId         || '',
             checkIn:      b.checkIn ? b.checkIn.split('T')[0] : '',
             checkOut:     b.checkOut ? b.checkOut.split('T')[0] : '',
@@ -114,11 +134,11 @@ export default function AdminRoomBooking() {
   }, [selectedGuestHouse]);
 
   useEffect(() => {
-    if (!form.roomId) { setBeds([]); return; }
-    api.get('/api/beds', { params: { roomId: form.roomId } })
+    if (!form.roomIds[0]) { setBeds([]); return; }
+    api.get('/api/beds', { params: { roomId: form.roomIds[0] } })
       .then((res) => setBeds(res.data.beds || []))
       .catch(() => toast.error('Unable to load beds.'));
-  }, [form.roomId]);
+  }, [form.roomIds]);
 
   useEffect(() => {
     if (!selectedGuestHouse || !form.checkIn || !form.checkOut || form.checkOut <= form.checkIn) {
@@ -135,10 +155,20 @@ export default function AdminRoomBooking() {
   const updateForm = (e) => {
     const { name, value } = e.target;
     setForm((f) => {
-      if (name === 'guestHouseId') return { ...f, guestHouseId: value, roomId: '', bedId: '' };
-      if (name === 'roomId')       return { ...f, roomId: value, bedId: '' };
+      if (name === 'guestHouseId') return { ...f, guestHouseId: value, roomIds: [], bedId: '' };
       return { ...f, [name]: value };
     });
+  };
+
+  const handleRoomSelection = (selectedItems) => {
+    const nextRoomIds = Array.isArray(selectedItems)
+      ? selectedItems.map((item) => item._id || item.value || item).filter(Boolean)
+      : [];
+    setForm((f) => ({ ...f, roomIds: nextRoomIds, bedId: '' }));
+  };
+
+  const handlePhoneChange = (value) => {
+    setForm((f) => ({ ...f, phone: value || '' }));
   };
 
   const addMember    = () => setFamilyMembers((ms) => [...ms, { name: '', relation: '', age: '', image: null }]);
@@ -149,13 +179,31 @@ export default function AdminRoomBooking() {
   const goNext = () => setStep((s) => s + 1);
   const goBack = () => setStep((s) => s - 1);
 
+  const handleStaySubmit = (e) => {
+    e.preventDefault();
+    if (form.roomIds.length < 2) {
+      toast.error('Please select at least two rooms for this booking.');
+      return;
+    }
+    goNext();
+  };
+
   const submitBooking = async () => {
     if (!isEditMode && !verificationImage) { toast.error('Upload a verification image before booking.'); return; }
     const invalid = familyMembers.some((m) => !m.name || !m.relation || m.age === '');
     if (invalid) { toast.error('Complete or remove each family member row.'); return; }
 
+    if (form.roomIds.length < 2) {
+      toast.error('Please select at least two rooms for this booking.');
+      return;
+    }
+
     const data = new FormData();
-    Object.entries(form).forEach(([k, v]) => { if (v !== '') data.append(k, v); });
+    Object.entries(form).forEach(([k, v]) => {
+      if (k === 'roomIds') return;
+      if (v !== '') data.append(k, v);
+    });
+    form.roomIds.forEach((roomId) => data.append('roomIds[]', roomId));
     data.append('familyMembers', JSON.stringify(familyMembers.map(({ name, relation, age }) => ({ name, relation, age }))));
     if (verificationImage) data.append('verificationImage', verificationImage);
     familyMembers.forEach((m, i) => {
@@ -213,7 +261,7 @@ export default function AdminRoomBooking() {
 
         {/* ── STEP 0 : Stay Details ── */}
         {step === 0 && (
-          <form className="arb-card" onSubmit={(e) => { e.preventDefault(); goNext(); }}>
+          <form className="arb-card" onSubmit={handleStaySubmit}>
             <h2>Stay Details</h2>
             <div className="arb-grid">
               <label>
@@ -240,19 +288,32 @@ export default function AdminRoomBooking() {
                   onChange={updateForm} required />
               </label>
               <label>
-                Room <span>*</span>
-                <select name="roomId" value={form.roomId} onChange={updateForm} required disabled={!selectedGuestHouse}>
-                  <option value="">Select room</option>
-                  {rooms.map((r) => (
-                    <option key={r._id} value={r._id} disabled={unavailableRooms.includes(r._id)}>
-                      Room {r.roomNumber} · {r.roomType}{unavailableRooms.includes(r._id) ? ' (Booked)' : ''}
-                    </option>
-                  ))}
-                </select>
+                Rooms <span>*</span>
+                <Multiselect
+                  className="room-multiselect"
+                  options={rooms.map((room) => ({
+                    _id: room._id,
+                    name: `Room ${room.roomNumber} · ${room.roomType}${unavailableRooms.includes(room._id) ? ' (Booked)' : ''}`,
+                    disabled: unavailableRooms.includes(room._id),
+                  }))}
+                  selectedValues={form.roomIds.map((roomId) => {
+                    const room = rooms.find((item) => item._id === roomId);
+                    return room ? { _id: room._id, name: `Room ${room.roomNumber} · ${room.roomType}` } : { _id: roomId, name: roomId };
+                  })}
+                  onSelect={handleRoomSelection}
+                  onRemove={handleRoomSelection}
+                  displayValue="name"
+                  placeholder={selectedGuestHouse ? 'Select rooms' : 'Choose guest house first'}
+                  disable={!selectedGuestHouse}
+                  showCheckbox
+                  closeIcon="cancel"
+                  avoidHighlightFirstOption
+                />
+                <small>{form.roomIds.length ? `${form.roomIds.length} room(s) selected` : 'Select at least two rooms'}</small>
               </label>
               <label>
                 Bed
-                <select name="bedId" value={form.bedId} onChange={updateForm} disabled={!form.roomId}>
+                <select name="bedId" value={form.bedId} onChange={updateForm} disabled={!form.roomIds[0]}>
                   <option value="">Select bed (optional)</option>
                   {beds.map((b) => (
                     <option key={b._id} value={b._id} disabled={unavailableBeds.includes(b._id)}>
@@ -284,7 +345,15 @@ export default function AdminRoomBooking() {
               </label>
               <label>
                 Phone <span>*</span>
-                <input type="tel" name="phone" value={form.phone} onChange={updateForm} required />
+                <PhoneInput
+                  international
+                  defaultCountry="IN"
+                  countryCallingCodeEditable={false}
+                  value={form.phone}
+                  onChange={handlePhoneChange}
+                  className="arb-phone-input"
+                  inputProps={{ required: true, name: 'phone' }}
+                />
               </label>
               <label>
                 Date of Birth
@@ -404,7 +473,7 @@ export default function AdminRoomBooking() {
               <h3>Stay Details</h3>
               <div className="arb-review-grid">
                 <div><span>Guest House</span><strong>{selectedGuestHouse?.guestHouseName || '—'}</strong></div>
-                <div><span>Room</span><strong>{selectedRoom ? `Room ${selectedRoom.roomNumber} · ${selectedRoom.roomType}` : '—'}</strong></div>
+                <div><span>Rooms</span><strong>{selectedRoomNames.length ? selectedRoomNames.join(', ') : '—'}</strong></div>
                 <div><span>Bed</span><strong>{selectedBed ? `Bed ${selectedBed.bedNumber} · ${selectedBed.bedType}` : '—'}</strong></div>
                 <div><span>Check In</span><strong>{formatDate(form.checkIn)}</strong></div>
                 <div><span>Check Out</span><strong>{formatDate(form.checkOut)}</strong></div>

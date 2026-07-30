@@ -10,6 +10,8 @@ import adminSummary from './adminRoutes.js';
 import bookingRoutes from './bookingRoutes.js';
 import contactRoutes from './contactRoutes.js';
 import reportRoutes from '../reports/routes/reportRoutes.js';
+import taxRoutes from './taxRoutes.js';
+import paymentRoutes from './paymentRoutes.js';
 
 const router = express.Router();
 
@@ -24,5 +26,7 @@ router.use('/users', userRoutes);
 router.use('/bookings', bookingRoutes);
 router.use('/contact', contactRoutes);
 router.use('/reports', reportRoutes);
+router.use('/taxes', taxRoutes);
+router.use('/payments', paymentRoutes);
 
 export default router;

@@ -113,7 +113,6 @@ const GuestHouseBookings = () => {
         <div>
           <h1 className="page-title">Guest House Bookings</h1>
           <p className="page-subtitle">
-            All bookings for <strong>{guestHouseName}</strong>
             {totalCount > 0 && <span style={{ marginLeft: 8, color: "#64748b" }}>({totalCount} total)</span>}
           </p>
         </div>

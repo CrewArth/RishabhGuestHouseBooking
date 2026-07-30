@@ -32,11 +32,93 @@ const parseFamilyMembers = (familyMembers) => {
     }));
 };
 
+const parseRoomIds = (body) => {
+  const rawIds = body.roomIds ?? body['roomIds[]'];
+  let ids = Array.isArray(rawIds) ? rawIds : rawIds;
+
+  if (typeof ids === 'string') {
+    try {
+      const parsed = JSON.parse(ids);
+      ids = Array.isArray(parsed) ? parsed : [parsed];
+    } catch {
+      ids = ids.split(',').map((item) => item.trim()).filter(Boolean);
+    }
+  }
+
+  if (Array.isArray(ids) && ids.length > 0) {
+    return [...new Set(ids.map(String).filter(Boolean))];
+  }
+  if (body.roomId) {
+    return [String(body.roomId)];
+  }
+  return [];
+};
+
+const getBookingRoomIdStrings = (booking) => {
+  if (booking.roomIds?.length) {
+    return booking.roomIds.map((room) =>
+      (typeof room === "object" && room?._id ? room._id : room).toString()
+    );
+  }
+  if (booking.roomId) {
+    const id = typeof booking.roomId === "object" && booking.roomId._id
+      ? booking.roomId._id
+      : booking.roomId;
+    return [id.toString()];
+  }
+  return [];
+};
+
+const formatBookingRoomsLabel = (booking) => {
+  const rooms = booking.roomIds?.length
+    ? booking.roomIds
+    : booking.roomId
+      ? [booking.roomId]
+      : [];
+  return rooms
+    .map((room) => (typeof room === "object" && room?.roomNumber ? `Room ${room.roomNumber}` : ""))
+    .filter(Boolean)
+    .join(", ");
+};
+
+const checkRoomAvailability = async ({ roomIds, bedId, checkInDate, checkOutDate, excludeId }) => {
+  if (bedId && roomIds.length === 1) {
+    const query = {
+      bedId,
+      status: "approved",
+      checkIn: { $lt: checkOutDate },
+      checkOut: { $gt: checkInDate },
+    };
+    if (excludeId) query._id = { $ne: excludeId };
+    const overlap = await Booking.findOne(query);
+    if (overlap) {
+      return { conflict: true, message: "This bed is already booked for the selected dates" };
+    }
+    return { conflict: false };
+  }
+
+  for (const roomId of roomIds) {
+    const query = {
+      status: "approved",
+      bedId: null,
+      checkIn: { $lt: checkOutDate },
+      checkOut: { $gt: checkInDate },
+      $or: [{ roomId }, { roomIds: roomId }],
+    };
+    if (excludeId) query._id = { $ne: excludeId };
+    const overlap = await Booking.findOne(query);
+    if (overlap) {
+      return { conflict: true, message: "One or more selected rooms are already booked for the selected dates" };
+    }
+  }
+
+  return { conflict: false };
+};
+
 export const createAdminBooking = async (req, res) => {
   try {
     const {
       guestHouseId,
-      roomId,
       bedId,
       checkIn,
       checkOut,
@@ -54,8 +136,14 @@ export const createAdminBooking = async (req, res) => {
       specialRequests,
     } = req.body;
 
-    if (!guestHouseId || !roomId || !checkIn || !checkOut || !fullName || !email || !phone || !address || !identityType || !req.verificationImageUrl) {
+    const roomIds = parseRoomIds(req.body);
+
+    if (!guestHouseId || roomIds.length === 0 || !checkIn || !checkOut || !fullName || !email || !phone || !address || !identityType || !req.verificationImageUrl) {
       return res.status(400).json({ message: "Booking, guest, identity, and verification image details are required" });
+    }
+
+    if (roomIds.length > 1 && bedId) {
+      return res.status(400).json({ message: "Bed selection is only available when booking a single room" });
     }
 
     const checkInDate = new Date(checkIn);
@@ -76,36 +164,44 @@ export const createAdminBooking = async (req, res) => {
       ...(familyMemberImageUrls[i] ? { verificationImage: familyMemberImageUrls[i] } : {}),
     }));
 
-    const overlapQuery = bedId
-      ? Booking.findOne({ bedId, status: "approved", checkIn: { $lt: checkOutDate }, checkOut: { $gt: checkInDate } })
-      : Booking.findOne({ roomId, bedId: null, status: "approved", checkIn: { $lt: checkOutDate }, checkOut: { $gt: checkInDate } });
-
-    const [guestHouse, room, bed, overlap] = await Promise.all([
+    const [guestHouse, rooms, bed, overlapResult] = await Promise.all([
       GuestHouse.findOne({ guestHouseId }),
-      Room.findById(roomId),
+      Room.find({ _id: { $in: roomIds } }),
       bedId ? Bed.findById(bedId) : Promise.resolve(null),
-      overlapQuery,
+      checkRoomAvailability({ roomIds, bedId, checkInDate, checkOutDate }),
     ]);
 
-    if (!guestHouse || !room) {
-      return res.status(404).json({ message: "Selected guest house or room was not found" });
+    if (!guestHouse) {
+      return res.status(404).json({ message: "Selected guest house was not found" });
+    }
+
+    if (rooms.length !== roomIds.length) {
+      return res.status(404).json({ message: "One or more selected rooms were not found" });
+    }
+
+    const invalidRoom = rooms.find((room) => room.guestHouseId !== guestHouse.guestHouseId);
+    if (invalidRoom) {
+      return res.status(400).json({ message: "All selected rooms must belong to the chosen guest house" });
     }
 
     if (bedId && !bed) {
       return res.status(404).json({ message: "Selected bed was not found" });
     }
 
-    if (bed && (String(bed.roomId) !== String(room._id) || room.guestHouseId !== guestHouse.guestHouseId)) {
+    if (bed && (String(bed.roomId) !== String(roomIds[0]) || rooms[0].guestHouseId !== guestHouse.guestHouseId)) {
       return res.status(400).json({ message: "Selected room and bed do not belong to this guest house" });
     }
 
-    if (overlap) {
-      return res.status(409).json({ message: bedId ? "This bed is already booked for the selected dates" : "This room is already booked for the selected dates" });
+    if (overlapResult.conflict) {
+      return res.status(409).json({ message: overlapResult.message });
     }
+
+    const primaryRoomId = roomIds[0];
 
     const booking = await Booking.create({
       guestHouseId,
-      roomId,
+      roomId: primaryRoomId,
+      roomIds,
       bedId,
       checkIn: checkInDate,
       checkOut: checkOutDate,
@@ -133,7 +229,7 @@ export const createAdminBooking = async (req, res) => {
       entityType: "Booking",
       entityId: booking._id,
       performedBy: req.user?.email || "Admin",
-      details: { guestHouseId, roomId, bedId, checkIn, checkOut },
+      details: { guestHouseId, roomIds, bedId, checkIn, checkOut },
     }).catch((error) => console.error("Audit log error:", error));
 
     return res.status(201).json({ message: "Room booked successfully", booking });
@@ -271,6 +367,7 @@ export const getAllBookings = async (req, res) => {
     let bookings = await Booking.find(query)
       .populate("userId", "email firstName lastName")
       .populate("roomId", "roomNumber")
+      .populate("roomIds", "roomNumber roomType")
       .populate("bedId", "bedNumber bedType")
       .sort({ createdAt: -1 }) // ✅ Sort newest first
       .lean();
@@ -311,6 +408,7 @@ export const exportDailyBookings = async (req, res) => {
     })
       .populate("userId", "firstName lastName email phone")
       .populate("roomId", "roomNumber")
+      .populate("roomIds", "roomNumber roomType")
       .populate("bedId", "bedNumber bedType")
       .sort({ createdAt: -1 })
       .lean();
@@ -357,7 +455,7 @@ export const exportDailyBookings = async (req, res) => {
       escapeValue(b.userId?.phone || ""),
       escapeValue(new Date(b.checkIn).toISOString()),
       escapeValue(new Date(b.checkOut).toISOString()),
-      escapeValue(b.roomId?.roomNumber ? `Room ${b.roomId.roomNumber}` : ""),
+      escapeValue(formatBookingRoomsLabel(b)),
       escapeValue(
         b.bedId?.bedNumber
           ? `Bed ${b.bedId.bedNumber} (${b.bedId.bedType})`
@@ -392,6 +490,7 @@ export const getMyBookings = async (req, res) => {
     // Fetch bookings with populate for roomId, bedId (but not guestHouseId)
     let bookings = await Booking.find({ userId })
       .populate("roomId", "roomNumber")
+      .populate("roomIds", "roomNumber roomType")
       .populate("bedId", "bedNumber bedType")
       .sort({ createdAt: -1 })
       .lean();
@@ -547,6 +646,7 @@ export const checkAvailability = async (req, res) => {
       ],
     })
       .populate("roomId", "roomNumber")
+      .populate("roomIds", "roomNumber roomType")
       .populate("bedId", "bedNumber bedType");
 
     // Extract unavailable bed IDs (beds that are booked)
@@ -568,7 +668,7 @@ export const checkAvailability = async (req, res) => {
     for (const room of rooms) {
       // A room-level booking (bedId is null) blocks the whole room
       const hasRoomLevelBooking = overlappingBookings.some(
-        b => b.roomId?._id.toString() === room._id.toString() && !b.bedId
+        (b) => !b.bedId && getBookingRoomIdStrings(b).includes(room._id.toString())
       );
 
       if (hasRoomLevelBooking) {
@@ -589,7 +689,7 @@ export const checkAvailability = async (req, res) => {
 
       // Count how many beds in this room are booked for the date range
       const bookedBedsInRoom = overlappingBookings.filter(
-        booking => booking.roomId?._id.toString() === room._id.toString()
+        (booking) => booking.bedId && getBookingRoomIdStrings(booking).includes(room._id.toString())
       );
 
       // Get unique booked bed IDs for this room
@@ -677,6 +777,7 @@ export const getApprovedBookingsForCalendar = async (req, res) => {
     let bookings = await Booking.find(query)
       .populate("userId", "firstName lastName email")
       .populate("roomId", "roomNumber")
+      .populate("roomIds", "roomNumber roomType")
       .populate("bedId", "bedNumber bedType")
       .sort({ checkIn: 1 })
       .lean();
@@ -705,6 +806,7 @@ export const getBookingById = async (req, res) => {
     // Fetch booking with populate for roomId, bedId (but not guestHouseId)
     let booking = await Booking.findById(req.params.id)
       .populate("roomId", "roomNumber roomType _id")
+      .populate("roomIds", "roomNumber roomType _id")
       .populate("bedId", "bedNumber bedType _id")
       .lean();
 
@@ -726,7 +828,7 @@ export const updateAdminBooking = async (req, res) => {
   try {
     const { id } = req.params;
     const {
-      guestHouseId, roomId, bedId,
+      guestHouseId, bedId,
       checkIn, checkOut,
       fullName, email, phone, address,
       dateOfBirth, gender, nationality,
@@ -735,8 +837,14 @@ export const updateAdminBooking = async (req, res) => {
       specialRequests,
     } = req.body;
 
-    if (!guestHouseId || !roomId || !checkIn || !checkOut || !fullName || !email || !phone || !address || !identityType) {
+    const roomIds = parseRoomIds(req.body);
+
+    if (!guestHouseId || roomIds.length === 0 || !checkIn || !checkOut || !fullName || !email || !phone || !address || !identityType) {
       return res.status(400).json({ message: "Required fields are missing" });
+    }
+
+    if (roomIds.length > 1 && bedId) {
+      return res.status(400).json({ message: "Bed selection is only available when booking a single room" });
     }
 
     const checkInDate = new Date(checkIn);
@@ -745,24 +853,36 @@ export const updateAdminBooking = async (req, res) => {
       return res.status(400).json({ message: "Check-out must be after check-in" });
     }
 
-    // Verify guest house and room exist
-    const [guestHouse, room] = await Promise.all([
+    const [guestHouse, rooms, bed, overlapResult] = await Promise.all([
       GuestHouse.findOne({ guestHouseId }),
-      Room.findById(roomId),
+      Room.find({ _id: { $in: roomIds } }),
+      bedId ? Bed.findById(bedId) : Promise.resolve(null),
+      checkRoomAvailability({ roomIds, bedId, checkInDate, checkOutDate, excludeId: id }),
     ]);
 
-    if (!guestHouse || !room) {
-      return res.status(404).json({ message: "Selected guest house or room was not found" });
+    if (!guestHouse) {
+      return res.status(404).json({ message: "Selected guest house was not found" });
     }
 
-    // Overlap check — exclude the booking being edited
-    const overlapQuery = bedId
-      ? Booking.findOne({ _id: { $ne: id }, bedId, status: "approved", checkIn: { $lt: checkOutDate }, checkOut: { $gt: checkInDate } })
-      : Booking.findOne({ _id: { $ne: id }, roomId, bedId: null, status: "approved", checkIn: { $lt: checkOutDate }, checkOut: { $gt: checkInDate } });
+    if (rooms.length !== roomIds.length) {
+      return res.status(404).json({ message: "One or more selected rooms were not found" });
+    }
 
-    const overlap = await overlapQuery;
-    if (overlap) {
-      return res.status(409).json({ message: bedId ? "This bed is already booked for the selected dates" : "This room is already booked for the selected dates" });
+    const invalidRoom = rooms.find((room) => room.guestHouseId !== guestHouse.guestHouseId);
+    if (invalidRoom) {
+      return res.status(400).json({ message: "All selected rooms must belong to the chosen guest house" });
+    }
+
+    if (bedId && !bed) {
+      return res.status(404).json({ message: "Selected bed was not found" });
+    }
+
+    if (bed && String(bed.roomId) !== String(roomIds[0])) {
+      return res.status(400).json({ message: "Selected bed does not belong to the selected room" });
+    }
+
+    if (overlapResult.conflict) {
+      return res.status(409).json({ message: overlapResult.message });
     }
 
     const familyMembers = parseFamilyMembers(req.body.familyMembers);
@@ -772,8 +892,12 @@ export const updateAdminBooking = async (req, res) => {
       ...(familyMemberImageUrls[i] ? { verificationImage: familyMemberImageUrls[i] } : {}),
     }));
 
+    const primaryRoomId = roomIds[0];
+
     const updateData = {
-      guestHouseId, roomId,
+      guestHouseId,
+      roomId: primaryRoomId,
+      roomIds,
       bedId: bedId || undefined,
       checkIn: checkInDate, checkOut: checkOutDate,
       fullName: fullName.trim(), email, phone, address: address.trim(),
@@ -801,7 +925,7 @@ export const updateAdminBooking = async (req, res) => {
       entityType: "Booking",
       entityId: updated._id,
       performedBy: req.user?.email || "Admin",
-      details: { guestHouseId, roomId, bedId, checkIn, checkOut },
+      details: { guestHouseId, roomIds, bedId, checkIn, checkOut },
     }).catch((err) => console.error("Audit log error:", err));
 
     return res.status(200).json({ message: "Booking updated successfully", booking: updated });

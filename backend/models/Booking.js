@@ -1,5 +1,5 @@
 // models/Booking.js
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
 const bookingSchema = new mongoose.Schema(
   {
@@ -21,6 +21,10 @@ const bookingSchema = new mongoose.Schema(
       ref: "Room",
       required: true,
     },
+    roomIds: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Room',
+    }],
     bedId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Bed",
@@ -43,28 +47,33 @@ const bookingSchema = new mongoose.Schema(
     phone: { type: String },
     address: { type: String },
     dateOfBirth: { type: Date },
-    gender: { type: String, enum: ["male", "female", "other", "prefer_not_to_say"] },
+    gender: {
+      type: String,
+      enum: ["male", "female", "other", "prefer_not_to_say"],
+    },
     nationality: { type: String },
     identityType: { type: String },
     identityNumber: { type: String },
     verificationImage: { type: String },
     emergencyContactName: { type: String },
     emergencyContactPhone: { type: String },
-    familyMembers: [{
-      name: { type: String, trim: true },
-      relation: { type: String, trim: true },
-      age: { type: Number, min: 0 },
-      verificationImage: { type: String },
-    }],
+    familyMembers: [
+      {
+        name: { type: String, trim: true },
+        relation: { type: String, trim: true },
+        age: { type: Number, min: 0 },
+        verificationImage: { type: String },
+      },
+    ],
     bookingSource: {
       type: String,
       enum: ["self_service", "admin"],
       default: "self_service",
     },
     specialRequests: { type: String },
-
+    isCheckedOut: { type: Boolean, default: false },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 // Indexes for performance optimization

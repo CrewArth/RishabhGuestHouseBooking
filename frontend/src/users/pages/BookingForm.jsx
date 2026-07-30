@@ -4,6 +4,7 @@ import { useSelector } from 'react-redux';
 import '../styles/bookingform.css';
 import '../../admin/styles/adminRoomBooking.css';
 import Navbar from '../../components/Navbar';
+import { Multiselect } from 'multiselect-react-dropdown';
 import { toast } from 'react-toastify';
 import api from '../../utils/api';
 import loadingIcon from '../../assets/loading.svg';
@@ -32,7 +33,7 @@ const BookingForm = () => {
     checkInDate: '',
     checkOutDate: '',
     guestHouse: selectedGuestHouse || '',
-    room: '',
+    roomIds: [],
     bed: '',
     fullName: storedUser ? `${storedUser.firstName} ${storedUser.lastName}` : '',
     email: storedUser?.email || '',
@@ -59,7 +60,7 @@ const BookingForm = () => {
     if (selectedGuestHouse) {
       fetchRooms(selectedGuestHouse);
     }
-    setFormData(prev => ({ ...prev, room: '', bed: '' }));
+    setFormData(prev => ({ ...prev, roomIds: [], bed: '' }));
     setBeds([]);
   }, [selectedGuestHouse]);
 
@@ -108,9 +109,17 @@ const BookingForm = () => {
       );
     }
 
-    if (name === 'room') {
-      fetchBeds(value);
-      setFormData(prev => ({ ...prev, bed: '' }));
+  };
+
+  const handleRoomSelection = (selectedItems) => {
+    const nextRoomIds = Array.isArray(selectedItems) ? selectedItems.map((item) => item._id || item.value) : [];
+    const cleanRoomIds = nextRoomIds.filter(Boolean);
+
+    setFormData(prev => ({ ...prev, roomIds: cleanRoomIds, bed: '' }));
+
+    if (cleanRoomIds.length >= 2) {
+      setBeds([]);
+      setBedsError(null);
     }
   };
 
@@ -174,13 +183,20 @@ const BookingForm = () => {
       return;
     }
 
+    if (formData.roomIds.length < 2) {
+      toast.error('Please select at least two rooms for this booking.');
+      setSubmitting(false);
+      return;
+    }
+
     setSubmitting(true);
 
     try {
       const bookingData = {
         guestHouseId: selectedGuestHouse?.guestHouseId || selectedGuestHouse?._id,
-        roomId: formData.room,
-        bedId: formData.bed,
+        roomId: formData.roomIds[0],
+        roomIds: formData.roomIds,
+        bedId: null,
         checkIn: formData.checkInDate,
         checkOut: formData.checkOutDate,
         fullName: formData.fullName,
@@ -273,31 +289,33 @@ const BookingForm = () => {
 
                 <div className="form-control">
                   <label>Room</label>
-                  <select name="room" value={formData.room} onChange={handleChange} required>
-                    <option value="">{roomsLoading ? 'Loading...' : 'Select Room'}</option>
-                    {rooms.map((room) => {
-                      const isUnavailable = unavailableRooms.includes(room._id);
-                      return (
-                        <option key={room._id} value={room._id} disabled={isUnavailable}>
-                          Room {room.roomNumber} - {room.roomType} {room.price ? `($${room.price}/night)` : ''} {isUnavailable ? '(Full)' : ''}
-                        </option>
-                      );
-                    })}
-                  </select>
+                  <Multiselect
+                    className="room-multiselect"
+                    options={rooms.map((room) => ({
+                      _id: room._id,
+                      name: `Room ${room.roomNumber} - ${room.roomType} ${room.price ? `($${room.price}/night)` : ''} ${unavailableRooms.includes(room._id) ? '(Full)' : ''}`.trim(),
+                      disabled: unavailableRooms.includes(room._id),
+                    }))}
+                    selectedValues={formData.roomIds.map((roomId) => ({
+                      _id: roomId,
+                      name: rooms.find((room) => room._id === roomId)?.roomNumber ? `Room ${rooms.find((room) => room._id === roomId).roomNumber}` : roomId,
+                    }))}
+                    onSelect={handleRoomSelection}
+                    onRemove={handleRoomSelection}
+                    displayValue="name"
+                    placeholder={roomsLoading ? 'Loading rooms...' : 'Select rooms'}
+                    disable={(!selectedGuestHouse || roomsLoading)}
+                    showCheckbox
+                    closeIcon="cancel"
+                    avoidHighlightFirstOption
+                  />
+                  <small>{formData.roomIds.length ? `${formData.roomIds.length} room(s) selected` : 'Select at least two rooms'}</small>
                 </div>
 
-                <div className="form-control full-width">
+                <div className="form-control">
                   <label>Bed</label>
-                  <select name="bed" value={formData.bed} onChange={handleChange} required>
-                    <option value="">{bedsLoading ? 'Loading...' : 'Select Bed'}</option>
-                    {beds.map((bed) => {
-                      const isUnavailable = unavailableBeds.includes(bed._id);
-                      return (
-                        <option key={bed._id} value={bed._id} disabled={isUnavailable}>
-                          Bed {bed.bedNumber} - {bed.bedType} {isUnavailable ? '(Booked)' : ''}
-                        </option>
-                      );
-                    })}
+                  <select name="bed" value={formData.bed} disabled>
+                    <option value="">Bed is not required for multi-room booking</option>
                   </select>
                 </div>
               </div>

@@ -17,13 +17,15 @@ const formatCurrency = (value) =>
     maximumFractionDigits: 2,
   });
 
-const drawLogo = (doc, logoUrl, x, y, size) => {
+const drawLogo = (doc, logoUrl, x, y, width, height) => {
   if (!logoUrl || typeof logoUrl !== 'string') return false;
   try {
     const matches = logoUrl.match(/^data:([^;]+);base64,(.+)$/);
     if (!matches) return false;
     const imageData = Buffer.from(matches[2], 'base64');
-    doc.image(imageData, x + 8, y + 8, { width: size - 16, height: size - 16, fit: [size - 16, size - 16] });
+    const innerW = Math.max(0, width - 16);
+    const innerH = Math.max(0, height - 16);
+    doc.image(imageData, x + 8, y + 8, { fit: [innerW, innerH] });
     return true;
   } catch {
     return false;
@@ -44,10 +46,11 @@ export const generateInvoicePdf = async (invoice, meta = {}) => {
 
   const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
   const headerX = doc.page.margins.left;
-  const logoWidth = 180;
-  const logoHeight = 50;
-  const logoX = doc.page.width - doc.page.margins.right - logoWidth;
-  const logoY = doc.page.margins.top;
+  const logoWidth = 80;
+  const logoHeight = 80;
+  const extraRight = 12; // small extra right margin
+  const logoX = doc.page.width - doc.page.margins.right - extraRight - logoWidth;
+  const logoY = Math.max(0, doc.page.margins.top - 8); // nudge logo slightly up
 
   const companyName = invoice.bookingDetails?.guestHouseId?.guestHouseName || 'Guest house name';
   const locationValue = invoice.bookingDetails?.guestHouseId?.location;
@@ -61,8 +64,7 @@ export const generateInvoicePdf = async (invoice, meta = {}) => {
   doc.font('Helvetica-Bold').fontSize(26).fillColor('#111827')
     .text('INVOICE', headerX, 40);
 
-  doc.roundedRect(logoX, logoY, logoWidth, logoHeight, 6).stroke('#d1d5db');
-  if (!drawLogo(doc, logoUrl, logoX, logoY, logoWidth)) {
+  if (!drawLogo(doc, logoUrl, logoX, logoY, logoWidth, logoHeight)) {
     doc.font('Helvetica-Bold').fontSize(12).fillColor('#111827')
       .text(companyName, logoX + 8, logoY + 12, { width: logoWidth - 16, align: 'center' });
     doc.font('Helvetica').fontSize(8).fillColor('#6b7280')
@@ -115,24 +117,44 @@ export const generateInvoicePdf = async (invoice, meta = {}) => {
   const amountWidth = 100;
   const descWidth = tableWidth - noWidth - amountWidth - 32;
 
-  doc.roundedRect(tableX, tableY, tableWidth, 150, 6).stroke('#e5e7eb');
+  
+
+  // Prepare rows: booking charges, extras, then individual tax lines (if provided) and payment
+  const providedTaxItems = Array.isArray(invoice.taxBreakdown) ? invoice.taxBreakdown : [];
+  const invoiceTaxesTotal = Number(invoice.taxesTotal) || providedTaxItems.reduce((s, t) => s + (Number(t.amount) || 0), 0);
+  const bookingChargesValue = bookingTotal - extrasTotal - invoiceTaxesTotal;
+
+  const rows = [];
+  rows.push({ label: 'Booking Charges', value: bookingChargesValue });
+  rows.push({ label: 'Extras / Add-ons', value: extrasTotal });
+
+  if (providedTaxItems.length > 0) {
+    providedTaxItems.forEach((t) => {
+      const pct = t.percentage != null ? ` (${t.percentage}%)` : '';
+      rows.push({ label: `${t.name || 'Tax'}${pct}`, value: Number(t.amount) || 0 });
+    });
+  } else if (invoiceTaxesTotal) {
+    rows.push({ label: 'Taxes', value: invoiceTaxesTotal });
+  }
+
+  rows.push({ label: 'Amount Paid', value: amountPaid });
+
+  let currentY = tableY + 36;
+  const rowHeight = 28;
+  const minTableHeight = 150;
+  const neededHeight = rows.length * rowHeight + 36; // header + rows
+  const tableHeight = Math.max(minTableHeight, neededHeight);
+
+  // Draw table with dynamic height
+  doc.roundedRect(tableX, tableY, tableWidth, tableHeight, 6).stroke('#e5e7eb');
   doc.moveTo(tableX, tableY + 28).lineTo(tableX + tableWidth, tableY + 28).stroke('#e5e7eb');
-  doc.moveTo(tableX + noWidth + 12, tableY).lineTo(tableX + noWidth + 12, tableY + 150).stroke('#e5e7eb');
-  doc.moveTo(tableX + noWidth + descWidth + 24, tableY).lineTo(tableX + noWidth + descWidth + 24, tableY + 150).stroke('#e5e7eb');
+  doc.moveTo(tableX + noWidth + 12, tableY).lineTo(tableX + noWidth + 12, tableY + tableHeight).stroke('#e5e7eb');
+  doc.moveTo(tableX + noWidth + descWidth + 24, tableY).lineTo(tableX + noWidth + descWidth + 24, tableY + tableHeight).stroke('#e5e7eb');
 
   doc.font('Helvetica-Bold').fontSize(9).fillColor('#111827')
     .text('NO.', tableX + 12, tableY + 10)
     .text('DESCRIPTION', tableX + noWidth + 12, tableY + 10)
     .text('AMOUNT', tableX + noWidth + descWidth + 24, tableY + 10, { width: amountWidth, align: 'right' });
-
-  const rows = [
-    { label: 'Booking Charges', value: bookingTotal - extrasTotal },
-    { label: 'Extras / Add-ons', value: extrasTotal },
-    { label: 'Amount Paid', value: amountPaid },
-  ];
-
-  let currentY = tableY + 36;
-  const rowHeight = 28;
 
   rows.forEach((row, index) => {
     doc.font('Helvetica').fontSize(10).fillColor('#475569')
@@ -144,7 +166,7 @@ export const generateInvoicePdf = async (invoice, meta = {}) => {
   });
 
   const summaryX = tableX + tableWidth - amountWidth - 12;
-  const summaryY = tableY + 150 + 20;
+  const summaryY = tableY + tableHeight + 20;
 
   doc.font('Helvetica').fontSize(9).fillColor('#475569')
     .text('Subtotal', summaryX - 80, summaryY)

@@ -3,21 +3,86 @@ import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { generateToken } from "../utils/jwt.js";
 import { sendEmail } from "../utils/emailService.js";
+import { welcomeEmail } from "../utils/emailTemplates/welcomeEmail.js";
 import { passwordResetEmail } from "../utils/emailTemplates/passwordReset.js";
-import { normalizeUser } from "../utils/roles.js";
+import { logAction } from "../utils/auditLogger.js";
 
 //Controller for Registering Users
 export const registerUser = async (req, res) => {
-  res.status(403).json({
-    message: "Public registration is disabled. Please contact a super admin.",
-  });
+  try {
+    //Get the Response Data
+    const { firstName, lastName, email, phone, address, password } = req.body;
+
+    // const allowedEmailSuffix = '@rishabhsoft.in';
+    // if (!email || !email.toLowerCase().endsWith(allowedEmailSuffix)) {
+    //     return res.status(400).json({
+    //         message: "Only rishabhsoft.in email addresses are allowed to register."
+    //     });
+    // }
+
+    //Check for Existing User
+    const existingUser = await User.findOne({ email });
+    if (existingUser)
+      return res.status(400).json({
+        message: "User with this Email Already Exists.",
+      });
+
+    //Create New User
+    const newUser = new User({
+      firstName,
+      lastName,
+      email,
+      phone,
+      address,
+      password,
+    });
+    await newUser.save(); // pre-save will hash password
+
+    // Generate token immediately (don't wait for email/audit log)
+    const token = generateToken(newUser);
+
+    // Send email asynchronously (don't block response)
+    sendEmail({
+      to: newUser.email,
+      subject: "Welcome to Rishabh Guest House",
+      html: welcomeEmail(newUser),
+    }).catch((err) => console.error("Email send error:", err));
+
+    // Log action asynchronously (don't block response)
+    logAction({
+      action: "USER_REGISTERED",
+      entityType: "User",
+      entityId: newUser._id,
+      performedBy: newUser.email,
+      details: {
+        name: `${newUser.firstName} ${newUser.lastName}`.trim(),
+        email: newUser.email,
+        phone: newUser.phone,
+      },
+    }).catch((err) => console.error("Audit log error:", err));
+
+    // Send response
+    res.status(201).json({
+      user: newUser,
+      token,
+    });
+
+    // Invalidate admin dashboard cache
+    cache
+      .delete("admin:dashboard:summary")
+      .catch((err) => console.error("Cache invalidation error:", err));
+  } catch (error) {
+    res.status(500).json({
+      message: error.message,
+    });
+  }
 };
 
 //Controller for Login User
 export const loginUser = async (req, res) => {
   try {
     //Get Credentials
-    const { email, password, logoUrl } = req.body;
+    const { email, password } = req.body;
     const user = await User.findOne({ email });
 
     if (!user) return res.status(404).json({ message: "User Not Found!" });
@@ -29,18 +94,7 @@ export const loginUser = async (req, res) => {
       return res.status(400).json({ message: "Invalid Credentials" });
 
     const token = generateToken(user);
-    const refreshCookieValue = encodeURIComponent(
-      JSON.stringify({ token, logoUrl: logoUrl || null })
-    );
-
-    res.cookie('refreshAccessToken', refreshCookieValue, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-    });
-
-    res.status(200).json({ user: normalizeUser(user.toObject()), token });
+    res.status(200).json({ user, token });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -51,7 +105,6 @@ export const forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
 
-    console.log("email..", email)
     if (!email) {
       return res.status(400).json({ message: "Email is required" });
     }

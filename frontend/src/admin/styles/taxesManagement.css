@@ -1,0 +1,203 @@
+/* Taxes & Management page styles */
+
+.taxes-page-section {
+  padding: 20px;
+}
+
+.taxes-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.taxes-header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  color: #111827;
+  font-weight: 700;
+}
+
+.taxes-actions button {
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  background: #f8fafc;
+  cursor: pointer;
+}
+
+.taxes-form {
+  margin-bottom: 18px;
+  display: grid;
+  gap: 8px;
+  max-width: 520px;
+}
+
+.taxes-form label {
+  display: grid;
+  font-size: 0.95rem;
+  color: #374151;
+}
+
+.taxes-form input[type="text"],
+.taxes-form input[type="number"] {
+  padding: 8px 10px;
+  border: 1px solid #e6edf3;
+  border-radius: 8px;
+  font-size: 0.96rem;
+  background: #fff;
+}
+
+.taxes-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 6px 18px rgba(15,23,42,0.06);
+}
+
+.taxes-table thead th {
+  text-align: left;
+  padding: 12px 16px;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 0.9rem;
+}
+
+.taxes-table tbody td {
+  padding: 12px 16px;
+  border-top: 1px solid #f1f5f9;
+  color: #0f172a;
+}
+
+/* Add visible borders around cells */
+.taxes-table thead th,
+.taxes-table tbody td {
+  border-left: 1px solid #eef2f6;
+  border-right: 1px solid #eef2f6;
+}
+
+.taxes-table thead th:first-child,
+.taxes-table tbody td:first-child {
+  border-left: none;
+}
+
+.taxes-table thead th:last-child,
+.taxes-table tbody td:last-child {
+  border-right: none;
+}
+
+.taxes-table tbody tr.empty td {
+  text-align: center;
+  color: #6b7280;
+}
+
+.taxes-table button {
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: #fff;
+  cursor: pointer;
+}
+
+.taxes-table button.disable {
+  background: #fee2e2;
+  color: #b91c1c;
+  border-color: #fecaca;
+  padding: 6px 10px;
+  border-radius: 6px;
+}
+
+.taxes-table input[type="checkbox"] {
+  transform: scale(1.05);
+}
+
+/* Modal styles */
+.taxes-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(2,6,23,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3000;
+  padding: 16px;
+}
+
+.taxes-modal {
+  width: min(520px, 100%);
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 18px 60px rgba(2,6,23,0.18);
+  overflow: hidden;
+  padding: 16px;
+}
+
+.taxes-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.taxes-modal-header h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.taxes-modal-close {
+  border: none;
+  background: transparent;
+  font-size: 1.1rem;
+  cursor: pointer;
+}
+
+.taxes-form button {
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  background: #f8fafc;
+  cursor: pointer;
+}
+
+.taxes-form input[type="text"],
+.taxes-form input[type="number"] {
+  padding: 8px 10px;
+  border: 1px solid #e6edf3;
+  border-radius: 8px;
+  font-size: 0.96rem;
+  background: #fff;
+}
+
+.taxes-form .primary {
+  background: #2563eb;
+  color: #fff;
+  border-color: #2563eb;
+}
+
+.taxes-form .secondary {
+  background: #fff;
+  color: #0f172a;
+  border-color: #d1d5db;
+}
+
+.taxes-form button[disabled] {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.taxes-actions button {
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid #2563eb;
+  background: #2563eb;
+  color: #fff;
+  cursor: pointer;
+}
+
+.taxes-table button.disable {
+  background: #fee2e2;
+  color: #b91c1c;
+}

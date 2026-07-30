@@ -23,6 +23,8 @@ const Reports = lazyLoad(() => import('./admin/pages/Reports'));
 const GuestHouseBookings = lazyLoad(() => import('./admin/pages/GuestHouseBookings'));
 const PaymentPage = lazyLoad(() => import('./admin/pages/PaymentPage'));
 const InvoicePage = lazyLoad(() => import('./admin/pages/InvoicePage'));
+const TaxesManagement = lazyLoad(() => import('./admin/pages/TaxesManagement'));
+const Receipts = lazyLoad(() => import('./admin/pages/Receipts'));
 const ForgotPassword = lazyLoad(() => import('./users/pages/ForgotPassword'));
 const ResetPassword = lazyLoad(() => import('./users/pages/ResetPassword'));
 const AboutUs = lazyLoad(() => import('./commonPages/AboutUs'));
@@ -110,6 +112,7 @@ function App() {
           <Route path="/admin/guest-house-bookings" element={<GuestHouseBookings />} />
           <Route path="/admin/payment" element={<PaymentPage />} />
           <Route path="/admin/invoice" element={<InvoicePage />} />
+          <Route path="/admin/receipts" element={<Receipts />} />
           <Route path="/admin/reports" element={<Reports />} />
 
           {/* Super Admin routes */}
@@ -122,6 +125,7 @@ function App() {
           <Route path="/super-admin/bookings" element={<Bookings />}/>
           <Route path="/super-admin/reports" element={<Reports />} />
           <Route path="/super-admin/settings" element={<Settings />} />
+          <Route path="/super-admin/taxes" element={<TaxesManagement />} />
         </Route>  
 
         <Route path="*" element={<NotFound />} />
