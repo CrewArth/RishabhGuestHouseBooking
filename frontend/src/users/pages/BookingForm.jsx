@@ -112,7 +112,11 @@ const BookingForm = () => {
   };
 
   const handleRoomSelection = (selectedItems) => {
-    const nextRoomIds = Array.isArray(selectedItems) ? selectedItems.map((item) => item._id || item.value) : [];
+    const nextRoomIds = Array.isArray(selectedItems)
+      ? selectedItems
+          .map((item) => item._id || item.value)
+          .filter((id) => id && !unavailableRooms.includes(id)) // block unavailable rooms
+      : [];
     const cleanRoomIds = nextRoomIds.filter(Boolean);
 
     setFormData(prev => ({ ...prev, roomIds: cleanRoomIds, bed: '' }));
@@ -183,8 +187,8 @@ const BookingForm = () => {
       return;
     }
 
-    if (formData.roomIds.length < 2) {
-      toast.error('Please select at least two rooms for this booking.');
+    if (formData.roomIds.length === 0) {
+      toast.error('Please select at least one room for this booking.');
       setSubmitting(false);
       return;
     }
@@ -309,7 +313,7 @@ const BookingForm = () => {
                     closeIcon="cancel"
                     avoidHighlightFirstOption
                   />
-                  <small>{formData.roomIds.length ? `${formData.roomIds.length} room(s) selected` : 'Select at least two rooms'}</small>
+                  <small>{formData.roomIds.length ? `${formData.roomIds.length} room(s) selected` : 'Select at least one room'}</small>
                 </div>
 
                 <div className="form-control">

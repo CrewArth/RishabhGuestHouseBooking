@@ -5,7 +5,7 @@
 export const REPORTS = [
   {
     id: "bookingByGuestHouse",
-    name: "Booking by Guest House",
+    name: "Booking Report",
     description: "Detailed report listing all bookings for a selected guest house within a specified date range.",
     defaultEnabled: true,
     supportedFilters: ["fromDate", "toDate", "guestHouseId"],
@@ -13,9 +13,9 @@ export const REPORTS = [
   {
     id: "monthlyRevenueByGuestHouse",
     name: "Monthly Revenue by Guest House",
-    description: "Revenue report showing room-wise earnings for a selected guest house during a specific month.",
+    description: "Revenue report showing room-wise earnings for a selected guest house. Filter by month/year or a custom date range.",
     defaultEnabled: true,
-    supportedFilters: ["month", "year", "guestHouseId"],
+    supportedFilters: ["month", "year", "guestHouseId", "fromDate", "toDate"],
   },
   {
     id: "invoice",

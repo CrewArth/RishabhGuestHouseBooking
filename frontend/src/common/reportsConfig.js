@@ -5,17 +5,17 @@
 export const REPORTS = [
   {
     id: "bookingByGuestHouse",
-    name: "Booking by Guest House",
+    name: "Booking Report",
     description: "",
     defaultEnabled: true,
     supportedFilters: ["fromDate", "toDate", "guestHouseId"],
   },
   {
     id: "monthlyRevenueByGuestHouse",
-    name: "Monthly Revenue by Guest House",
+    name: "Monthly Revenue Report",
     description: "",
     defaultEnabled: true,
-    supportedFilters: ["month", "year", "guestHouseId"],
+    supportedFilters: ["month", "year", "guestHouseId", "fromDate", "toDate"],
   },
 ];
 

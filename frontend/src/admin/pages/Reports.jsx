@@ -148,11 +148,23 @@ const Reports = () => {
 
       // Build filter payload based on what the selected report needs
       const filterPayload = { logoUrl: compressedLogo };
-      if (currentReportConfig?.supportedFilters.includes('fromDate'))     filterPayload.fromDate     = fromDate;
-      if (currentReportConfig?.supportedFilters.includes('toDate'))       filterPayload.toDate       = toDate;
       if (currentReportConfig?.supportedFilters.includes('guestHouseId')) filterPayload.guestHouseId = guestHouseId;
-      if (currentReportConfig?.supportedFilters.includes('month'))        filterPayload.month        = selectedMonth;
-      if (currentReportConfig?.supportedFilters.includes('year'))         filterPayload.year         = selectedYear;
+
+      if (selectedReportId === 'monthlyRevenueByGuestHouse') {
+        // Date range takes priority over month/year when both are filled
+        if (fromDate && toDate) {
+          filterPayload.fromDate = fromDate;
+          filterPayload.toDate   = toDate;
+        } else {
+          filterPayload.month = selectedMonth;
+          filterPayload.year  = selectedYear;
+        }
+      } else {
+        if (currentReportConfig?.supportedFilters.includes('fromDate')) filterPayload.fromDate = fromDate;
+        if (currentReportConfig?.supportedFilters.includes('toDate'))   filterPayload.toDate   = toDate;
+        if (currentReportConfig?.supportedFilters.includes('month'))    filterPayload.month    = selectedMonth;
+        if (currentReportConfig?.supportedFilters.includes('year'))     filterPayload.year     = selectedYear;
+      }
 
       const response = await api.post(
         `/api/reports/${selectedReportId}/generate`,
@@ -351,7 +363,7 @@ const Reports = () => {
                         className="reports-filter-select"
                         value={selectedMonth}
                         onChange={(e) => setSelectedMonth(Number(e.target.value))}
-                        required
+                        disabled={selectedReportId === 'monthlyRevenueByGuestHouse' && !!(fromDate && toDate)}
                       >
                         {MONTHS.map((m) => (
                           <option key={m.value} value={m.value}>{m.label}</option>
@@ -369,13 +381,44 @@ const Reports = () => {
                         className="reports-filter-select"
                         value={selectedYear}
                         onChange={(e) => setSelectedYear(Number(e.target.value))}
-                        required
+                        disabled={selectedReportId === 'monthlyRevenueByGuestHouse' && !!(fromDate && toDate)}
                       >
                         {yearOptions.map((yr) => (
                           <option key={yr} value={yr}>{yr}</option>
                         ))}
                       </select>
                     </div>
+                  )}
+
+                  {/* Optional date range — only shown for monthlyRevenueByGuestHouse */}
+                  {selectedReportId === 'monthlyRevenueByGuestHouse' && (
+                    <>
+                      <div className="reports-filter-field">
+                        <label className="reports-filter-label">
+                          From Date
+                          <span style={{ color: '#94a3b8', fontWeight: 400, marginLeft: 6 }}>(optional — overrides month/year)</span>
+                        </label>
+                        <input
+                          type="date"
+                          className="reports-filter-input"
+                          value={fromDate}
+                          onChange={(e) => setFromDate(e.target.value)}
+                        />
+                      </div>
+                      <div className="reports-filter-field">
+                        <label className="reports-filter-label">
+                          To Date
+                          <span style={{ color: '#94a3b8', fontWeight: 400, marginLeft: 6 }}>(optional)</span>
+                        </label>
+                        <input
+                          type="date"
+                          className="reports-filter-input"
+                          value={toDate}
+                          min={fromDate || undefined}
+                          onChange={(e) => setToDate(e.target.value)}
+                        />
+                      </div>
+                    </>
                   )}
                 </div>
 

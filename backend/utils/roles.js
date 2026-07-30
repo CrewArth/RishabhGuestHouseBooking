@@ -13,10 +13,6 @@ export const normalizeRole = (role) => {
     return 'SUPER_ADMIN';
   }
 
-  if (trimmedRole === 'user') {
-    return 'ADMIN';
-  }
-
   const upperRole = trimmedRole.toUpperCase();
 
   if (upperRole === 'SUPER_ADMIN' || upperRole === 'SUPER-ADMIN') {
@@ -28,7 +24,7 @@ export const normalizeRole = (role) => {
   }
 
   if (upperRole === 'USER') {
-    return 'ADMIN';
+    return 'USER';
   }
 
   return upperRole;

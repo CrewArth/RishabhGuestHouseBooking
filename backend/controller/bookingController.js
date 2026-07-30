@@ -5,11 +5,12 @@ import Bed from "../models/Bed.js";
 import Room from "../models/Room.js";
 import { logAction } from "../utils/auditLogger.js";
 import { sendEmail } from '../utils/emailService.js';
+import { sendBookingWhatsApp, sendCancelWhatsApp } from '../utils/whatsappService.js';
 import User from '../models/User.js';
 import GuestHouse from '../models/GuestHouse.js';
 import { bookingRequest } from "../utils/emailTemplates/bookingRequest.js";
 import { bookingStatusUpdate } from "../utils/emailTemplates/bookingStatusUpdate.js";
-
+import { upsertNormalUser } from "../utils/upsertNormalUser.js";
 const parseFamilyMembers = (familyMembers) => {
   if (!familyMembers) {
     return [];
@@ -137,12 +138,14 @@ export const createAdminBooking = async (req, res) => {
     } = req.body;
 
     const roomIds = parseRoomIds(req.body);
+    const primaryRoomId = roomIds[0] || req.body.roomId;
+    const selectedBedId = bedId && String(bedId).trim() !== '' && String(bedId).trim() !== 'null' && String(bedId).trim() !== 'undefined' ? bedId : null;
 
     if (!guestHouseId || roomIds.length === 0 || !checkIn || !checkOut || !fullName || !email || !phone || !address || !identityType || !req.verificationImageUrl) {
       return res.status(400).json({ message: "Booking, guest, identity, and verification image details are required" });
     }
 
-    if (roomIds.length > 1 && bedId) {
+    if (roomIds.length > 1 && selectedBedId) {
       return res.status(400).json({ message: "Bed selection is only available when booking a single room" });
     }
 
@@ -167,8 +170,8 @@ export const createAdminBooking = async (req, res) => {
     const [guestHouse, rooms, bed, overlapResult] = await Promise.all([
       GuestHouse.findOne({ guestHouseId }),
       Room.find({ _id: { $in: roomIds } }),
-      bedId ? Bed.findById(bedId) : Promise.resolve(null),
-      checkRoomAvailability({ roomIds, bedId, checkInDate, checkOutDate }),
+      selectedBedId ? Bed.findById(selectedBedId) : Promise.resolve(null),
+      checkRoomAvailability({ roomIds, bedId: selectedBedId, checkInDate, checkOutDate }),
     ]);
 
     if (!guestHouse) {
@@ -184,11 +187,11 @@ export const createAdminBooking = async (req, res) => {
       return res.status(400).json({ message: "All selected rooms must belong to the chosen guest house" });
     }
 
-    if (bedId && !bed) {
+    if (selectedBedId && !bed) {
       return res.status(404).json({ message: "Selected bed was not found" });
     }
 
-    if (bed && (String(bed.roomId) !== String(roomIds[0]) || rooms[0].guestHouseId !== guestHouse.guestHouseId)) {
+    if (bed && (String(bed.roomId) !== String(primaryRoomId) || rooms[0].guestHouseId !== guestHouse.guestHouseId)) {
       return res.status(400).json({ message: "Selected room and bed do not belong to this guest house" });
     }
 
@@ -196,13 +199,11 @@ export const createAdminBooking = async (req, res) => {
       return res.status(409).json({ message: overlapResult.message });
     }
 
-    const primaryRoomId = roomIds[0];
-
     const booking = await Booking.create({
       guestHouseId,
       roomId: primaryRoomId,
       roomIds,
-      bedId,
+      bedId: selectedBedId,
       checkIn: checkInDate,
       checkOut: checkOutDate,
       status: "approved",
@@ -229,8 +230,38 @@ export const createAdminBooking = async (req, res) => {
       entityType: "Booking",
       entityId: booking._id,
       performedBy: req.user?.email || "Admin",
-      details: { guestHouseId, roomIds, bedId, checkIn, checkOut },
+      details: { guestHouseId, roomIds, bedId: selectedBedId, checkIn, checkOut },
     }).catch((error) => console.error("Audit log error:", error));
+
+    // Fire-and-forget: upsert guest into NormalUser collection
+    upsertNormalUser({
+      fullName,
+      email,
+      phone,
+      address,
+      dateOfBirth: dateOfBirth || null,
+      gender: gender || null,
+      nationality,
+      identityType,
+      identityNumber,
+      emergencyContactName,
+      emergencyContactPhone,
+      bookingId: booking._id,
+    }).catch((error) => console.error("NormalUser upsert error:", error));
+
+    sendEmail({
+      to: email,
+      subject: "Room Booked Successfully",
+      html: bookingRequest({ email, firstName: fullName.split(' ')[0] || fullName, lastName: fullName.split(' ').slice(1).join(' ') || '' }, booking, guestHouse),
+    }).catch((error) => console.error("Email send error:", error));
+
+    sendBookingWhatsApp({
+      to: phone,
+      guestHouseName: guestHouse.guestHouseName,
+      checkIn: booking.checkIn,
+      checkOut: booking.checkOut,
+      roomNumber: rooms.map(r => `Room ${r.roomNumber}`).join(", "),
+    }).catch((error) => console.error("WhatsApp send error:", error));
 
     return res.status(201).json({ message: "Room booked successfully", booking });
   } catch (error) {
@@ -245,9 +276,16 @@ export const createBooking = async (req, res) => {
   try {
     const { guestHouseId, roomId, bedId, checkIn, checkOut } = req.body;
     const userId = req.user?._id || req.body.userId;
+    const roomIds = parseRoomIds(req.body);
+    const primaryRoomId = roomIds[0] || roomId;
+    const selectedBedId = bedId && String(bedId).trim() !== '' && String(bedId).trim() !== 'null' && String(bedId).trim() !== 'undefined' ? bedId : null;
 
-    if (!guestHouseId || !roomId || !bedId || !checkIn || !checkOut) {
+    if (!guestHouseId || roomIds.length === 0 || !checkIn || !checkOut) {
       return res.status(400).json({ message: "All fields are required" });
+    }
+
+    if (roomIds.length > 1 && selectedBedId) {
+      return res.status(400).json({ message: "Bed selection is only available when booking a single room" });
     }
 
     // Parallelize database queries for better performance
@@ -255,7 +293,7 @@ export const createBooking = async (req, res) => {
       User.findById(userId),
       GuestHouse.findOne({ guestHouseId }),
       Booking.findOne({
-        bedId,
+        bedId: selectedBedId,
         status: "approved",
         $or: [
           { checkIn: { $lte: new Date(checkOut) }, checkOut: { $gte: new Date(checkIn) } },
@@ -276,13 +314,15 @@ export const createBooking = async (req, res) => {
     }
 
     const newBooking = new Booking({
-      userId: req.body.userId,
-      guestHouseId: req.body.guestHouseId,
-      roomId: req.body.roomId,
-      bedId: req.body.bedId,
-      checkIn: req.body.checkIn,
-      checkOut: req.body.checkOut,
+      userId,
+      guestHouseId,
+      roomId: primaryRoomId,
+      roomIds,
+      bedId: selectedBedId,
+      checkIn,
+      checkOut,
       fullName: req.body.fullName,
+      email: req.body.email || user?.email,
       phone: req.body.phone,
       address: req.body.address,
       specialRequests: req.body.specialRequests,
@@ -296,10 +336,19 @@ export const createBooking = async (req, res) => {
 
     // Fire-and-forget: Send email asynchronously (don't block response)
     sendEmail({
-      to: user.email,
-      subject: "📅 Booking Request Submitted",
+      to: user.email || req.body.email,
+      subject: "Room Booked Successfully",
       html: bookingRequest(user, newBooking, guestHouse),
     }).catch(err => console.error("Email send error:", err));
+
+    // Fire-and-forget: Send WhatsApp notification
+    sendBookingWhatsApp({
+      to: req.body.phone || user.phone,
+      guestHouseName: guestHouse.guestHouseName,
+      checkIn: newBooking.checkIn,
+      checkOut: newBooking.checkOut,
+      roomNumber: "Pending assignment",
+    }).catch(err => console.error("WhatsApp send error:", err));
 
     // Fire-and-forget: Log action asynchronously (don't block response)
     logAction({
@@ -310,6 +359,15 @@ export const createBooking = async (req, res) => {
       details: { guestHouseId, roomId, bedId, checkIn, checkOut },
     }).catch(err => console.error("Audit log error:", err));
 
+    // Fire-and-forget: upsert guest into NormalUser collection
+    upsertNormalUser({
+      fullName:  req.body.fullName,
+      email:     req.body.email || user?.email,
+      phone:     req.body.phone || user?.phone,
+      address:   req.body.address,
+      bookingId: newBooking._id,
+    }).catch(err => console.error("NormalUser upsert error:", err));
+
   } catch (error) {
     console.error("Error creating booking:", error);
     res.status(500).json({ message: "Server error creating booking" });
@@ -319,7 +377,11 @@ export const createBooking = async (req, res) => {
 // 🟡 Get all bookings (admin)
 export const getAllBookings = async (req, res) => {
   try {
-    const { startDate, endDate, guestHouseId } = req.query;
+    const { startDate, endDate, guestHouseId, status } = req.query;
+    const page  = Math.max(1, parseInt(req.query.page)  || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 10));
+    const skip  = (page - 1) * limit;
+
     const query = {};
 
     if (guestHouseId) {
@@ -338,9 +400,12 @@ export const getAllBookings = async (req, res) => {
       ];
     }
 
+    // Status filter
+    if (status && status !== "all") {
+      query.status = status;
+    }
+
     if (startDate || endDate) {
-      // Filter on checkIn/checkOut dates (when the stay is, not when the booking was made)
-      // Check for any overlap: booking's checkIn < endDate AND booking's checkOut > startDate
       if (startDate) {
         const start = new Date(`${startDate}T00:00:00.000Z`);
         if (Number.isNaN(start.getTime())) {
@@ -354,7 +419,6 @@ export const getAllBookings = async (req, res) => {
         if (Number.isNaN(end.getTime())) {
           return res.status(400).json({ message: "Invalid end date" });
         }
-        // If we already have a checkOut condition, add checkIn condition
         if (query.checkOut) {
           query.checkIn = { $lt: end };
         } else {
@@ -363,27 +427,34 @@ export const getAllBookings = async (req, res) => {
       }
     }
 
-    // Fetch bookings with populate for userId, roomId, bedId (but not guestHouseId)
-    let bookings = await Booking.find(query)
-      .populate("userId", "email firstName lastName")
-      .populate("roomId", "roomNumber")
-      .populate("roomIds", "roomNumber roomType")
-      .populate("bedId", "bedNumber bedType")
-      .sort({ createdAt: -1 }) // ✅ Sort newest first
-      .lean();
+    // Run count and paginated fetch in parallel
+    const [totalCount, bookingsRaw] = await Promise.all([
+      Booking.countDocuments(query),
+      Booking.find(query)
+        .populate("userId", "email firstName lastName phone")
+        .populate("roomId", "roomNumber")
+        .populate("roomIds", "roomNumber roomType")
+        .populate("bedId", "bedNumber bedType")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+    ]);
 
     // Manually fetch guest houses and attach to bookings
-    const guestHouseIds = [...new Set(bookings.map(b => b.guestHouseId).filter(Boolean))];
+    const guestHouseIds = [...new Set(bookingsRaw.map(b => b.guestHouseId).filter(Boolean))];
     const guestHouses = await GuestHouse.find({ guestHouseId: { $in: guestHouseIds } }).lean();
     const guestHouseMap = {};
     guestHouses.forEach(gh => { guestHouseMap[gh.guestHouseId] = gh; });
 
-    bookings = bookings.map(b => ({
+    const bookings = bookingsRaw.map(b => ({
       ...b,
       guestHouseId: guestHouseMap[b.guestHouseId] || b.guestHouseId
     }));
 
-    res.json({ bookings });
+    const totalPages = Math.ceil(totalCount / limit);
+
+    res.json({ bookings, totalCount, totalPages, currentPage: page, limit });
   } catch (error) {
     console.error("Error fetching all bookings:", error);
     res.status(500).json({ message: "Server error fetching bookings" });
@@ -548,6 +619,17 @@ export const approveBooking = async (req, res) => {
       html: bookingStatusUpdate(user, updatedBooking, guestHouse, "approved"),
     }).catch(err => console.error("❌ Failed to send approval email:", err));
 
+    // Fire-and-forget: Send WhatsApp notification
+    Room.find({ _id: { $in: updatedBooking.roomIds?.length ? updatedBooking.roomIds : [updatedBooking.roomId] } })
+      .then(rooms => sendBookingWhatsApp({
+        to: user.phone,
+        guestHouseName: guestHouse.guestHouseName,
+        checkIn: updatedBooking.checkIn,
+        checkOut: updatedBooking.checkOut,
+        roomNumber: rooms.map(r => `Room ${r.roomNumber}`).join(", ") || "N/A",
+      }))
+      .catch(err => console.error("❌ WhatsApp send error (approve):", err));
+
     // 6️⃣ Fire-and-forget: Log audit action asynchronously (non-blocking)
     logAction({
       action: "BOOKING_APPROVED",
@@ -599,6 +681,17 @@ export const rejectBooking = async (req, res) => {
       subject: "❌ Booking Rejected",
       html: bookingStatusUpdate(user, updatedBooking, guestHouse, "rejected"),
     }).catch(err => console.error("❌ Failed to send rejection email:", err));
+
+    // Fire-and-forget: Send WhatsApp notification
+    Room.find({ _id: { $in: updatedBooking.roomIds?.length ? updatedBooking.roomIds : [updatedBooking.roomId] } })
+      .then(rooms => sendBookingWhatsApp({
+        to: user.phone,
+        guestHouseName: guestHouse.guestHouseName,
+        checkIn: updatedBooking.checkIn,
+        checkOut: updatedBooking.checkOut,
+        roomNumber: rooms.map(r => `Room ${r.roomNumber}`).join(", ") || "N/A",
+      }))
+      .catch(err => console.error("❌ WhatsApp send error (reject):", err));
 
     // 6️⃣ Fire-and-forget: Log audit action asynchronously (non-blocking)
     logAction({
@@ -747,6 +840,14 @@ export const cancelBooking = async (req, res) => {
         subject: "🚫 Booking Cancelled",
         html: bookingStatusUpdate(user, updatedBooking, guestHouse, "cancelled"),
       }).catch(err => console.error("❌ Failed to send cancellation email:", err));
+
+      Room.find({ _id: { $in: updatedBooking.roomIds?.length ? updatedBooking.roomIds : [updatedBooking.roomId] } })
+        .then(rooms => sendCancelWhatsApp({
+          to: user.phone,
+          roomNumber: rooms.map(r => `Room ${r.roomNumber}`).join(", ") || "N/A",
+          guestHouseName: guestHouse.guestHouseName,
+        }))
+        .catch(err => console.error("❌ WhatsApp send error (cancel):", err));
     }
 
     // Fire-and-forget: audit log

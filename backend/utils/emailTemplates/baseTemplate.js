@@ -1,5 +1,5 @@
 // utils/emailTemplates/baseTemplate.js
-export const baseTemplate = (title, content) => `
+export const baseTemplate = (title, content, guestHouseName) => `
   <!DOCTYPE html>
   <html lang="en">
   <head>
@@ -35,7 +35,7 @@ export const baseTemplate = (title, content) => `
           font-family: 'Outfit', 'Inter', 'Roboto', sans-serif;
           letter-spacing: 0.5px;
         ">
-          Rishabh Guest House
+          ${guestHouseName}
         </div>
 
         <!-- Content -->

@@ -112,9 +112,6 @@ const GuestHouseBookings = () => {
       <div className="page-header-row">
         <div>
           <h1 className="page-title">Guest House Bookings</h1>
-          <p className="page-subtitle">
-            {totalCount > 0 && <span style={{ marginLeft: 8, color: "#64748b" }}>({totalCount} total)</span>}
-          </p>
         </div>
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
           <button className="btn-action view" onClick={handleRefresh} disabled={refreshing}>

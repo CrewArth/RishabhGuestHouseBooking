@@ -5,28 +5,51 @@ import mongoose from 'mongoose';
 /**
  * Executes MongoDB aggregation for "Monthly Revenue by Guest House" report.
  *
- * Revenue per booking = Room.price × number of nights stayed.
+ * Two modes:
+ *   1. Monthly mode  — supply { guestHouseId, month, year }
+ *      Clamps booking stay to the calendar month window.
+ *   2. Date range mode — supply { guestHouseId, fromDate, toDate }
+ *      Uses the exact date window; month/year are ignored.
+ *
+ * Revenue per booking = Room.price × (discounted) × nights within the window.
  * Only approved bookings are counted.
  *
- * @param {Object} filters - { guestHouseId, month, year }
- * @returns {Promise<Object>} { guestHouse, month, year, rows, totalRevenue, totalNights, totalBookings }
+ * @param {Object} filters - { guestHouseId, month, year, fromDate, toDate }
+ * @returns {Promise<Object>}
  */
-export const getMonthlyRevenueByGuestHouseData = async ({ guestHouseId, month, year }) => {
+export const getMonthlyRevenueByGuestHouseData = async ({ guestHouseId, month, year, fromDate, toDate }) => {
   if (!guestHouseId) throw new Error('Guest House is required for this report');
-  if (!month)       throw new Error('Month is required for this report');
-  if (!year)        throw new Error('Year is required for this report');
 
-  const monthNum = parseInt(month, 10);
-  const yearNum  = parseInt(year,  10);
+  const hasDateRange = fromDate && toDate;
+  const hasMonthYear = month && year;
 
-  if (monthNum < 1 || monthNum > 12 || Number.isNaN(monthNum)) {
-    throw new Error('Invalid month value');
-  }
-  if (yearNum < 2000 || yearNum > 2100 || Number.isNaN(yearNum)) {
-    throw new Error('Invalid year value');
+  if (!hasDateRange && !hasMonthYear) {
+    throw new Error('Either Month + Year or From Date + To Date is required');
   }
 
-  // Look up guest house
+  // ── Resolve period window ─────────────────────────────────────────────────
+  let periodStart, periodEnd, monthNum, yearNum, mode;
+
+  if (hasDateRange) {
+    periodStart = new Date(`${fromDate}T00:00:00.000Z`);
+    periodEnd   = new Date(`${toDate}T23:59:59.999Z`);
+    if (isNaN(periodStart) || isNaN(periodEnd)) throw new Error('Invalid date range');
+    if (periodEnd <= periodStart) throw new Error('To Date must be after From Date');
+    mode = 'range';
+    // derive month/year from fromDate for display purposes only
+    monthNum = periodStart.getUTCMonth() + 1;
+    yearNum  = periodStart.getUTCFullYear();
+  } else {
+    monthNum = parseInt(month, 10);
+    yearNum  = parseInt(year,  10);
+    if (monthNum < 1 || monthNum > 12 || isNaN(monthNum)) throw new Error('Invalid month value');
+    if (yearNum < 2000 || yearNum > 2100 || isNaN(yearNum)) throw new Error('Invalid year value');
+    periodStart = new Date(Date.UTC(yearNum, monthNum - 1, 1));
+    periodEnd   = new Date(Date.UTC(yearNum, monthNum, 1));
+    mode = 'monthly';
+  }
+
+  // ── Look up guest house ───────────────────────────────────────────────────
   const isObjectId = mongoose.Types.ObjectId.isValid(guestHouseId);
   const guestHouse = await GuestHouse.findOne({
     $or: [
@@ -39,12 +62,7 @@ export const getMonthlyRevenueByGuestHouseData = async ({ guestHouseId, month, y
 
   const targetGuestHouseId = guestHouse.guestHouseId;
 
-  // Month window in UTC
-  const periodStart = new Date(Date.UTC(yearNum, monthNum - 1, 1));           // 1st of month 00:00 UTC
-  const periodEnd   = new Date(Date.UTC(yearNum, monthNum, 1));                // 1st of next month 00:00 UTC
-
-  // Match approved bookings that overlap with this month
-  // A booking overlaps the month if checkIn < periodEnd AND checkOut > periodStart
+  // Match approved bookings overlapping the window
   const matchStage = {
     guestHouseId: targetGuestHouseId,
     status: 'approved',
@@ -56,7 +74,6 @@ export const getMonthlyRevenueByGuestHouseData = async ({ guestHouseId, month, y
     { $match: matchStage },
     { $sort: { checkIn: 1 } },
 
-    // Join room to get price and room details
     {
       $lookup: {
         from: 'rooms',
@@ -67,7 +84,6 @@ export const getMonthlyRevenueByGuestHouseData = async ({ guestHouseId, month, y
     },
     { $unwind: { path: '$roomDoc', preserveNullAndEmptyArrays: true } },
 
-    // Join bed for bed number
     {
       $lookup: {
         from: 'beds',
@@ -78,7 +94,6 @@ export const getMonthlyRevenueByGuestHouseData = async ({ guestHouseId, month, y
     },
     { $unwind: { path: '$bedDoc', preserveNullAndEmptyArrays: true } },
 
-    // Join user for guest name
     {
       $lookup: {
         from: 'users',
@@ -110,7 +125,6 @@ export const getMonthlyRevenueByGuestHouseData = async ({ guestHouseId, month, y
         bedNumber:  '$bedDoc.bedNumber',
         originalPrice:      { $ifNull: ['$roomDoc.price', 0] },
         discountPercentage: { $ifNull: ['$roomDoc.discountPercentage', 0] },
-        // Effective price after discount: price - (price × discount / 100)
         pricePerNight: {
           $let: {
             vars: {
@@ -128,18 +142,12 @@ export const getMonthlyRevenueByGuestHouseData = async ({ guestHouseId, month, y
         checkIn:  1,
         checkOut: 1,
         status:   1,
-
-        // Clamp stay to the report month window, then compute nights
-        effectiveCheckIn: {
-          $max: ['$checkIn', new Date(periodStart)],
-        },
-        effectiveCheckOut: {
-          $min: ['$checkOut', new Date(periodEnd)],
-        },
+        // Clamp stay to the report window
+        effectiveCheckIn:  { $max: ['$checkIn',  new Date(periodStart)] },
+        effectiveCheckOut: { $min: ['$checkOut', new Date(periodEnd)]   },
       },
     },
 
-    // Compute nights within month and revenue
     {
       $addFields: {
         nights: {
@@ -148,20 +156,14 @@ export const getMonthlyRevenueByGuestHouseData = async ({ guestHouseId, month, y
             {
               $divide: [
                 { $subtract: ['$effectiveCheckOut', '$effectiveCheckIn'] },
-                1000 * 60 * 60 * 24, // ms → days
+                1000 * 60 * 60 * 24,
               ],
             },
           ],
         },
       },
     },
-    {
-      $addFields: {
-        revenue: { $multiply: ['$pricePerNight', '$nights'] },
-      },
-    },
-
-    // Filter out zero-night results (edge cases)
+    { $addFields: { revenue: { $multiply: ['$pricePerNight', '$nights'] } } },
     { $match: { nights: { $gt: 0 } } },
   ];
 
@@ -175,6 +177,9 @@ export const getMonthlyRevenueByGuestHouseData = async ({ guestHouseId, month, y
     guestHouse,
     month: monthNum,
     year: yearNum,
+    mode,
+    fromDate: hasDateRange ? fromDate : null,
+    toDate:   hasDateRange ? toDate   : null,
     rows,
     totalRevenue,
     totalNights,

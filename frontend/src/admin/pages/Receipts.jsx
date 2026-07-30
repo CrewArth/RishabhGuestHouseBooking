@@ -64,7 +64,6 @@ const Receipts = () => {
       <div className="page-header-row">
         <div>
           <h1 className="page-title">Receipts</h1>
-          <p className="page-subtitle">Outstanding balances ready to be collected.</p>
         </div>
         <button className="btn-action view" onClick={fetchReceipts} disabled={loading}>
           {loading ? 'Loading…' : 'Refresh'}

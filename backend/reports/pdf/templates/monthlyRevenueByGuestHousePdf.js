@@ -126,10 +126,15 @@ export const generateMonthlyRevenueByGuestHousePdf = async (data, filters, meta)
   y += 12;
 
   // ── 2. Filters row (compact single line) ─────────────────────────────────
+  const isRange = data.mode === 'range' && data.fromDate && data.toDate;
+  const periodLabel = isRange
+    ? `${formatDate(data.fromDate)} – ${formatDate(data.toDate)}`
+    : `${monthName(month)} ${year}`;
+
   doc.fontSize(9).font('Helvetica-Bold').fillColor('#475569')
     .text('Period:', LEFT, y, { continued: true })
     .font('Helvetica').fillColor('#0f172a')
-    .text(`  ${monthName(month)} ${year}`, { continued: true })
+    .text(`  ${periodLabel}`, { continued: true })
     .font('Helvetica-Bold').fillColor('#475569')
     .text('     Guest House:', { continued: true })
     .font('Helvetica').fillColor('#0f172a')

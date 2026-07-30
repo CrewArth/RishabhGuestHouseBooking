@@ -2,10 +2,15 @@ import { useEffect, useState } from "react";
 import EditUserModal           from "../components/EditUserModel";
 import CreateUserModal         from "../components/CreateUserModal";
 import AssignGuestHouseModal   from "../components/AssignGuestHouseModal";
+import AllowWidgetsDropdown    from "../components/AllowWidgetsDropdown";
+import { useSelector }         from "react-redux";
 import { toast } from "react-toastify";
 import api from "../../utils/api";
 
 const UsersList = () => {
+  const currentUser = useSelector((state) => state.auth?.user);
+  const isSuperAdmin = currentUser?.role === "SUPER_ADMIN";
+
   const [users, setUsers]               = useState([]);
   const [loading, setLoading]           = useState(true);
   const [err, setErr]                   = useState(null);
@@ -50,6 +55,13 @@ const UsersList = () => {
     } catch { toast.error("Failed to update user status"); }
   };
 
+  // Update local user state after widgets saved — no full refetch needed
+  const handleWidgetsSaved = (userId, updatedWidgets) => {
+    setUsers((prev) =>
+      prev.map((u) => u._id === userId ? { ...u, allowedWidgets: updatedWidgets } : u)
+    );
+  };
+
   useEffect(() => { fetchUsers(currentPage); }, [currentPage]);
 
   const filtered = users.filter((u) => {
@@ -67,7 +79,6 @@ const UsersList = () => {
       <div className="page-header-row">
         <div>
           <h1 className="page-title">All Admins</h1>
-          <p className="page-subtitle">Manage admin accounts and their access</p>
         </div>
         <button className="btn-primary-cta green" onClick={() => setIsCreateOpen(true)}>
           + Create Admin
@@ -132,6 +143,12 @@ const UsersList = () => {
                       >
                         Assign GH
                       </button>
+                      {isSuperAdmin && (
+                        <AllowWidgetsDropdown
+                          user={user}
+                          onSaved={(updated) => handleWidgetsSaved(user._id, updated)}
+                        />
+                      )}
                       <button
                         className={`btn-action ${user.isActive ? "delete" : "approve"}`}
                         onClick={() => handleToggle(user)}

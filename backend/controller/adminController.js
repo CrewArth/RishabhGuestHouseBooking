@@ -272,8 +272,11 @@ export const listUsers = async (req, res) => {
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
-    // Fetch paginated users
-    let users = await User.find({}, "firstName lastName email phone address role isActive createdAt assignedGuestHouseId allowedWidgets allowedReports")
+    // Fetch paginated users — only ADMIN and SUPER_ADMIN, not guest USER records
+    let users = await User.find(
+      { role: { $in: ["ADMIN", "SUPER_ADMIN"] } },
+      "firstName lastName email phone address role isActive createdAt assignedGuestHouseId allowedWidgets allowedReports"
+    )
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
@@ -290,7 +293,7 @@ export const listUsers = async (req, res) => {
       assignedGuestHouseId: guestHouseMap[user.assignedGuestHouseId] || user.assignedGuestHouseId
     }));
 
-    const totalUsers = await User.countDocuments();
+    const totalUsers = await User.countDocuments({ role: { $in: ["ADMIN", "SUPER_ADMIN"] } });
     const totalPages = Math.ceil(totalUsers / limit);
 
     return res.json({
@@ -333,7 +336,7 @@ export const createUserByAdmin = async (req, res) => {
 
     // Check if user already exists
     const existingUser = await User.findOne({ 
-      $or: [{ email }, { phone: Number(phone) }] 
+      $or: [{ email }, { phone: String(phone).trim() }] 
     });
 
     if (existingUser) {
@@ -342,7 +345,7 @@ export const createUserByAdmin = async (req, res) => {
           error: "User with this email already exists." 
         });
       }
-      if (existingUser.phone === Number(phone)) {
+      if (existingUser.phone === String(phone).trim()) {
         return res.status(400).json({ 
           error: "User with this phone number already exists." 
         });
@@ -354,7 +357,7 @@ export const createUserByAdmin = async (req, res) => {
       firstName: firstName.trim(),
       lastName: lastName.trim(),
       email: email.trim().toLowerCase(),
-      phone: Number(phone),
+      phone: String(phone).trim(),
       address: address ? address.trim() : "",
       password,
       role: "ADMIN",

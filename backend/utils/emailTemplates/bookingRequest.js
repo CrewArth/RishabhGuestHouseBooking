@@ -1,14 +1,18 @@
 // utils/emailTemplates/bookingRequest.js
 import { baseTemplate } from "./baseTemplate.js";
 
-export const bookingRequest = (user, booking, guestHouse) =>
-  baseTemplate(
-    "Your Booking Request Has Been Received",
+export const bookingRequest = (user, booking, guestHouse) => {
+  const guestHouseName = guestHouse?.guestHouseName || 'your selected property';
+  const guestName = user?.firstName || 'Guest';
+  const heading = `${guestHouseName} booking confirmed`;
+
+  return baseTemplate(
+    heading,
     `
-    <p style="margin: 0 0 16px 0; color: #2a2a2a;">Hi <strong style="color: #0B1957;">${user.firstName}</strong>,</p>
-    
+    <p style="margin: 0 0 16px 0; color: #2a2a2a;">Hi <strong style="color: #0B1957;">${guestName}</strong>,</p>
+
     <p style="margin: 0 0 24px 0; color: #2a2a2a;">
-      We've successfully received your booking request. Our team is currently reviewing your submission and will get back to you shortly.
+      Your booking at <strong>${guestHouseName}</strong> was completed successfully.
     </p>
 
     <div style="
@@ -19,16 +23,20 @@ export const bookingRequest = (user, booking, guestHouse) =>
       border-left: 4px solid #0B1957;
     ">
       <h3 style="
-        color: #0B1957; 
-        margin: 0 0 16px 0; 
+        color: #0B1957;
+        margin: 0 0 16px 0;
         font-size: 18px;
         font-weight: 700;
       ">Booking Details</h3>
-      
+
       <table style="width: 100%; border-collapse: collapse;">
         <tr>
           <td style="padding: 10px 0; font-weight: 600; color: #0B1957; width: 140px; vertical-align: top;">Guest House:</td>
-          <td style="padding: 10px 0; color: #2a2a2a; font-weight: 500;">${guestHouse.guestHouseName}</td>
+          <td style="padding: 10px 0; color: #2a2a2a; font-weight: 500;">${guestHouseName}</td>
+        </tr>
+        <tr>
+          <td style="padding: 10px 0; font-weight: 600; color: #0B1957; vertical-align: top;">Room / Bed:</td>
+          <td style="padding: 10px 0; color: #2a2a2a; font-weight: 500;">${booking.roomId?.roomNumber ? `Room ${booking.roomId.roomNumber}` : 'Room details available'}${booking.bedId?.bedNumber ? ` / Bed ${booking.bedId.bedNumber}` : ''}</td>
         </tr>
         <tr>
           <td style="padding: 10px 0; font-weight: 600; color: #0B1957; vertical-align: top;">Check-in:</td>
@@ -41,20 +49,8 @@ export const bookingRequest = (user, booking, guestHouse) =>
       </table>
     </div>
 
-    <div style="
-      background-color: #e8f0fe;
-      padding: 16px;
-      border-radius: 8px;
-      margin: 24px 0;
-      border: 1px solid rgba(11, 25, 87, 0.1);
-    ">
-      <p style="margin: 0; color: #0B1957; font-size: 14px; line-height: 1.6;">
-        <strong>📋 Next Steps:</strong> Our admin team will review your request and you'll receive an email notification once your booking has been approved or rejected. This typically takes 24-48 hours.
-      </p>
-    </div>
-
     <p style="margin: 24px 0 16px 0; color: #2a2a2a;">
-      If you have any questions or need to make changes to your booking, please don't hesitate to contact our support team.
+      If you have any questions or need assistance, please contact our support team.
     </p>
 
     <div style="margin-top: 32px; padding-top: 24px; border-top: 2px solid #F8F3EA;">
@@ -62,8 +58,9 @@ export const bookingRequest = (user, booking, guestHouse) =>
         <strong style="color: #0B1957;">Best regards,</strong>
       </p>
       <p style="margin: 0; color: #4a4a4a; font-size: 15px;">
-        <strong>The Rishabh Guest House Team</strong>
+        <strong>${guestHouseName} Team</strong>
       </p>
     </div>
     `
-  );
+  , guestHouseName);
+};

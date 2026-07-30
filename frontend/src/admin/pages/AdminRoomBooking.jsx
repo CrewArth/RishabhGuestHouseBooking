@@ -181,8 +181,8 @@ export default function AdminRoomBooking() {
 
   const handleStaySubmit = (e) => {
     e.preventDefault();
-    if (form.roomIds.length < 2) {
-      toast.error('Please select at least two rooms for this booking.');
+    if (form.roomIds.length === 0) {
+      toast.error('Please select at least one room for this booking.');
       return;
     }
     goNext();
@@ -193,8 +193,8 @@ export default function AdminRoomBooking() {
     const invalid = familyMembers.some((m) => !m.name || !m.relation || m.age === '');
     if (invalid) { toast.error('Complete or remove each family member row.'); return; }
 
-    if (form.roomIds.length < 2) {
-      toast.error('Please select at least two rooms for this booking.');
+    if (form.roomIds.length === 0) {
+      toast.error('Please select at least one room for this booking.');
       return;
     }
 
@@ -309,7 +309,7 @@ export default function AdminRoomBooking() {
                   closeIcon="cancel"
                   avoidHighlightFirstOption
                 />
-                <small>{form.roomIds.length ? `${form.roomIds.length} room(s) selected` : 'Select at least two rooms'}</small>
+                <small>{form.roomIds.length ? `${form.roomIds.length} room(s) selected` : 'Select at least one room'}</small>
               </label>
               <label>
                 Bed

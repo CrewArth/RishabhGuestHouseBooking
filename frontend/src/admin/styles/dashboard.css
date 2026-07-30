@@ -293,6 +293,23 @@
   color: #1e293b;
 }
 
+/* ── Bookings page — fixed-height table so pagination is always visible ── */
+.bookings-root {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 70px - 4rem); /* viewport minus navbar minus main-content padding */
+}
+
+.bookings-root .page-header-row { flex-shrink: 0; }
+.bookings-root .toolbar-row     { flex-shrink: 0; }
+.bookings-root .pagination-row  { flex-shrink: 0; margin-top: 1rem; }
+
+.bookings-table-scroll {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0; /* required for flex children to shrink */
+}
+
 /* ── Responsive ── */
 @media (max-width: 768px) {
   .main-content {
