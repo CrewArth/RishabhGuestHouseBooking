@@ -19,10 +19,18 @@
       }
     },
     {
-      "source": "/:path*",
+      "source": "/assets/:path*",
       "destination": {
         "type": "service",
         "service": "frontend"
+      }
+    },
+    {
+      "source": "/:path*",
+      "destination": {
+        "type": "service",
+        "service": "frontend",
+        "path": "/index.html"
       }
     }
   ]
