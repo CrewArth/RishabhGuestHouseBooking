@@ -4,32 +4,52 @@ import connectDb from './config/db.js';
 import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import indexRoutes from './routes/index.js'
+import indexRoutes from './routes/index.js';
 
 // Load .env file
 dotenv.config();
 
 const app = express();
 app.use(express.json({ limit: '2mb' }));
+
+// CORS — allow the frontend origin (set FRONTEND_URL in env for production)
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:4173',
+  process.env.FRONTEND_URL,
+].filter(Boolean);
+
 app.use(cors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
-    credentials: true,
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, curl, server-to-server)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    return callback(new Error(`CORS: origin ${origin} not allowed`));
+  },
+  credentials: true,
 }));
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 app.use('/images', express.static(path.join(__dirname, 'images')));
 
-//Homepage Route [PUBLIC]
-app.get('/',  (req, res) => {
-    res.send("Welcome to Homepage")
-})
-
-app.use('/api', indexRoutes)
-
-// Start Server
-app.listen(process.env.PORT_NUMBER || 5000, () => {
-    // Connect with database
-    connectDb();
-    console.log(`Server is running on port: ${process.env.PORT_NUMBER}`);
+// Health check
+app.get('/', (req, res) => {
+  res.json({ status: 'ok', message: 'Guest House Booking API' });
 });
+
+app.use('/api', indexRoutes);
+
+// Connect to DB on first invocation (works for both persistent server and serverless)
+connectDb();
+
+// Start persistent server when running locally / on Railway / Render etc.
+// Vercel invokes the exported app directly — app.listen() is a no-op in that env.
+if (process.env.VERCEL !== '1') {
+  const PORT = process.env.PORT_NUMBER || 5000;
+  app.listen(PORT, () => {
+    console.log(`Server is running on port: ${PORT}`);
+  });
+}
+
+export default app;
