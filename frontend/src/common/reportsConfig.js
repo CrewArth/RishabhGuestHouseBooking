@@ -15,7 +15,7 @@ export const REPORTS = [
     name: "Monthly Revenue Report",
     description: "",
     defaultEnabled: true,
-    supportedFilters: ["month", "year", "guestHouseId", "fromDate", "toDate"],
+    supportedFilters: ["month", "year", "guestHouseId"],
   },
 ];
 

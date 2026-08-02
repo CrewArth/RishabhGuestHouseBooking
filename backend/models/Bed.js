@@ -31,5 +31,9 @@ const bedSchema = new mongoose.Schema({
 
 // Unique constraint: No two beds in the same room should have the same bed number
 bedSchema.index({ roomId: 1, bedNumber: 1 }, { unique: true });
+// Fetching all beds for a room (used in booking flow)
+bedSchema.index({ roomId: 1, isActive: 1 });
+// Availability check during booking
+bedSchema.index({ roomId: 1, isAvailable: 1, isActive: 1 });
 
 export default mongoose.model("Bed", bedSchema);

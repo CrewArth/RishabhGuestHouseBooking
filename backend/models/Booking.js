@@ -83,5 +83,9 @@ bookingSchema.index({ bedId: 1, status: 1, checkIn: 1, checkOut: 1 });
 bookingSchema.index({ userId: 1, createdAt: -1 });
 // Index for guest house bookings
 bookingSchema.index({ guestHouseId: 1, createdAt: -1 });
+// Index for status-based queries (approve/reject/calendar)
+bookingSchema.index({ status: 1, checkIn: 1 });
+// Index for date range queries used in dashboard metrics
+bookingSchema.index({ createdAt: -1 });
 
 export default mongoose.model("Booking", bookingSchema);

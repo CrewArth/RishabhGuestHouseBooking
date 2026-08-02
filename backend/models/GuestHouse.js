@@ -17,4 +17,8 @@ const guestHouseSchema = new mongoose.Schema({
   maintenance: { type: Boolean, default: false }
 }, { timestamps: true });
 
+// guestHouseId and guestHouseName already have unique: true which creates indexes.
+// Add index for maintenance filter used in report filter dropdowns.
+guestHouseSchema.index({ maintenance: 1 });
+
 export default mongoose.model("GuestHouse", guestHouseSchema);

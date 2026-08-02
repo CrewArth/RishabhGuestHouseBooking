@@ -140,5 +140,10 @@ userSchema.pre('save', async function(next){
     next();
 });
 
+// Index for fast login lookup by email
+userSchema.index({ email: 1 });
+// Index for role-based admin queries
+userSchema.index({ role: 1, isActive: 1 });
+
 
 export default mongoose.model("User", userSchema);

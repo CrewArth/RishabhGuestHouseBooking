@@ -13,9 +13,9 @@ export const REPORTS = [
   {
     id: "monthlyRevenueByGuestHouse",
     name: "Monthly Revenue by Guest House",
-    description: "Revenue report showing room-wise earnings for a selected guest house. Filter by month/year or a custom date range.",
+    description: "Revenue report showing room-wise earnings for a selected guest house. Filter by month/year.",
     defaultEnabled: true,
-    supportedFilters: ["month", "year", "guestHouseId", "fromDate", "toDate"],
+    supportedFilters: ["month", "year", "guestHouseId"],
   },
   {
     id: "invoice",

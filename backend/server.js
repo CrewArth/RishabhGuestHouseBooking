@@ -46,7 +46,7 @@ app.get('/', (req, res) => {
 app.use('/api', indexRoutes);
 
 // Connect to DB on first invocation (works for both persistent server and serverless)
-connectDb();
+connectDb().catch((err) => console.error('Initial DB connect failed:', err));
 
 // Start persistent server when running locally / on Railway / Render etc.
 // Vercel invokes the exported app directly — app.listen() is a no-op in that env.
