@@ -77,17 +77,29 @@ export const generateReportPdf = async (reportId, filters, user) => {
   let pdfBuffer;
   switch (reportId) {
     case 'bookingByGuestHouse':
-      pdfBuffer = await generateBookingByGuestHousePdf(data, reportFilters, { createdBy: performerName, logoUrl: logoUrl || null });
+      pdfBuffer = await generateBookingByGuestHousePdf(data, reportFilters, {
+        createdBy: performerName,
+        logoUrl: logoUrl || null,
+        eSignatureUrl: user.eSignatureUrl || null,
+      });
       break;
     case 'monthlyRevenueByGuestHouse':
-      pdfBuffer = await generateMonthlyRevenueByGuestHousePdf(data, reportFilters, { createdBy: performerName, logoUrl: logoUrl || null });
+      pdfBuffer = await generateMonthlyRevenueByGuestHousePdf(data, reportFilters, {
+        createdBy: performerName,
+        logoUrl: logoUrl || null,
+        eSignatureUrl: user.eSignatureUrl || null,
+      });
       break;
     case 'invoice': {
       const invoice = reportFilters.invoice;
       if (!invoice) {
         throw new Error('Invoice payload is required to generate invoice PDF.');
       }
-      pdfBuffer = await generateInvoicePdf(invoice, { createdBy: performerName, logoUrl: logoUrl || null });
+      pdfBuffer = await generateInvoicePdf(invoice, {
+        createdBy: performerName,
+        logoUrl: logoUrl || null,
+        eSignatureUrl: user.eSignatureUrl || null,
+      });
       break;
     }
     default:

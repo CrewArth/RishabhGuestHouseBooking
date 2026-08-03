@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import "../styles/editUserModel.css";
 import { toast } from "react-toastify";
 import api from "../../utils/api";
+import { readAndCompressImageAsDataUrl } from "../utils/imageUtils";
 
 const CreateUserModal = ({ onClose, onSuccess }) => {
   const [form, setForm] = useState({
@@ -14,6 +15,8 @@ const CreateUserModal = ({ onClose, onSuccess }) => {
     password: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [eSignatureFile, setESignatureFile] = useState(null);
+  const [eSignaturePreview, setESignaturePreview] = useState("");
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -28,7 +31,19 @@ const CreateUserModal = ({ onClose, onSuccess }) => {
     setIsSubmitting(true);
 
     try {
-      const res = await api.post("/api/admin/users", form);
+      const payload = new FormData();
+      payload.append("firstName", form.firstName);
+      payload.append("lastName", form.lastName);
+      payload.append("email", form.email);
+      payload.append("phone", form.phone);
+      payload.append("address", form.address);
+      payload.append("password", form.password);
+
+      if (eSignatureFile) {
+        payload.append("eSignature", eSignatureFile);
+      }
+
+      const res = await api.post("/api/admin/users", payload);
 
       toast.success(res.data.message || "Admin created successfully!");
       onSuccess(); // Refresh users list
@@ -41,6 +56,30 @@ const CreateUserModal = ({ onClose, onSuccess }) => {
       toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleESignatureChange = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      setESignatureFile(null);
+      setESignaturePreview("");
+      return;
+    }
+
+    try {
+      const preview = await readAndCompressImageAsDataUrl(file, {
+        maxWidth: 640,
+        maxHeight: 220,
+        quality: 0.82,
+      });
+      setESignatureFile(file);
+      setESignaturePreview(preview || "");
+    } catch (error) {
+      toast.error(error.message || "Unable to load ESignature preview.");
+      event.target.value = "";
+      setESignatureFile(null);
+      setESignaturePreview("");
     }
   };
 
@@ -104,6 +143,24 @@ const CreateUserModal = ({ onClose, onSuccess }) => {
           </label>
 
           <label>
+            ESignature
+            <input
+              type="file"
+              name="eSignature"
+              accept="image/*"
+              onChange={handleESignatureChange}
+              disabled={isSubmitting}
+            />
+          </label>
+          {eSignaturePreview ? (
+            <img
+              src={eSignaturePreview}
+              alt="ESignature preview"
+              style={{ maxWidth: "100%", maxHeight: "90px", objectFit: "contain", border: "1px solid #e2e8f0", borderRadius: "8px", padding: "6px" }}
+            />
+          ) : null}
+
+          <label>
             Address
             <textarea
               name="address"
@@ -151,4 +208,3 @@ const CreateUserModal = ({ onClose, onSuccess }) => {
 };
 
 export default CreateUserModal;
-

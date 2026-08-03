@@ -275,7 +275,7 @@ export const listUsers = async (req, res) => {
     // Fetch paginated users — only ADMIN and SUPER_ADMIN, not guest USER records
     let users = await User.find(
       { role: { $in: ["ADMIN", "SUPER_ADMIN"] } },
-      "firstName lastName email phone address role isActive createdAt assignedGuestHouseId allowedWidgets allowedReports"
+      "firstName lastName email phone address role isActive createdAt assignedGuestHouseId allowedWidgets allowedReports eSignatureUrl"
     )
       .sort({ createdAt: -1 })
       .skip(skip)
@@ -312,6 +312,7 @@ export const listUsers = async (req, res) => {
 export const createUserByAdmin = async (req, res) => {
   try {
     const { firstName, lastName, email, phone, address, password } = req.body;
+    const eSignatureUrl = req.eSignatureUrl || null;
 
     // Validate required fields
     if (!firstName || !lastName || !email || !phone || !password) {
@@ -362,6 +363,7 @@ export const createUserByAdmin = async (req, res) => {
       password,
       role: "ADMIN",
       isActive: true,
+      eSignatureUrl,
     });
 
     await newUser.save();

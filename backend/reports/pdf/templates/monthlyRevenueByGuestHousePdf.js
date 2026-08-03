@@ -1,4 +1,5 @@
 import { createPdfStream } from '../pdfGenerator.js';
+import { drawImageFromSource } from '../imageSource.js';
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -64,6 +65,7 @@ export const generateMonthlyRevenueByGuestHousePdf = async (data, filters, meta)
   const { guestHouse, month, year, rows = [], totalRevenue, totalNights, totalBookings } = data;
   const performerName = meta?.createdBy || 'Admin';
   const logoUrl       = meta?.logoUrl   || null;
+  const eSignatureUrl = meta?.eSignatureUrl || null;
   const generatedOn   = formatDateTime(new Date());
 
   // ── Layout constants (A4 landscape = 841 × 595 pt) ──────────────────────
@@ -236,6 +238,28 @@ export const generateMonthlyRevenueByGuestHousePdf = async (data, filters, meta)
       .text(k.value, kx + 4, y + 22, { width: kpiW - 8, align: 'center' });
   });
   doc.rect(KPI_BOX_X, y, KPI_BOX_W, KPI_H).strokeColor('#cbd5e1').lineWidth(0.5).stroke();
+
+  const pageRange = doc.bufferedPageRange();
+  for (let i = pageRange.start; i < pageRange.start + pageRange.count; i += 1) {
+    doc.switchToPage(i);
+
+    const signatureWidth = 110;
+    const signatureHeight = 34;
+    const signatureX = doc.page.width - doc.page.margins.right - signatureWidth;
+    const signatureY = doc.page.height - doc.page.margins.bottom - 58;
+
+    const signatureDrawn = await drawImageFromSource(doc, eSignatureUrl, signatureX, signatureY, {
+      fit: [signatureWidth, signatureHeight],
+    });
+
+    if (signatureDrawn) {
+      doc.font('Helvetica').fontSize(7).fillColor('#64748b')
+        .text('Authorized Signature', signatureX, signatureY + signatureHeight + 2, {
+          width: signatureWidth,
+          align: 'right',
+        });
+    }
+  }
 
   doc.end();
   return getBuffer();

@@ -5,18 +5,20 @@ import {
   deactivateUser,
   toggleUserStatus,
 } from "../controller/userController.js";
+import { authenticate } from "../middlewares/auth.js";
+import { uploadESignature, processAndUploadESignature } from "../middlewares/imageUpload.js";
 
 const router = express.Router();
 
 
-router.put("/:id", updateUser);
+router.put("/:id", authenticate, uploadESignature, processAndUploadESignature, updateUser);
 
 // DELETE user by ID
-router.delete("/:id", deleteUser);
+router.delete("/:id", authenticate, deleteUser);
 
 // Soft Delete User
-router.patch("/:id/deactivate", deactivateUser);
+router.patch("/:id/deactivate", authenticate, deactivateUser);
 
-router.patch("/:id/toggle", toggleUserStatus);
+router.patch("/:id/toggle", authenticate, toggleUserStatus);
 
 export default router;

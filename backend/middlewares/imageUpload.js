@@ -95,6 +95,9 @@ export const uploadVerificationImage = multer(multerOptions).fields([
   { name: 'familyMemberImages', maxCount: 10 },
 ]);
 
+/** Single "eSignature" field — used for admin signature uploads. */
+export const uploadESignature = multer(multerOptions).single('eSignature');
+
 // ── Middleware 1: Guest House / Room images ────────────────────────────────
 /**
  * S3 path:  super-admin/{GuestHouseName}/{timestamp}_{originalName}.webp
@@ -207,5 +210,25 @@ export const processAndUploadVerificationImage = async (req, res, next) => {
   } catch (err) {
     console.error('[S3] processAndUploadVerificationImage failed:', err);
     return res.status(500).json({ message: 'Verification image upload failed' });
+  }
+};
+
+export const processAndUploadESignature = async (req, res, next) => {
+  if (!req.file) return next();
+
+  try {
+    const actorEmail = slugify(req.user?.email || req.body.email || 'admin');
+    const key = `super-admin/esignatures/${actorEmail}/${Date.now()}_esignature.webp`;
+
+    const compressed = await sharp(req.file.buffer)
+      .resize(640, 220, { fit: 'inside', withoutEnlargement: true })
+      .webp({ quality: 82 })
+      .toBuffer();
+
+    req.eSignatureUrl = await uploadImage(key, compressed);
+    return next();
+  } catch (err) {
+    console.error('[IMAGE] processAndUploadESignature failed:', err);
+    return res.status(500).json({ message: 'ESignature upload failed' });
   }
 };

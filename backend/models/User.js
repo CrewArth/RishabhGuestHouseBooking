@@ -69,6 +69,10 @@ const userSchema = new mongoose.Schema({
         type: [String],
         default: null,
     },
+    eSignatureUrl: {
+        type: String,
+        default: null,
+    },
     passwordResetToken: {
         type: String,
         select: false,

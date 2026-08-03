@@ -13,7 +13,7 @@ export const authenticate = async (req, res, next) => {
     const token = authorization.slice(7);
     const payload = verifyToken(token);
     const user = await User.findById(payload.id).select(
-      '_id email role isActive firstName lastName assignedGuestHouseId allowedWidgets allowedReports'
+      '_id email role isActive firstName lastName assignedGuestHouseId allowedWidgets allowedReports eSignatureUrl'
     );
 
     if (!user || !user.isActive) {
@@ -29,6 +29,7 @@ export const authenticate = async (req, res, next) => {
       assignedGuestHouseId: user.assignedGuestHouseId,
       allowedWidgets: user.allowedWidgets,
       allowedReports: user.allowedReports,
+      eSignatureUrl: user.eSignatureUrl,
     };
     return next();
   } catch (error) {

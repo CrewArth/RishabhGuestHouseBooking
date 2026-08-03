@@ -1,4 +1,5 @@
 import { createPdfStream } from '../pdfGenerator.js';
+import { drawImageFromSource } from '../imageSource.js';
 
 const formatDateStr = (val) => {
   if (!val) return '—';
@@ -59,6 +60,7 @@ export const generateBookingByGuestHousePdf = async (data, filters, meta) => {
   const { guestHouse, bookings = [] } = data;
   const performerName = meta?.createdBy || 'Admin';
   const logoUrl = meta?.logoUrl || null;
+  const eSignatureUrl = meta?.eSignatureUrl || null;
   const generatedOn = formatDateTimeStr(new Date());
 
   // Layout constants
@@ -200,6 +202,22 @@ export const generateBookingByGuestHousePdf = async (data, filters, meta) => {
 
     doc.font('Helvetica').fontSize(8).fillColor('#64748b')
       .text(`Generated On: ${generatedOn}   |   Page ${i + 1} of ${range.count}`, LEFT + 150, footerY, { align: 'right', width: TABLE_WIDTH - 150, lineBreak: false });
+
+    const signatureWidth = 108;
+    const signatureHeight = 34;
+    const signatureX = RIGHT - signatureWidth;
+    const signatureY = footerY - 52;
+
+    const signatureDrawn = await drawImageFromSource(doc, eSignatureUrl, signatureX, signatureY, {
+      fit: [signatureWidth, signatureHeight],
+    });
+    if (signatureDrawn) {
+      doc.font('Helvetica').fontSize(7).fillColor('#64748b')
+        .text('Authorized Signature', signatureX, signatureY + signatureHeight + 2, {
+          width: signatureWidth,
+          align: 'right',
+        });
+    }
   }
 
   doc.end();

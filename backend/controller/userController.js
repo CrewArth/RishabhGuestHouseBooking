@@ -12,6 +12,7 @@ const getTrackedDetails = (payload = {}) => {
     "isActive",
     "allowedWidgets",
     "allowedReports",
+    "eSignatureUrl",
   ];
 
   return allowedFields.reduce((acc, field) => {
@@ -24,11 +25,47 @@ const getTrackedDetails = (payload = {}) => {
 };
 
 const performer = (req) => req.user?.email || "Admin";
+const hasSuperAdminRole = (req) => req.user?.role === "SUPER_ADMIN";
 
 export const updateUser = async (req, res) => {
   try {
     const { id } = req.params;
-    const updatedData = req.body;
+    const isSuperAdmin = req.user?.role === "SUPER_ADMIN";
+    const isSameUser = String(req.user?._id || "") === String(id);
+
+    if (!isSuperAdmin && !isSameUser) {
+      return res.status(403).json({ message: "You are not allowed to update this user." });
+    }
+
+    if (!isSuperAdmin && req.eSignatureUrl) {
+      return res.status(403).json({ message: "Only SUPER_ADMIN can upload ESignature." });
+    }
+
+    const forbiddenForNonSuperAdmin = [
+      "role",
+      "isActive",
+      "allowedWidgets",
+      "allowedReports",
+      "assignedGuestHouseId",
+      "eSignatureUrl",
+    ];
+
+    const updatedData = { ...req.body };
+    if (!isSuperAdmin) {
+      forbiddenForNonSuperAdmin.forEach((field) => {
+        delete updatedData[field];
+      });
+    }
+
+    if (updatedData.isActive === "true") {
+      updatedData.isActive = true;
+    } else if (updatedData.isActive === "false") {
+      updatedData.isActive = false;
+    }
+
+    if (req.eSignatureUrl) {
+      updatedData.eSignatureUrl = req.eSignatureUrl;
+    }
 
     const updatedUser = await User.findByIdAndUpdate(id, updatedData, {
       new: true,
@@ -83,6 +120,10 @@ export const updateUser = async (req, res) => {
 };
 
 export const deleteUser = async (req, res) => {
+  if (!hasSuperAdminRole(req)) {
+    return res.status(403).json({ message: "Only SUPER_ADMIN can delete users." });
+  }
+
   try {
     const deleted = await User.findByIdAndDelete(req.params.id);
 
@@ -109,6 +150,10 @@ export const deleteUser = async (req, res) => {
 };
 
 export const deactivateUser = async (req, res) => {
+  if (!hasSuperAdminRole(req)) {
+    return res.status(403).json({ message: "Only SUPER_ADMIN can deactivate users." });
+  }
+
   try {
     const user = await User.findByIdAndUpdate(
       req.params.id,
@@ -134,6 +179,10 @@ export const deactivateUser = async (req, res) => {
 };
 
 export const toggleUserStatus = async (req, res) => {
+  if (!hasSuperAdminRole(req)) {
+    return res.status(403).json({ message: "Only SUPER_ADMIN can change user status." });
+  }
+
   try {
     const user = await User.findById(req.params.id);
     if (!user) return res.status(404).json({ message: "User not found" });

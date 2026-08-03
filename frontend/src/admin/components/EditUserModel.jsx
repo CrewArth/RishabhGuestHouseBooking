@@ -1,6 +1,8 @@
 // EditUserModal.jsx
 import React, { useState, useEffect } from "react";
 import "../styles/editUserModel.css";
+import { toast } from "react-toastify";
+import { readAndCompressImageAsDataUrl } from "../utils/imageUtils";
 
 const EditUserModal = ({ user, onClose, onSubmit }) => {
   const [form, setForm] = useState({
@@ -11,6 +13,8 @@ const EditUserModal = ({ user, onClose, onSubmit }) => {
     address: "",
     isActive: true,
   });
+  const [eSignatureFile, setESignatureFile] = useState(null);
+  const [eSignaturePreview, setESignaturePreview] = useState("");
 
   useEffect(() => {
     if (user) {
@@ -22,6 +26,8 @@ const EditUserModal = ({ user, onClose, onSubmit }) => {
         address: user.address || "",
         isActive: user.isActive ?? true,
       });
+      setESignaturePreview(user.eSignatureUrl || "");
+      setESignatureFile(null);
     }
   }, [user]);
 
@@ -35,14 +41,45 @@ const EditUserModal = ({ user, onClose, onSubmit }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    const updatedData = { ...form };
-    delete updatedData.email; // prevent email update
-    onSubmit(updatedData);
+    const payload = new FormData();
+    payload.append("firstName", form.firstName);
+    payload.append("lastName", form.lastName);
+    payload.append("phone", form.phone);
+    payload.append("address", form.address);
+    payload.append("isActive", String(form.isActive));
+
+    if (eSignatureFile) {
+      payload.append("eSignature", eSignatureFile);
+    }
+
+    onSubmit(payload);
+  };
+
+  const handleESignatureChange = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      setESignatureFile(null);
+      setESignaturePreview(user?.eSignatureUrl || "");
+      return;
+    }
+
+    try {
+      const preview = await readAndCompressImageAsDataUrl(file, {
+        maxWidth: 640,
+        maxHeight: 220,
+        quality: 0.82,
+      });
+      setESignatureFile(file);
+      setESignaturePreview(preview || "");
+    } catch (error) {
+      toast.error(error.message || "Unable to load ESignature preview.");
+      event.target.value = "";
+      setESignatureFile(null);
+      setESignaturePreview(user?.eSignatureUrl || "");
+    }
   };
 
   if (!user) return null;
-  console.log(form);
-
   return (
     <div className="modal-backdrop">
       <div className="modal">
@@ -92,6 +129,23 @@ const EditUserModal = ({ user, onClose, onSubmit }) => {
               onChange={handleChange}
             />
           </label>
+
+          <label>
+            ESignature
+            <input
+              type="file"
+              name="eSignature"
+              accept="image/*"
+              onChange={handleESignatureChange}
+            />
+          </label>
+          {eSignaturePreview ? (
+            <img
+              src={eSignaturePreview}
+              alt="ESignature preview"
+              style={{ maxWidth: "100%", maxHeight: "90px", objectFit: "contain", border: "1px solid #e2e8f0", borderRadius: "8px", padding: "6px" }}
+            />
+          ) : null}
 
           <label>
             Address

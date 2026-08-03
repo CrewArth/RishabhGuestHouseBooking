@@ -1,4 +1,5 @@
 import { createPdfStream } from '../pdfGenerator.js';
+import { drawImageFromSource } from '../imageSource.js';
 
 const formatDate = (value) => {
   if (!value) return '—';
@@ -60,6 +61,7 @@ export const generateInvoicePdf = async (invoice, meta = {}) => {
       ? [locationValue.city, locationValue.state].filter(Boolean).join(', ')
       : 'city, state';
   const logoUrl = meta.logoUrl || null;
+  const eSignatureUrl = meta.eSignatureUrl || null;
 
   doc.font('Helvetica-Bold').fontSize(26).fillColor('#111827')
     .text('INVOICE', headerX, 40);
@@ -183,6 +185,27 @@ export const generateInvoicePdf = async (invoice, meta = {}) => {
     .text(createdOn, headerX + 70, doc.page.height - doc.page.margins.bottom - 40)
     .text('Created By:', summaryX - 80, doc.page.height - doc.page.margins.bottom - 40)
     .text(invoiceCreator, summaryX, doc.page.height - doc.page.margins.bottom - 40, { width: amountWidth, align: 'right' });
+
+  const pageRange = doc.bufferedPageRange();
+  for (let i = pageRange.start; i < pageRange.start + pageRange.count; i += 1) {
+    doc.switchToPage(i);
+    const signatureWidth = 110;
+    const signatureHeight = 38;
+    const signatureX = doc.page.width - doc.page.margins.right - signatureWidth;
+    const signatureY = doc.page.height - doc.page.margins.bottom - 95;
+
+    const signatureDrawn = await drawImageFromSource(doc, eSignatureUrl, signatureX, signatureY, {
+      fit: [signatureWidth, signatureHeight],
+    });
+
+    if (signatureDrawn) {
+      doc.font('Helvetica').fontSize(7).fillColor('#64748b')
+        .text('Authorized Signature', signatureX, signatureY + signatureHeight + 2, {
+          width: signatureWidth,
+          align: 'right',
+        });
+    }
+  }
 
   doc.end();
   return getBuffer();

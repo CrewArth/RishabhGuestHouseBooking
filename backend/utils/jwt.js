@@ -2,7 +2,12 @@ import jwt from 'jsonwebtoken';
 import { normalizeRole } from './roles.js';
 
 export const generateToken = (user) => {
-    return jwt.sign({id: user._id, email: user.email, role: normalizeRole(user.role)},
+    return jwt.sign({
+        id: user._id,
+        email: user.email,
+        role: normalizeRole(user.role),
+        eSignatureUrl: user.eSignatureUrl || null,
+    },
         process.env.JWT_SECRET,
         {expiresIn: process.env.JWT_EXPIRES_IN}
     )
