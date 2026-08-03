@@ -24,16 +24,15 @@ export default function Calendar({ assignedGhId = null }) {
     try {
       setLoading(true);
       setError(null);
-      const params = assignedGhId ? { guestHouseId: assignedGhId } : {};
-      const response = await api.get('/api/bookings/calendar', { params });
+      const response = await api.post('/api/bookings/calendar', assignedGhId ? { guestHouseId: assignedGhId } : {});
       
       // Transform bookings into FullCalendar events
       const calendarEvents = response.data.bookings.map((booking) => {
         const userName = booking.userId
           ? `${booking.userId.firstName || ''} ${booking.userId.lastName || ''}`.trim()
-          : booking.fullName || booking.email || 'Unknown User';
+          : 'Unknown User';
 
-        const userEmail = booking.userId?.email || booking.email || 'N/A';
+        const userEmail = booking.userId?.email || 'N/A';
         const isCancelled = booking.status === 'cancelled';
         
         // FullCalendar's end date is exclusive, so we add 1 day to checkOut

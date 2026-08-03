@@ -12,8 +12,8 @@ import {
 const router = express.Router();
 
 router.post('/', createRoom);
-router.get('/by-guesthouse', getRoomsByGuestHouse); // ✅ place before /:id
-router.get('/', listRooms);
+router.post('/by-guesthouse', getRoomsByGuestHouse); // ✅ place before /:id
+router.post('/list', listRooms);
 router.get('/:id', getRoomById);
 router.put('/:id', updateRoom);
 router.patch('/:id/availability', setAvailability);

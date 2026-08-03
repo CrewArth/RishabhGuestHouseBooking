@@ -6,7 +6,7 @@ import os from "os";
 dotenv.config();
 
 // Get the user's Desktop folder path for local fallback storage
-const getDesktopPath = () => path.join(os.homedir(), "Desktop", "GuestHouseImages");
+const getDesktopPath = () => path.join(os.homedir(), "Desktop", "RishabhGuestHouseImages");
 
 export const s3 = new S3Client({
   region: process.env.AWS_REGION,

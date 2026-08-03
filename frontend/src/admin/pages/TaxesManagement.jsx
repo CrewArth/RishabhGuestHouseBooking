@@ -13,7 +13,7 @@ export default function TaxesManagement() {
   const fetchTaxes = async () => {
     try {
       setLoading(true);
-      const res = await api.get('/api/taxes');
+      const res = await api.post('/api/taxes/list');
       setTaxes(res.data.taxes || []);
     } catch (err) {
       console.error(err);
@@ -45,7 +45,7 @@ export default function TaxesManagement() {
     if (!confirm('Disable this tax?')) return;
     try {
       await api.delete(`/api/taxes/${id}`);
-      setTaxes((t) => t.filter((x) => x._id !== id));
+      setTaxes((t) => t.map((x) => x._id === id ? { ...x, isActive: false } : x));
       toast.success('Tax disabled');
     } catch (err) {
       console.error(err);

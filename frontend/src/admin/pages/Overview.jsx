@@ -48,7 +48,7 @@ const Overview = ({ showTodayBookings = false }) => {
   const fetchStats = async () => {
     try {
       setRefreshing(true);
-      const res = await api.get("/api/admin/summary");
+      const res = await api.post("/api/admin/summary");
       setStats(res.data);
     } catch (err) { console.error(err); }
     finally { setRefreshing(false); }
@@ -59,8 +59,8 @@ const Overview = ({ showTodayBookings = false }) => {
     setTopGuestHouses((p) => ({ ...p, loading: true }));
     try {
       const [tR, gR] = await Promise.all([
-        api.get("/api/admin/metrics/bookings-per-day",  { params: { startDate: dateRange.startDate, endDate: dateRange.endDate, status: "approved", ...(assignedGhId && { guestHouseId: assignedGhId }) } }),
-        api.get("/api/admin/metrics/top-guest-houses",  { params: { startDate: dateRange.startDate, endDate: dateRange.endDate, limit: 5, status: "approved", ...(assignedGhId && { guestHouseId: assignedGhId }) } }),
+        api.post("/api/admin/metrics/bookings-per-day", { startDate: dateRange.startDate, endDate: dateRange.endDate, status: "approved", ...(assignedGhId && { guestHouseId: assignedGhId }) }),
+        api.post("/api/admin/metrics/top-guest-houses", { startDate: dateRange.startDate, endDate: dateRange.endDate, limit: 5, status: "approved", ...(assignedGhId && { guestHouseId: assignedGhId }) }),
       ]);
       setBookingsTrend({ data: tR.data?.data || [], loading: false, rangeLabel: fmt(tR.data?.range) });
       setTopGuestHouses({ data: gR.data?.data || [], loading: false, rangeLabel: fmt(gR.data?.range) });

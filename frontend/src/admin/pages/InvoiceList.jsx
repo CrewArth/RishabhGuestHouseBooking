@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { toast } from 'react-toastify';
 import api from '../../utils/api';
+import { printInvoice } from '../utils/printInvoice';
 
 const formatDate = (value) => {
   if (!value) return '—';
@@ -87,22 +88,14 @@ const InvoiceList = () => {
   };
 
   const handlePrintInvoice = async (booking) => {
-    if (!booking.invoice) {
-      toast.error('No invoice found for this booking.');
-      return;
-    }
-
+    if (!booking.invoice) { toast.error('No invoice found for this booking.'); return; }
     setPrintingId(booking._id);
     try {
       const res = await api.get(`/api/payments/booking/${booking._id}/invoice`);
       const invoiceData = res.data?.invoice || res.data?.invoiceDoc?.invoiceData;
-
-      if (!invoiceData) {
-        toast.error('Invoice data is not available for this booking.');
-        return;
-      }
-
-      openPrintWindow(booking, invoiceData);
+      if (!invoiceData) { toast.error('Invoice data is not available for this booking.'); return; }
+      if (!printInvoice(booking, invoiceData))
+        toast.error('Pop-up blocked. Please allow pop-ups for this site.');
     } catch (err) {
       console.error('Error printing invoice:', err);
       toast.error('Unable to load invoice for printing.');
@@ -111,6 +104,7 @@ const InvoiceList = () => {
     }
   };
 
+  // DEAD CODE REMOVAL — openPrintWindow replaced by shared printInvoice utility
   const openPrintWindow = (booking, invoiceData) => {
     const printWindow = window.open('', '_blank');
     if (!printWindow) {
@@ -153,9 +147,9 @@ const InvoiceList = () => {
       ? ` / Bed ${booking.bedId.bedNumber}${booking.bedId.bedType ? ` (${booking.bedId.bedType})` : ''}`
       : '';
 
-    const guestPhone = booking.userId?.phone || booking.phone || '—';
-    const guestEmail = booking.userId?.email || booking.email || '—';
-    const guestNameStr = `${booking.userId?.firstName || booking.fullName || ''} ${booking.userId?.lastName || ''}`.trim() || '—';
+    const guestPhone = booking.userId?.phone || '—';
+    const guestEmail = booking.userId?.email || '—';
+    const guestNameStr = `${booking.userId?.firstName || ''} ${booking.userId?.lastName || ''}`.trim() || '—';
 
     const bookingCharges = (invoiceData.bookingTotal || 0) - (invoiceData.extrasTotal || 0) - (invoiceData.taxesTotal || 0);
 
@@ -262,7 +256,7 @@ const InvoiceList = () => {
   };
 
   const guestName = (b) =>
-    `${b.userId?.firstName || b.fullName || ''} ${b.userId?.lastName || ''}`.trim() || '—';
+    `${b.userId?.firstName || ''} ${b.userId?.lastName || ''}`.trim() || '—';
 
   const roomLabel = (b) => {
     if (Array.isArray(b.roomIds) && b.roomIds.length > 1)
@@ -343,13 +337,13 @@ const InvoiceList = () => {
                         <td className="center">{idx}</td>
                         <td>
                           <div style={{ fontWeight: 600 }}>{guestName(b)}</div>
-                          {(b.userId?.email || b.email) && (
+                          {(b.userId?.email) && (
                             <div style={{ color: '#64748b', fontSize: '0.78rem' }}>
-                              {b.userId?.email || b.email}
+                              {b.userId?.email}
                             </div>
                           )}
                         </td>
-                        <td>{b.userId?.phone || b.phone || '—'}</td>
+                        <td>{b.userId?.phone || '—'}</td>
                         <td>
                           {roomLabel(b)}
                           {b.bedId?.bedNumber ? ` / Bed ${b.bedId.bedNumber}` : ''}

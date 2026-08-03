@@ -56,7 +56,7 @@ const GuestHouseBookings = () => {
         ...(appliedFilters.endDate && { endDate: appliedFilters.endDate }),
       };
 
-      const res = await api.get("/api/bookings", { params });
+      const res = await api.post("/api/bookings/list", params);
       setBookings(Array.isArray(res.data?.bookings) ? res.data.bookings : []);
       setTotalPages(res.data.totalPages || 1);
       setCurrentPage(res.data.currentPage || 1);
@@ -183,14 +183,10 @@ const GuestHouseBookings = () => {
                   <tr key={b._id}>
                     <td className="center">{index}</td>
                     <td>
-                      {b.userId?.firstName || b.fullName || "—"}
+                      {b.userId?.firstName || "—"}
                       {b.userId?.lastName ? ` ${b.userId.lastName}` : ""}
-                      <br />
-                      {b.userId?.email && (
-                        <span style={{ color: "#64748b", fontSize: "0.8rem" }}>{b.userId.email}</span>
-                      )}
                     </td>
-                    <td>{b.userId?.phone || b.phone || "—"}</td>
+                    <td>{b.userId?.phone || "—"}</td>
                     <td>{formatDate(b.checkIn)}</td>
                     <td>{formatDate(b.checkOut)}</td>
                     <td>

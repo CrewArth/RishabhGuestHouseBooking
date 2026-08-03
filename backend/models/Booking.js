@@ -42,21 +42,7 @@ const bookingSchema = new mongoose.Schema(
       enum: ["pending", "approved", "rejected", "cancelled"],
       default: "pending",
     },
-    fullName: { type: String },
-    email: { type: String, trim: true, lowercase: true },
-    phone: { type: String },
-    address: { type: String },
-    dateOfBirth: { type: Date },
-    gender: {
-      type: String,
-      enum: ["male", "female", "other", "prefer_not_to_say"],
-    },
-    nationality: { type: String },
-    identityType: { type: String },
-    identityNumber: { type: String },
     verificationImage: { type: String },
-    emergencyContactName: { type: String },
-    emergencyContactPhone: { type: String },
     familyMembers: [
       {
         name: { type: String, trim: true },

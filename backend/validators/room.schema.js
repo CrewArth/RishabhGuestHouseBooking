@@ -5,8 +5,8 @@ export const createRoomSchema = Joi.object({
   roomNumber: Joi.number().integer().min(1).required(),
   roomType: Joi.string().valid('single', 'double', 'family').required(),
   roomCapacity: Joi.number().integer().min(1).required(),
-  price: Joi.number().min(0).optional(),
-  discountPercentage: Joi.number().min(0).max(100).optional(),
+  price: Joi.number().min(0).optional().allow('', null),
+  discountPercentage: Joi.number().min(0).max(100).optional().allow('', null),
   isAvailable: Joi.boolean().optional()
 });
 
@@ -14,8 +14,8 @@ export const updateRoomSchema = Joi.object({
   roomNumber: Joi.number().integer().min(1).optional(),
   roomType: Joi.string().valid('single', 'double', 'family').optional(),
   roomCapacity: Joi.number().integer().min(1).optional(),
-  price: Joi.number().min(0).optional(),
-  discountPercentage: Joi.number().min(0).max(100).optional(),
+  price: Joi.number().min(0).optional().allow('', null),
+  discountPercentage: Joi.number().min(0).max(100).optional().allow('', null),
   isAvailable: Joi.boolean().optional(),
   isActive: Joi.boolean().optional()
 }).min(1); // must update at least one field

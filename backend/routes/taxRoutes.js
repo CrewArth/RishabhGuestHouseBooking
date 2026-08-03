@@ -3,7 +3,7 @@ import { listTaxes, createTax, updateTax, deleteTax } from '../controller/taxCon
 
 const router = express.Router();
 
-router.get('/', listTaxes);
+router.post('/list', listTaxes);
 router.post('/', createTax);
 router.patch('/:id', updateTax);
 router.delete('/:id', deleteTax);

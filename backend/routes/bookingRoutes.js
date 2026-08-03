@@ -32,13 +32,13 @@ router.post(
 );
 
 // User gets their bookings
-router.get("/my", getMyBookings);
+router.post("/my", getMyBookings);
 
 // Admin fetches all bookings
-router.get("/", getAllBookings);
+router.post("/list", getAllBookings);
 
 // Admin exports bookings by day
-router.get("/export/daily", exportDailyBookings);
+router.post("/export/daily", exportDailyBookings);
 
 // Admin approves / rejects / cancels booking
 router.patch("/:id/approve", approveBooking);
@@ -46,10 +46,10 @@ router.patch("/:id/reject", rejectBooking);
 router.patch("/:id/cancel", cancelBooking);
 
 // To Check Room or Bed Availability
-router.get("/availability", checkAvailability);
+router.post("/availability", checkAvailability);
 
 // Get approved bookings for calendar (admin)
-router.get("/calendar", authenticate, getApprovedBookingsForCalendar);
+router.post("/calendar", authenticate, getApprovedBookingsForCalendar);
 
 // Get single booking by ID — must come after all named GET routes
 router.get("/:id", authenticate, getBookingById);

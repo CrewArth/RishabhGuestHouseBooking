@@ -28,9 +28,7 @@ const AuditLogs = () => {
 
   const fetchLogs = async () => {
     try {
-      const res = await api.get('/api/audit-logs', {
-        params: { page: currentPage, limit, entityType: filterType },
-      });
+      const res = await api.post('/api/audit-logs/list', { page: currentPage, limit, entityType: filterType });
       setLogs(res.data.logs || []);
       setTotalPages(res.data.totalPages || 1);
     } catch (err) { console.error(err); }
@@ -41,7 +39,7 @@ const AuditLogs = () => {
   const handleExport = async () => {
     try {
       setIsExporting(true);
-      const res = await api.get('/api/audit-logs/export/daily', { params: { date: exportDate }, responseType: 'blob' });
+      const res = await api.post('/api/audit-logs/export/daily', { date: exportDate }, { responseType: 'blob' });
       const url  = window.URL.createObjectURL(new Blob([res.data], { type: 'text/csv;charset=utf-8;' }));
       const link = document.createElement('a');
       link.href = url;

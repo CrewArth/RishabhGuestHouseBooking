@@ -3,7 +3,7 @@ import { getAuditLogs, exportDailyAuditLogs } from '../controller/auditLogContro
 
 const router = express.Router();
 
-router.get('/', getAuditLogs);
-router.get('/export/daily', exportDailyAuditLogs);
+router.post('/list', getAuditLogs);
+router.post('/export/daily', exportDailyAuditLogs);
 
 export default router;

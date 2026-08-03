@@ -81,7 +81,7 @@ export default function TodayBookings() {
           // assignedGuestHouse could be an object or just the guestHouseId string
           params.guestHouseId = assignedGuestHouse.guestHouseId || assignedGuestHouse;
         }
-        const response = await api.get('/api/bookings', { params });
+        const response = await api.post('/api/bookings/list', params);
         setBookings(response.data.bookings || []);
       } catch (requestError) {
         console.error('Error fetching dashboard bookings:', requestError);
@@ -247,7 +247,7 @@ export default function TodayBookings() {
 
                   return (
                     <tr key={booking._id}>
-                      <td>{`${booking.userId?.firstName || ''} ${booking.userId?.lastName || ''}`.trim() || booking.fullName || '—'}</td>
+                      <td>{`${booking.userId?.firstName || ''} ${booking.userId?.lastName || ''}`.trim() || '—'}</td>
                       <td>{booking.guestHouseId?.guestHouseName || '—'}</td>
                       <td>{formatDate(booking.checkIn)}</td>
                       <td>{formatDate(booking.checkOut)}</td>

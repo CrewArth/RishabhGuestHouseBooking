@@ -17,7 +17,7 @@ export default function AssignGuestHouseModal({ user, onClose, onSuccess }) {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    api.get('/api/guesthouses')
+    api.post('/api/guesthouses/list')
       .then((res) => setGuestHouses(Array.isArray(res.data) ? res.data : res.data.guestHouses || []))
       .catch(() => toast.error('Unable to load guest houses'));
   }, []);

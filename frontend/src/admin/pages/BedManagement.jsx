@@ -16,7 +16,7 @@ const BedManagement = () => {
 
   const fetchGuestHouses = async () => {
     try {
-      const res = await api.get('/api/guesthouses');
+      const res = await api.post('/api/guesthouses/list');
       setGuestHouses(Array.isArray(res.data) ? res.data : []);
     } catch (err) { console.error(err); }
   };
@@ -24,7 +24,7 @@ const BedManagement = () => {
   const fetchRoomsForGH = async (ghId) => {
     if (!ghId) { setRooms([]); return; }
     try {
-      const res = await api.get(`/api/rooms/by-guesthouse?guestHouseId=${ghId}`);
+      const res = await api.post(`/api/rooms/by-guesthouse`, { guestHouseId: ghId });
       setRooms(res.data.rooms || []);
     } catch (err) { setRooms([]); }
   };
@@ -32,7 +32,7 @@ const BedManagement = () => {
   const fetchBedsForRoom = async (roomId) => {
     if (!roomId) { setBeds([]); return; }
     try {
-      const res = await api.get(`/api/beds?roomId=${roomId}`);
+      const res = await api.post(`/api/beds/list`, { roomId });
       setBeds(res.data.beds || []);
     } catch (err) { setBeds([]); }
   };

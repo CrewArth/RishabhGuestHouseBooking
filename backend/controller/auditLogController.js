@@ -2,10 +2,10 @@ import AuditLog from '../models/AuditLog.js';
 
 export const getAuditLogs = async (req, res) => {
   try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
+    const page = parseInt(req.body.page) || 1;
+    const limit = parseInt(req.body.limit) || 10;
     const skip = (page - 1) * limit;
-    const { entityType } = req.query;
+    const { entityType } = req.body;
 
     const query = {};
     if (entityType && entityType !== 'all') {
@@ -36,7 +36,7 @@ export const getAuditLogs = async (req, res) => {
 
 export const exportDailyAuditLogs = async (req, res) => {
   try {
-    const { date } = req.query;
+    const { date } = req.body;
 
     if (!date) {
       return res.status(400).json({ success: false, error: "date query parameter is required (YYYY-MM-DD)" });

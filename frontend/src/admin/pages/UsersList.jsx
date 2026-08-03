@@ -27,7 +27,7 @@ const UsersList = () => {
     try {
       setLoading(true);
       setErr(null);
-      const res = await api.get(`/api/admin/users?page=${page}&limit=${limit}`);
+      const res = await api.post(`/api/admin/users/list`, { page, limit });
       setUsers(Array.isArray(res.data?.users) ? res.data.users : []);
       setTotalPages(res.data.totalPages || 1);
       setCurrentPage(res.data.currentPage || 1);

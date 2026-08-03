@@ -130,7 +130,7 @@ const BookingForm = () => {
   const fetchRooms = async (gh) => {
     try {
       setRoomsLoading(true);
-      const res = await api.get(`/api/rooms/by-guesthouse?guestHouseId=${gh.guestHouseId}`);
+      const res = await api.post(`/api/rooms/by-guesthouse`, { guestHouseId: gh.guestHouseId });
       setRooms(Array.isArray(res.data?.rooms) ? res.data.rooms : []);
     } catch (err) {
       console.error('Error fetching rooms:', err);
@@ -143,7 +143,7 @@ const BookingForm = () => {
   const fetchBeds = async (roomId) => {
     try {
       setBedsLoading(true);
-      const res = await api.get(`/api/beds?roomId=${roomId}`);
+      const res = await api.post(`/api/beds/list`, { roomId });
       setBeds(Array.isArray(res.data?.beds) ? res.data.beds : []);
     } catch (err) {
       console.error('Error fetching beds:', err);
@@ -157,13 +157,11 @@ const BookingForm = () => {
     try {
       if (!formData.checkInDate || !formData.checkOutDate || !selectedGuestHouse) return;
 
-      const res = await api.get(`/api/bookings/availability`, {
-        params: {
+      const res = await api.post(`/api/bookings/availability`, {
           guestHouseId: selectedGuestHouse.guestHouseId || selectedGuestHouse._id,
           checkIn: formData.checkInDate,
           checkOut: formData.checkOutDate,
-        },
-      });
+        });
 
       setUnavailableRooms(res.data.unavailableRooms || []);
       setUnavailableBeds(res.data.unavailableBeds || []);

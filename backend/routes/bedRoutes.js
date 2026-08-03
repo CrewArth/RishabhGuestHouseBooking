@@ -5,7 +5,7 @@ const router = express.Router();
 
 router.post('/', createBed);
 router.post('/auto-create', autoCreateBeds);
-router.get('/', listBedsByRoom);
+router.post('/list', listBedsByRoom);
 router.put('/:id', updateBed);
 router.patch('/:id/availability', toggleAvailability);
 router.delete('/:id', softDeleteBed);

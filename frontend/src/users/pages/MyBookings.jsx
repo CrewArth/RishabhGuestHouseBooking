@@ -18,7 +18,7 @@ const MyBookings = () => {
     try {
       silent ? setRefreshing(true) : setLoading(true);
 
-      const res = await api.get(`/api/bookings/my?userId=${user._id}`);
+      const res = await api.post(`/api/bookings/my`, { userId: user._id });
 
       setBookings(res.data.bookings || []);
     } catch (err) {

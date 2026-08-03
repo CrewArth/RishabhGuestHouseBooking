@@ -7,6 +7,7 @@ import { sendEmail } from '../utils/emailService.js';
 import { adminCreatedUserEmail } from '../utils/emailTemplates/adminCreatedUser.js';
 import { logAction } from '../utils/auditLogger.js';
 import { normalizeUser } from '../utils/roles.js';
+import { isObjectId } from '../utils/isObjectId.js';
 
 /**
  * Returns a MongoDB filter object scoped to the user's assigned guest house.
@@ -20,11 +21,11 @@ const getGuestHouseFilter = async (user) => {
       ? user.assignedGuestHouseId.guestHouseId
       : user.assignedGuestHouseId;
     if (ghId) {
-      const isObjectId = mongoose.Types.ObjectId.isValid(ghId);
+      const isObjId = isObjectId(ghId);
       const gh = await GuestHouse.findOne({
         $or: [
           { guestHouseId: ghId },
-          ...(isObjectId ? [{ _id: ghId }] : []),
+          ...(isObjId ? [{ _id: ghId }] : []),
         ],
       }).lean();
       if (gh) return { guestHouseId: gh._id };
@@ -105,9 +106,9 @@ const buildDateRange = (startDateParam, endDateParam, rangeParam) => {
 export const getBookingsPerDay = async (req, res) => {
   try {
     const { startDate, endDate } = buildDateRange(
-      req.query.startDate,
-      req.query.endDate,
-      req.query.range
+      req.body.startDate,
+      req.body.endDate,
+      req.body.range
     );
 
     const matchStage = {
@@ -115,8 +116,8 @@ export const getBookingsPerDay = async (req, res) => {
       createdAt: { $gte: startDate, $lte: endDate },
     };
 
-    if (req.query.status && req.query.status !== "all") {
-      matchStage.status = req.query.status;
+    if (req.body.status && req.body.status !== "all") {
+      matchStage.status = req.body.status;
     }
 
     const bookingsPerDay = await Booking.aggregate([
@@ -152,20 +153,20 @@ export const getBookingsPerDay = async (req, res) => {
 export const getTopGuestHouses = async (req, res) => {
   try {
     const { startDate, endDate } = buildDateRange(
-      req.query.startDate,
-      req.query.endDate,
-      req.query.range
+      req.body.startDate,
+      req.body.endDate,
+      req.body.range
     );
 
-    const limit = Math.min(parseInt(req.query.limit, 10) || 5, 20);
+    const limit = Math.min(parseInt(req.body.limit, 10) || 5, 20);
 
     const matchStage = {
       ...await getGuestHouseFilter(req.user),
       createdAt: { $gte: startDate, $lte: endDate },
     };
 
-    if (req.query.status && req.query.status !== "all") {
-      matchStage.status = req.query.status;
+    if (req.body.status && req.body.status !== "all") {
+      matchStage.status = req.body.status;
     }
 
     const topGuestHouses = await Booking.aggregate([
@@ -219,11 +220,11 @@ export const assignGuestHouse = async (req, res) => {
 
     let guestHouse = null;
     if (guestHouseId) {
-      const isObjectId = mongoose.Types.ObjectId.isValid(guestHouseId);
+      const isObjId = isObjectId(guestHouseId);
       guestHouse = await GuestHouse.findOne({
         $or: [
           { guestHouseId: guestHouseId },
-          ...(isObjectId ? [{ _id: guestHouseId }] : []),
+          ...(isObjId ? [{ _id: guestHouseId }] : []),
         ],
       });
       if (!guestHouse) return res.status(404).json({ error: 'Guest house not found' });
@@ -277,8 +278,8 @@ export const getMe = async (req, res) => {
 // 🧾 GET /api/admin/users?page=1&limit=10
 export const listUsers = async (req, res) => {
   try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
+    const page = parseInt(req.body.page) || 1;
+    const limit = parseInt(req.body.limit) || 10;
     const skip = (page - 1) * limit;
 
     // Fetch paginated users — only ADMIN and SUPER_ADMIN, not guest USER records

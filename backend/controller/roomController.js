@@ -1,11 +1,25 @@
 import Room from '../models/Room.js';
 import GuestHouse from '../models/GuestHouse.js';
+import mongoose from 'mongoose';
 import { createRoomSchema, updateRoomSchema, listRoomsQuerySchema } from '../validators/room.schema.js';
 import { logAction } from '../utils/auditLogger.js';
+import { isObjectId } from '../utils/isObjectId.js';
 
 // Helper: consistent error payload
 const sendError = (res, status, message, details) =>
   res.status(status).json({ success: false, message, ...(details ? { details } : {}) });
+
+// Helper: resolve guestHouseId (either string like GH001 or ObjectId) to GuestHouse document
+const resolveGuestHouse = async (guestHouseIdParam) => {
+  if (!guestHouseIdParam) return null;
+  const isObjId = isObjectId(guestHouseIdParam);
+  return await GuestHouse.findOne({
+    $or: [
+      { guestHouseId: guestHouseIdParam },
+      ...(isObjId ? [{ _id: guestHouseIdParam }] : []),
+    ],
+  }).lean();
+};
 
 // Create Room 
 // POST /api/rooms
@@ -16,12 +30,12 @@ export const createRoom = async (req, res) => {
 
     const { guestHouseId, roomNumber, roomType, roomCapacity, price, discountPercentage, isAvailable } = value;
 
-    // Ensure GuestHouse exists
-    const gh = await GuestHouse.findOne({ guestHouseId });
+    // Ensure GuestHouse exists (resolve string GH001 or ObjectId to doc)
+    const gh = await resolveGuestHouse(guestHouseId);
     if (!gh) return sendError(res, 404, `Guest House ${guestHouseId} not found`);
 
     const room = await Room.create({
-      guestHouseId,
+      guestHouseId: gh.guestHouseId,
       roomNumber,
       roomType: roomType || 'single',
       roomCapacity,
@@ -58,7 +72,7 @@ export const createRoom = async (req, res) => {
 // GET /api/rooms
 export const listRooms = async (req, res) => {
   try {
-    const { error, value } = listRoomsQuerySchema.validate(req.query, { abortEarly: false });
+    const { error, value } = listRoomsQuerySchema.validate(req.body, { abortEarly: false });
     if (error) return sendError(res, 400, 'Invalid query', error.details);
 
     const { guestHouseId, roomType, isAvailable, isActive, page, limit, sort, order } = value;
@@ -211,14 +225,20 @@ export const softDeleteRoom = async (req, res) => {
 // Fetch rooms by guestHouseId
 export const getRoomsByGuestHouse = async (req, res) => {
   try {
-    const guestHouseId = req.query.guestHouseId;
+    const guestHouseIdParam = req.body.guestHouseId;
 
-    if (!guestHouseId) {
+    if (!guestHouseIdParam) {
       return res.status(400).json({ error: "guestHouseId is required" });
     }
 
+    // Resolve to actual guest house _id (ObjectId)
+    const gh = await resolveGuestHouse(guestHouseIdParam);
+    if (!gh) {
+      return res.status(404).json({ error: "Guest house not found" });
+    }
+
     // FIX: Return only active rooms
-    const rooms = await Room.find({ guestHouseId, isActive: true });
+    const rooms = await Room.find({ guestHouseId: gh.guestHouseId, isActive: true });
 
     res.json({ success: true, rooms });
   } catch (error) {

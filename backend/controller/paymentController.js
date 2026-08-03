@@ -3,6 +3,8 @@ import Payment from '../models/Payment.js';
 import Booking from '../models/Booking.js';
 import Invoice from '../models/Invoice.js';
 import GuestHouse from '../models/GuestHouse.js';
+import User from '../models/User.js';
+import { isObjectId } from '../utils/isObjectId.js';
 
 export const createPayment = async (req, res) => {
   try {
@@ -79,50 +81,140 @@ export const getInvoiceByBookingId = async (req, res) => {
 
 export const listOutstandingReceipts = async (req, res) => {
   try {
-    // Accept filters from POST body (or fall back to GET query for backwards compat)
     const body = req.method === 'POST' ? req.body : req.query;
-    const { search = '', fromDate = '', toDate = '' } = body;
+    const { search = '', fromDate = '', toDate = '', paid = false } = body;
 
     // Scope to assigned guest house
     const assignedGH = req.user?.assignedGuestHouseId;
-    const scopedGuestHouseId = assignedGH
-      ? (assignedGH.guestHouseId || assignedGH)
-      : null;
-
-    // Resolve to ObjectId
+    const scopedGuestHouseId = assignedGH ? (assignedGH.guestHouseId || assignedGH) : null;
     let scopedGuestHouseObjectId = null;
     if (scopedGuestHouseId) {
-      const isObjId = mongoose.Types.ObjectId.isValid(scopedGuestHouseId);
+      const isObjId = isObjectId(scopedGuestHouseId);
       const gh = await GuestHouse.findOne({
-        $or: [
-          { guestHouseId: scopedGuestHouseId },
-          ...(isObjId ? [{ _id: scopedGuestHouseId }] : []),
-        ],
+        $or: [{ guestHouseId: scopedGuestHouseId }, ...(isObjId ? [{ _id: scopedGuestHouseId }] : [])],
       }).lean();
       if (gh) scopedGuestHouseObjectId = gh._id;
     }
 
-    // ── Stage 1: base match on checked-out bookings ──────────────────
+    // ── PAID MODE: query Invoice collection — one row per outstanding transaction ──
+    if (paid) {
+      // Match bookings scoped to guest house / search
+      const bookingMatch = { isCheckedOut: true };
+      if (scopedGuestHouseObjectId) bookingMatch.guestHouseId = scopedGuestHouseObjectId;
+      if (fromDate || toDate) {
+        bookingMatch.checkIn = {};
+        if (fromDate) bookingMatch.checkIn.$gte = new Date(`${fromDate}T00:00:00.000Z`);
+        if (toDate)   bookingMatch.checkIn.$lte = new Date(`${toDate}T23:59:59.999Z`);
+      }
+      if (search && search.trim()) {
+        const re = { $regex: search.trim(), $options: 'i' };
+        const users = await User.find({ role: 'USER', $or: [{ firstName: re }, { lastName: re }, { phone: re }, { email: re }] }, '_id').lean();
+        bookingMatch.userId = { $in: users.map((u) => u._id) };
+      }
+
+      // Get qualifying booking IDs
+      const bookings = await Booking.find(bookingMatch, '_id').lean();
+      const bookingIds = bookings.map((b) => b._id);
+
+      if (bookingIds.length === 0) return res.json({ receipts: [] });
+
+      // For each booking, find its FIRST invoice (checkout) by createdAt asc
+      // Then return all subsequent invoices (outstanding payments) — one doc per transaction
+      const pipeline = [
+        { $match: { bookingId: { $in: bookingIds } } },
+        { $sort: { bookingId: 1, createdAt: 1 } },
+
+        // Rank invoices per booking: 1 = checkout invoice, 2+ = outstanding payments
+        {
+          $setWindowFields: {
+            partitionBy: '$bookingId',
+            sortBy: { createdAt: 1 },
+            output: { invoiceRank: { $rank: {} } },
+          },
+        },
+
+        // Keep only outstanding payment invoices (rank >= 2)
+        { $match: { invoiceRank: { $gte: 2 } } },
+
+        // Join booking
+        {
+          $lookup: {
+            from: 'bookings',
+            let: { bookingId: '$bookingId' },
+            pipeline: [
+              { $match: { $expr: { $eq: ['$_id', '$$bookingId'] } } },
+              {
+                $lookup: {
+                  from: 'users',
+                  let: { uid: '$userId' },
+                  pipeline: [
+                    { $match: { $expr: { $eq: ['$_id', '$$uid'] } } },
+                    { $project: { firstName: 1, lastName: 1, email: 1, phone: 1 } },
+                  ],
+                  as: 'userDoc',
+                },
+              },
+              { $addFields: { userId: { $arrayElemAt: ['$userDoc', 0] } } },
+              { $unset: 'userDoc' },
+              {
+                $lookup: {
+                  from: 'rooms',
+                  let: { rid: '$roomId' },
+                  pipeline: [
+                    { $match: { $expr: { $eq: ['$_id', '$$rid'] } } },
+                    { $project: { roomNumber: 1 } },
+                  ],
+                  as: 'roomDoc',
+                },
+              },
+              { $addFields: { roomId: { $arrayElemAt: ['$roomDoc', 0] } } },
+              { $unset: 'roomDoc' },
+            ],
+            as: 'bookingDoc',
+          },
+        },
+        { $addFields: { bookingDoc: { $arrayElemAt: ['$bookingDoc', 0] } } },
+
+        { $sort: { createdAt: -1 } },
+
+        {
+          $project: {
+            _id: 1,
+            bookingId: 1,
+            createdAt: 1,
+            outstandingBalance: '$invoiceData.outstandingBalance',
+            invoiceData: {
+              $mergeObjects: [
+                '$invoiceData',
+                { previouslyPaid: { $subtract: ['$invoiceData.amountPaid', '$amountPaid'] } },
+                { amountPaid: '$amountPaid' }, // this transaction only
+              ],
+            },
+            booking: '$bookingDoc',
+          },
+        },
+      ];
+
+      const receipts = await Invoice.aggregate(pipeline);
+      return res.json({ receipts });
+    }
+
+    // ── UNPAID MODE: query Bookings — one row per booking with outstanding balance ──
     const matchStage = { isCheckedOut: true };
     if (scopedGuestHouseObjectId) matchStage.guestHouseId = scopedGuestHouseObjectId;
-
-    // Date range on checkIn
     if (fromDate || toDate) {
       matchStage.checkIn = {};
       if (fromDate) matchStage.checkIn.$gte = new Date(`${fromDate}T00:00:00.000Z`);
       if (toDate)   matchStage.checkIn.$lte = new Date(`${toDate}T23:59:59.999Z`);
     }
-
-    // Search on booking's own name/phone/email fields
     if (search && search.trim()) {
       const re = { $regex: search.trim(), $options: 'i' };
-      matchStage.$or = [{ fullName: re }, { phone: re }, { email: re }];
+      const users = await User.find({ role: 'USER', $or: [{ firstName: re }, { lastName: re }, { phone: re }, { email: re }] }, '_id').lean();
+      matchStage.userId = { $in: users.map((u) => u._id) };
     }
 
     const pipeline = [
       { $match: matchStage },
-
-      // ── Join latest invoice per booking ─────────────────────────────
       {
         $lookup: {
           from: 'invoices',
@@ -137,15 +229,7 @@ export const listOutstandingReceipts = async (req, res) => {
         },
       },
       { $addFields: { latestInvoice: { $arrayElemAt: ['$latestInvoice', 0] } } },
-
-      // ── Keep only bookings that have a positive outstanding balance ──
-      {
-        $match: {
-          'latestInvoice.invoiceData.outstandingBalance': { $gt: 0 },
-        },
-      },
-
-      // ── Join guest user ──────────────────────────────────────────────
+      { $match: { 'latestInvoice.invoiceData.outstandingBalance': { $gt: 0 } } },
       {
         $lookup: {
           from: 'users',
@@ -157,13 +241,9 @@ export const listOutstandingReceipts = async (req, res) => {
           as: 'userDoc',
         },
       },
-      { $addFields: { 'userId': { $arrayElemAt: ['$userDoc', 0] } } },
+      { $addFields: { userId: { $arrayElemAt: ['$userDoc', 0] } } },
       { $unset: 'userDoc' },
-
-      // ── Sort newest check-in first ───────────────────────────────────
       { $sort: { checkIn: -1 } },
-
-      // ── Extract outstandingBalance to top level ───────────────────────
       {
         $addFields: {
           bookingId: '$_id',
@@ -171,18 +251,12 @@ export const listOutstandingReceipts = async (req, res) => {
         },
       },
       { $unset: 'latestInvoice' },
-
-      // ── Wrap into { _id, bookingId, outstandingBalance, createdAt, booking } ──
-      // We do this by first saving $$ROOT, then replacing the root
       {
         $group: {
           _id: '$_id',
           bookingId:          { $first: '$_id' },
           outstandingBalance: { $first: '$outstandingBalance' },
           createdAt:          { $first: '$createdAt' },
-          fullName:           { $first: '$fullName' },
-          email:              { $first: '$email' },
-          phone:              { $first: '$phone' },
           checkIn:            { $first: '$checkIn' },
           checkOut:           { $first: '$checkOut' },
           guestHouseId:       { $first: '$guestHouseId' },
@@ -193,53 +267,24 @@ export const listOutstandingReceipts = async (req, res) => {
           bedId:              { $first: '$bedId' },
           isCheckedOut:       { $first: '$isCheckedOut' },
           familyMembers:      { $first: '$familyMembers' },
-          nationality:        { $first: '$nationality' },
-          identityType:       { $first: '$identityType' },
-          identityNumber:     { $first: '$identityNumber' },
-          emergencyContactName:  { $first: '$emergencyContactName' },
-          emergencyContactPhone: { $first: '$emergencyContactPhone' },
           specialRequests:    { $first: '$specialRequests' },
         },
       },
       {
         $addFields: {
           booking: {
-            _id:          '$_id',
-            fullName:     '$fullName',
-            email:        '$email',
-            phone:        '$phone',
-            checkIn:      '$checkIn',
-            checkOut:     '$checkOut',
-            guestHouseId: '$guestHouseId',
-            status:       '$status',
-            userId:       '$userId',
-            roomId:       '$roomId',
-            roomIds:      '$roomIds',
-            bedId:        '$bedId',
-            isCheckedOut: '$isCheckedOut',
-            familyMembers: '$familyMembers',
-            nationality:  '$nationality',
-            identityType: '$identityType',
-            identityNumber: '$identityNumber',
-            emergencyContactName:  '$emergencyContactName',
-            emergencyContactPhone: '$emergencyContactPhone',
+            _id: '$_id', checkIn: '$checkIn', checkOut: '$checkOut',
+            guestHouseId: '$guestHouseId', status: '$status', userId: '$userId',
+            roomId: '$roomId', roomIds: '$roomIds', bedId: '$bedId',
+            isCheckedOut: '$isCheckedOut', familyMembers: '$familyMembers',
             specialRequests: '$specialRequests',
           },
         },
       },
-      {
-        $project: {
-          _id: 1,
-          bookingId: 1,
-          outstandingBalance: 1,
-          createdAt: 1,
-          booking: 1,
-        },
-      },
+      { $project: { _id: 1, bookingId: 1, outstandingBalance: 1, createdAt: 1, booking: 1 } },
     ];
 
     const receipts = await Booking.aggregate(pipeline);
-
     return res.json({ receipts });
   } catch (err) {
     console.error('Error listing outstanding receipts:', err);
@@ -270,7 +315,7 @@ export const listCheckedOutBookings = async (req, res) => {
 
     let scopedGHObjectId = null;
     if (rawGHId) {
-      const isObjId = mongoose.Types.ObjectId.isValid(rawGHId);
+      const isObjId = isObjectId(rawGHId);
       const gh = await GuestHouse.findOne({
         $or: [
           { guestHouseId: rawGHId },
@@ -286,7 +331,8 @@ export const listCheckedOutBookings = async (req, res) => {
     if (search && search.trim()) {
       const s = search.trim();
       const re = { $regex: s, $options: 'i' };
-      matchStage.$or = [{ fullName: re }, { phone: re }, { email: re }];
+      const users = await User.find({ role: 'USER', $or: [{ firstName: re }, { lastName: re }, { phone: re }, { email: re }] }, '_id').lean();
+      matchStage.userId = { $in: users.map((u) => u._id) };
     }
 
     const pipeline = [

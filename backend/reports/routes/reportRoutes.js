@@ -10,11 +10,11 @@ import { authenticate, authorize } from '../../middlewares/auth.js';
 
 const router = express.Router();
 
-router.get('/', authenticate, getReportsList);
+router.post('/list', authenticate, getReportsList);
 router.get('/permissions/:adminId', authenticate, authorize('SUPER_ADMIN'), getPermissions);
 router.put('/permissions/:adminId', authenticate, authorize('SUPER_ADMIN'), updatePermissions);
 
-router.get('/:reportName/filters', authenticate, getFilters);
+router.post('/:reportName/filters', authenticate, getFilters);
 router.post('/:reportName/generate', authenticate, generatePdf);
 
 export default router;

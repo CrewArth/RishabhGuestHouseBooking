@@ -1,6 +1,7 @@
 import Booking from '../../models/Booking.js';
 import GuestHouse from '../../models/GuestHouse.js';
 import mongoose from 'mongoose';
+import { isObjectId } from '../../utils/isObjectId.js';
 
 /**
  * Executes MongoDB aggregation for "Monthly Revenue by Guest House" report.
@@ -50,11 +51,11 @@ export const getMonthlyRevenueByGuestHouseData = async ({ guestHouseId, month, y
   }
 
   // ── Look up guest house ───────────────────────────────────────────────────
-  const isObjectId = mongoose.Types.ObjectId.isValid(guestHouseId);
+  const isObjId = isObjectId(guestHouseId);
   const guestHouse = await GuestHouse.findOne({
     $or: [
       { guestHouseId },
-      ...(isObjectId ? [{ _id: guestHouseId }] : []),
+      ...(isObjId ? [{ _id: guestHouseId }] : []),
     ],
   }).lean();
 

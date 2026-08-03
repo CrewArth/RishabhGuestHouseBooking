@@ -77,7 +77,7 @@ export default function AdminRoomBooking() {
   useEffect(() => {
     const init = async () => {
       try {
-        const meRes = await api.get('/api/admin/me');
+        const meRes = await api.post('/api/admin/me');
         const assigned = meRes.data.user?.assignedGuestHouseId;
         if (assigned) {
           setAssignedGuestHouse(assigned);
@@ -85,7 +85,7 @@ export default function AdminRoomBooking() {
           const guestHouseId = typeof assigned === 'object' ? assigned.guestHouseId : assigned;
           setForm((f) => ({ ...f, guestHouseId }));
         } else {
-          const ghRes = await api.get('/api/guesthouses');
+          const ghRes = await api.post('/api/guesthouses/list');
           setGuestHouses(Array.isArray(ghRes.data) ? ghRes.data : ghRes.data.guestHouses || []);
         }
 
@@ -93,6 +93,7 @@ export default function AdminRoomBooking() {
         if (editBookingId) {
           const bRes = await api.get(`/api/bookings/${editBookingId}`);
           const b = bRes.data.booking;
+          const u = b.userId || {};   // populated user doc
           setForm({
             guestHouseId: normalizeGuestHouseId(b.guestHouseId),
             roomIds: Array.isArray(b.roomIds)
@@ -101,17 +102,17 @@ export default function AdminRoomBooking() {
             bedId:        b.bedId?._id         || b.bedId         || '',
             checkIn:      b.checkIn ? b.checkIn.split('T')[0] : '',
             checkOut:     b.checkOut ? b.checkOut.split('T')[0] : '',
-            fullName:     b.fullName            || '',
-            email:        b.email               || '',
-            phone:        b.phone               || '',
-            address:      b.address             || '',
-            dateOfBirth:  b.dateOfBirth ? b.dateOfBirth.split('T')[0] : '',
-            gender:       b.gender              || '',
-            nationality:  b.nationality         || '',
-            identityType: b.identityType        || '',
-            identityNumber: b.identityNumber    || '',
-            emergencyContactName:  b.emergencyContactName  || '',
-            emergencyContactPhone: b.emergencyContactPhone || '',
+            fullName:     u.firstName ? `${u.firstName} ${u.lastName || ''}`.trim() : '',
+            email:        u.email               || '',
+            phone:        u.phone               || '',
+            address:      u.address             || '',
+            dateOfBirth:  u.dateOfBirth ? u.dateOfBirth.split('T')[0] : '',
+            gender:       u.gender              || '',
+            nationality:  u.nationality         || '',
+            identityType: u.identityType        || '',
+            identityNumber: u.identityNumber    || '',
+            emergencyContactName:  u.emergencyContactName  || '',
+            emergencyContactPhone: u.emergencyContactPhone || '',
             specialRequests: b.specialRequests  || '',
           });
           if (b.familyMembers?.length) {
@@ -128,14 +129,14 @@ export default function AdminRoomBooking() {
 
   useEffect(() => {
     if (!selectedGuestHouse) { setRooms([]); return; }
-    api.get('/api/rooms/by-guesthouse', { params: { guestHouseId: selectedGuestHouse.guestHouseId } })
+    api.post('/api/rooms/by-guesthouse', { guestHouseId: selectedGuestHouse.guestHouseId })
       .then((res) => setRooms(res.data.rooms || []))
       .catch(() => toast.error('Unable to load rooms.'));
   }, [selectedGuestHouse]);
 
   useEffect(() => {
     if (!form.roomIds[0]) { setBeds([]); return; }
-    api.get('/api/beds', { params: { roomId: form.roomIds[0] } })
+    api.post('/api/beds/list', { roomId: form.roomIds[0] })
       .then((res) => setBeds(res.data.beds || []))
       .catch(() => toast.error('Unable to load beds.'));
   }, [form.roomIds]);
@@ -144,14 +145,12 @@ export default function AdminRoomBooking() {
     if (!selectedGuestHouse || !form.checkIn || !form.checkOut || form.checkOut <= form.checkIn) {
       setUnavailableRooms([]); setUnavailableBeds([]); return;
     }
-    api.get('/api/bookings/availability', {
-      params: {
+    api.post('/api/bookings/availability', {
         guestHouseId: selectedGuestHouse.guestHouseId || selectedGuestHouse._id,
         checkIn: form.checkIn,
         checkOut: form.checkOut,
         ...(isEditMode && editBookingId ? { excludeBookingId: editBookingId } : {}),
-      },
-    })
+      })
       .then((res) => {
         const newUnavailableRooms = res.data.unavailableRooms || [];
         const newUnavailableBeds  = res.data.unavailableBeds  || [];
@@ -490,7 +489,7 @@ export default function AdminRoomBooking() {
         {/* ── STEP 3 : Review & Confirm ── */}
         {step === 3 && (
           <div className="arb-card">
-            <h2>Review & Confirm</h2>
+            <h2 style={{fontWeight: "bolder"}}>Review & Confirm</h2>
             <p className="arb-review-hint">Please review the booking details before confirming.</p>
 
             <div className="arb-review-section">

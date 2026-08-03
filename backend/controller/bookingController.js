@@ -11,6 +11,7 @@ import GuestHouse from '../models/GuestHouse.js';
 import { bookingRequest } from "../utils/emailTemplates/bookingRequest.js";
 import { bookingStatusUpdate } from "../utils/emailTemplates/bookingStatusUpdate.js";
 import { upsertNormalUser } from "../utils/upsertNormalUser.js";
+import { isObjectId } from "../utils/isObjectId.js";
 const parseFamilyMembers = (familyMembers) => {
   if (!familyMembers) {
     return [];
@@ -168,12 +169,12 @@ export const createAdminBooking = async (req, res) => {
     }));
 
     // Resolve GuestHouse by string guestHouseId OR ObjectId
-    const isObjectId = mongoose.Types.ObjectId.isValid(guestHouseId);
+    const isObjId = isObjectId(guestHouseId);
     const [guestHouse, rooms, bed, overlapResult] = await Promise.all([
       GuestHouse.findOne({
         $or: [
           { guestHouseId },
-          ...(isObjectId ? [{ _id: guestHouseId }] : []),
+          ...(isObjId ? [{ _id: guestHouseId }] : []),
         ],
       }),
       Room.find({ _id: { $in: roomIds } }),
@@ -206,53 +207,39 @@ export const createAdminBooking = async (req, res) => {
       return res.status(409).json({ message: overlapResult.message });
     }
 
+    // Upsert guest into User collection and get userId
+    const guestUser = await upsertNormalUser({
+      fullName, email, phone, address,
+      dateOfBirth: dateOfBirth || null,
+      gender: gender || null,
+      nationality, identityType, identityNumber,
+      emergencyContactName, emergencyContactPhone,
+      bookingId: null, // will update after booking created
+    });
+
     const booking = await Booking.create({
-      guestHouseId: guestHouse._id,   // ← store ObjectId
+      userId: guestUser._id,
+      guestHouseId: guestHouse._id,
       roomId: primaryRoomId,
       roomIds,
       bedId: selectedBedId,
       checkIn: checkInDate,
       checkOut: checkOutDate,
       status: "approved",
-      fullName: fullName.trim(),
-      email,
-      phone,
-      address: address.trim(),
-      dateOfBirth: dateOfBirth || undefined,
-      gender: gender || undefined,
-      nationality: nationality?.trim(),
-      identityType,
-      identityNumber: identityNumber?.trim() || undefined,
       verificationImage: req.verificationImageUrl,
-      emergencyContactName: emergencyContactName?.trim(),
-      emergencyContactPhone: emergencyContactPhone?.trim(),
       familyMembers: familyMembersWithImages,
       specialRequests: specialRequests?.trim(),
       bookingSource: "admin",
       createdBy: req.user?._id,
     });
 
-    logAction({
-      action: "ADMIN_BOOKING_CREATED",
-      entityType: "Booking",
-      entityId: booking._id,
-      performedBy: req.user?.email || "Admin",
-      details: { guestHouseId: guestHouse._id, roomIds, bedId: selectedBedId, checkIn, checkOut },
-    }).catch((error) => console.error("Audit log error:", error));
-
-    // Fire-and-forget: upsert guest into NormalUser collection
+    // Link booking back to user
     upsertNormalUser({
-      fullName,
-      email,
-      phone,
-      address,
+      fullName, email, phone, address,
       dateOfBirth: dateOfBirth || null,
       gender: gender || null,
-      nationality,
-      identityType,
-      identityNumber,
-      emergencyContactName,
-      emergencyContactPhone,
+      nationality, identityType, identityNumber,
+      emergencyContactName, emergencyContactPhone,
       bookingId: booking._id,
     }).catch((error) => console.error("NormalUser upsert error:", error));
 
@@ -296,7 +283,7 @@ export const createBooking = async (req, res) => {
     }
 
     // Resolve GuestHouse by string guestHouseId OR ObjectId
-    const isObjectIdGH = mongoose.Types.ObjectId.isValid(guestHouseId);
+    const isObjectIdGH = isObjectId(guestHouseId);
     const [user, guestHouse, overlap] = await Promise.all([
       User.findById(userId),
       GuestHouse.findOne({
@@ -328,16 +315,12 @@ export const createBooking = async (req, res) => {
 
     const newBooking = new Booking({
       userId,
-      guestHouseId: guestHouse._id,   // ← store ObjectId
+      guestHouseId: guestHouse._id,
       roomId: primaryRoomId,
       roomIds,
       bedId: selectedBedId,
       checkIn,
       checkOut,
-      fullName: req.body.fullName,
-      email: req.body.email || user?.email,
-      phone: req.body.phone,
-      address: req.body.address,
       specialRequests: req.body.specialRequests,
     });
 
@@ -372,15 +355,6 @@ export const createBooking = async (req, res) => {
       details: { guestHouseId, roomId, bedId, checkIn, checkOut },
     }).catch(err => console.error("Audit log error:", err));
 
-    // Fire-and-forget: upsert guest into NormalUser collection
-    upsertNormalUser({
-      fullName:  req.body.fullName,
-      email:     req.body.email || user?.email,
-      phone:     req.body.phone || user?.phone,
-      address:   req.body.address,
-      bookingId: newBooking._id,
-    }).catch(err => console.error("NormalUser upsert error:", err));
-
   } catch (error) {
     console.error("Error creating booking:", error);
     res.status(500).json({ message: "Server error creating booking" });
@@ -390,19 +364,19 @@ export const createBooking = async (req, res) => {
 // 🟡 Get all bookings (admin)
 export const getAllBookings = async (req, res) => {
   try {
-    const { startDate, endDate, guestHouseId, status } = req.query;
-    const page  = Math.max(1, parseInt(req.query.page)  || 1);
-    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 10));
+    const { startDate, endDate, guestHouseId, status } = req.body;
+    const page  = Math.max(1, parseInt(req.body.page)  || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.body.limit) || 10));
     const skip  = (page - 1) * limit;
 
     const query = {};
 
     if (guestHouseId) {
-      const isObjectId = mongoose.Types.ObjectId.isValid(guestHouseId);
+      const isObjId = isObjectId(guestHouseId);
       const gh = await GuestHouse.findOne({
         $or: [
           { guestHouseId },
-          ...(isObjectId ? [{ _id: guestHouseId }] : [])
+          ...(isObjId ? [{ _id: guestHouseId }] : [])
         ]
       }).lean();
 
@@ -465,7 +439,7 @@ export const getAllBookings = async (req, res) => {
 //Exporting Daily Bookings
 export const exportDailyBookings = async (req, res) => {
   try {
-    const { date } = req.query;
+    const { date } = req.body;
 
     if (!date) {
       return res.status(400).json({ success: false, error: "date query parameter is required (YYYY-MM-DD)" });
@@ -474,7 +448,6 @@ export const exportDailyBookings = async (req, res) => {
     const startOfDay = new Date(`${date}T00:00:00.000Z`);
     const endOfDay = new Date(`${date}T23:59:59.999Z`);
 
-    // Fetch bookings with populate for all refs including guestHouseId
     const bookings = await Booking.find({
       createdAt: { $gte: startOfDay, $lte: endOfDay }
     })
@@ -548,7 +521,7 @@ export const exportDailyBookings = async (req, res) => {
 // 🟢 Get bookings for current user
 export const getMyBookings = async (req, res) => {
   try {
-    const userId = req.user?._id || req.query.userId;
+    const userId = req.user?._id || req.body.userId;
     const bookings = await Booking.find({ userId })
       .populate("guestHouseId", "guestHouseId guestHouseName location")
       .populate("roomId", "roomNumber")
@@ -693,18 +666,18 @@ export const rejectBooking = async (req, res) => {
 // Check Room & Bed Availability for selected Guest House and Date Range
 export const checkAvailability = async (req, res) => {
   try {
-    const { guestHouseId, checkIn, checkOut, excludeBookingId } = req.query;
+    const { guestHouseId, checkIn, checkOut, excludeBookingId } = req.body;
 
     if (!guestHouseId || !checkIn || !checkOut) {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
     // Resolve GuestHouse by string guestHouseId OR ObjectId
-    const isObjectId = mongoose.Types.ObjectId.isValid(guestHouseId);
+    const isObjId = isObjectId(guestHouseId);
     const guestHouse = await GuestHouse.findOne({
       $or: [
         { guestHouseId },
-        ...(isObjectId ? [{ _id: guestHouseId }] : []),
+        ...(isObjId ? [{ _id: guestHouseId }] : []),
       ],
     });
 
@@ -724,7 +697,7 @@ export const checkAvailability = async (req, res) => {
       ],
     };
 
-    if (excludeBookingId && mongoose.Types.ObjectId.isValid(excludeBookingId)) {
+    if (excludeBookingId && isObjectId(excludeBookingId)) {
       bookingQuery._id = { $ne: new mongoose.Types.ObjectId(excludeBookingId) };
     }
 
@@ -848,7 +821,7 @@ export const getApprovedBookingsForCalendar = async (req, res) => {
         ? user.assignedGuestHouseId.guestHouseId
         : user.assignedGuestHouseId;
       if (ghId) {
-        const isObjId = mongoose.Types.ObjectId.isValid(ghId);
+        const isObjId = isObjectId(ghId) && /^[a-f\d]{24}$/i.test(ghId);
         const gh = await GuestHouse.findOne({
           $or: [{ guestHouseId: ghId }, ...(isObjId ? [{ _id: ghId }] : [])],
         }).lean();
@@ -858,7 +831,7 @@ export const getApprovedBookingsForCalendar = async (req, res) => {
 
     const bookings = await Booking.find(query)
       .populate("userId", "firstName lastName email")
-      .populate("guestHouseId", "guestHouseId guestHouseName location")
+      .populate({ path: "guestHouseId", select: "guestHouseId guestHouseName location", options: { strictPopulate: false } })
       .populate("roomId", "roomNumber")
       .populate("roomIds", "roomNumber roomType")
       .populate("bedId", "bedNumber bedType")
@@ -876,6 +849,7 @@ export const getApprovedBookingsForCalendar = async (req, res) => {
 export const getBookingById = async (req, res) => {
   try {
     const booking = await Booking.findById(req.params.id)
+      .populate("userId", "firstName lastName email phone address dateOfBirth gender nationality identityType identityNumber emergencyContactName emergencyContactPhone")
       .populate("guestHouseId", "guestHouseId guestHouseName location")
       .populate("roomId", "roomNumber roomType _id")
       .populate("roomIds", "roomNumber roomType _id")
@@ -921,7 +895,7 @@ export const updateAdminBooking = async (req, res) => {
       return res.status(400).json({ message: "Check-out must be after check-in" });
     }
 
-    const isObjectIdGH2 = mongoose.Types.ObjectId.isValid(guestHouseId);
+    const isObjectIdGH2 = isObjectId(guestHouseId);
     const [guestHouse, rooms, bed, overlapResult] = await Promise.all([
       GuestHouse.findOne({
         $or: [
@@ -966,22 +940,28 @@ export const updateAdminBooking = async (req, res) => {
       ...(familyMemberImageUrls[i] ? { verificationImage: familyMemberImageUrls[i] } : {}),
     }));
 
+    // Sync updated guest details back to User document
+    const existingBooking = await Booking.findById(id).lean();
+    if (existingBooking?.userId) {
+      upsertNormalUser({
+        fullName, email, phone, address,
+        dateOfBirth: dateOfBirth || null,
+        gender: gender || null,
+        nationality, identityType, identityNumber,
+        emergencyContactName, emergencyContactPhone,
+        bookingId: id,
+      }).catch((err) => console.error("NormalUser upsert error:", err));
+    }
+
     const primaryRoomId = roomIds[0];
 
     const updateData = {
-      guestHouseId: guestHouse._id,   // ← store ObjectId
+      guestHouseId: guestHouse._id,
       roomId: primaryRoomId,
       roomIds,
       bedId: bedId || undefined,
-      checkIn: checkInDate, checkOut: checkOutDate,
-      fullName: fullName.trim(), email, phone, address: address.trim(),
-      dateOfBirth: dateOfBirth || undefined,
-      gender: gender || undefined,
-      nationality: nationality?.trim(),
-      identityType,
-      identityNumber: identityNumber?.trim() || undefined,
-      emergencyContactName: emergencyContactName?.trim(),
-      emergencyContactPhone: emergencyContactPhone?.trim(),
+      checkIn: checkInDate,
+      checkOut: checkOutDate,
       familyMembers: familyMembersWithImages,
       specialRequests: specialRequests?.trim(),
     };

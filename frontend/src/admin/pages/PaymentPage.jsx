@@ -110,7 +110,7 @@ const PaymentPage = ({ isOpen = false, onClose, bookingId: bookingIdProp, onInvo
   useEffect(() => {
     const fetchTaxes = async () => {
       try {
-        const res = await api.get('/api/taxes');
+        const res = await api.post('/api/taxes/list');
         const active = (res.data.taxes || []).filter((t) => t.isActive);
         setTaxes(active);
       } catch (err) {
@@ -257,9 +257,9 @@ const PaymentPage = ({ isOpen = false, onClose, bookingId: bookingIdProp, onInvo
         <div style={{ display: 'grid', gap: '16px' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '14px' }}>
             {[
-              { label: 'Guest', value: `${booking.userId?.firstName || booking.fullName || '—'} ${booking.userId?.lastName || ''}`.trim() || '—' },
-              { label: 'Email', value: booking.userId?.email || booking.email || '—' },
-              { label: 'Phone', value: booking.phone || '—' },
+              { label: 'Guest', value: `${booking.userId?.firstName || '—'} ${booking.userId?.lastName || ''}`.trim() || '—' },
+              { label: 'Email', value: booking.userId?.email || '—' },
+              { label: 'Phone', value: booking.userId?.phone || '—' },
               { label: 'Guest House', value: booking.guestHouseId?.guestHouseName || booking.guestHouseId || '—' },
               { label: 'Room', value: booking.roomId?.roomNumber ? `Room ${booking.roomId.roomNumber}` : '—' },
               { label: 'Bed', value: booking.bedId?.bedNumber ? `Bed ${booking.bedId.bedNumber}` : '—' },

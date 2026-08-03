@@ -21,7 +21,7 @@ router.post(
 );
 
 // Get all Guest Houses
-router.get('/', getGuestHouses);
+router.post('/list', getGuestHouses);
 
 // Toggle Maintenance
 router.patch('/:guestHouseId/maintenance', toggleMaintenanceMode);

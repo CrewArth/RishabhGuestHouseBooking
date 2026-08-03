@@ -61,7 +61,7 @@ export const createBed = async (req, res) => {
 // List beds by roomId
 export const listBedsByRoom = async (req, res) => {
   try {
-    const { roomId } = req.query;
+    const { roomId } = req.body;
 
     if (!roomId) {
       return res.status(400).json({ error: "roomId is required" });

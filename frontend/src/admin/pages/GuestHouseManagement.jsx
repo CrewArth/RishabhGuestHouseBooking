@@ -14,7 +14,7 @@ const GuestHouseManagement = () => {
 
   const fetchGuestHouses = async () => {
     try {
-      const res = await api.get("/api/guesthouses");
+      const res = await api.post("/api/guesthouses/list");
       setGuestHouses(Array.isArray(res.data) ? res.data : res.data.guestHouses || []);
     } catch (err) {
       console.error(err);

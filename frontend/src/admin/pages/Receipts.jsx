@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 import api from '../../utils/api';
 import ReceiptPaymentModal from '../components/ReceiptPaymentModal';
+import { printOutstandingReceipt } from '../utils/printInvoice';
 
 const formatCurrency = (value) =>
   new Intl.NumberFormat('en-IN', {
@@ -28,7 +29,8 @@ const Receipts = () => {
   const [toDate, setToDate] = useState('');
 
   // Applied filters (committed on Search / Reset)
-  const [applied, setApplied] = useState({ search: '', fromDate: '', toDate: '' });
+  const [applied, setApplied] = useState({ search: '', fromDate: '', toDate: '', paid: false });
+  const [paid, setPaid] = useState(false);
 
   const fetchReceipts = async (filters = applied) => {
     setLoading(true);
@@ -38,6 +40,7 @@ const Receipts = () => {
       if (filters.search)   body.search   = filters.search;
       if (filters.fromDate) body.fromDate  = filters.fromDate;
       if (filters.toDate)   body.toDate    = filters.toDate;
+      if (filters.paid)     body.paid      = true;
 
       const response = await api.post('/api/payments/outstanding', body);
       setReceipts(response.data?.receipts || []);
@@ -57,7 +60,7 @@ const Receipts = () => {
 
   const handleSearch = (e) => {
     e.preventDefault();
-    const next = { search: searchInput, fromDate, toDate };
+    const next = { search: searchInput, fromDate, toDate, paid };
     setApplied(next);
     fetchReceipts(next);
   };
@@ -66,7 +69,15 @@ const Receipts = () => {
     setSearchInput('');
     setFromDate('');
     setToDate('');
-    const next = { search: '', fromDate: '', toDate: '' };
+    setPaid(false);
+    const next = { search: '', fromDate: '', toDate: '', paid: false };
+    setApplied(next);
+    fetchReceipts(next);
+  };
+
+  const handleTogglePaid = () => {
+    const next = { ...applied, search: searchInput, fromDate, toDate, paid: !paid };
+    setPaid(!paid);
     setApplied(next);
     fetchReceipts(next);
   };
@@ -77,7 +88,7 @@ const Receipts = () => {
     toast.success('Outstanding payment recorded successfully.');
   };
 
-  const hasActiveFilter = applied.search || applied.fromDate || applied.toDate;
+  const hasActiveFilter = applied.search || applied.fromDate || applied.toDate || applied.paid;
 
   return (
     <div className="page-root">
@@ -136,6 +147,15 @@ const Receipts = () => {
         <button type="submit" className="btn-action view" disabled={loading}>
           Search
         </button>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.875rem', color: '#374151', cursor: 'pointer', userSelect: 'none' }}>
+          <input
+            type="checkbox"
+            checked={paid}
+            onChange={handleTogglePaid}
+            style={{ width: 15, height: 15, cursor: 'pointer' }}
+          />
+          Is Paid
+        </label>
         {hasActiveFilter && (
           <button type="button" className="btn-action reject" onClick={handleReset}>
             Reset
@@ -155,7 +175,7 @@ const Receipts = () => {
                 <th>#</th>
                 <th>Guest</th>
                 <th>Check In</th>
-                <th>Amount Due</th>
+                <th>{paid ? 'Amount Paid' : 'Amount Due'}</th>
                 <th>Last Updated</th>
                 <th>Status</th>
                 <th>Actions</th>
@@ -166,18 +186,21 @@ const Receipts = () => {
                 <tr>
                   <td colSpan="7" className="table-empty">
                     {hasActiveFilter
-                      ? 'No outstanding payments match your filters.'
-                      : 'No outstanding payments found.'}
+                      ? `No ${paid ? 'paid' : 'outstanding'} payments match your filters.`
+                      : `No ${paid ? 'paid' : 'outstanding'} payments found.`}
                   </td>
                 </tr>
               ) : (
                 receipts.map((receipt, i) => {
                   const booking = receipt.booking || {};
                   const guestName =
-                    `${booking.userId?.firstName || booking.userId?.name || ''} ${booking.userId?.lastName || ''}`.trim() ||
-                    booking.fullName ||
-                    '—';
-                  const amountDue = Number(receipt.outstandingBalance || 0);
+                    `${booking.userId?.firstName || ''} ${booking.userId?.lastName || ''}`.trim() || '—';
+                  const amountDue  = Number(receipt.outstandingBalance || 0);
+                  const inv        = receipt.invoiceData || {};
+                  const totalBill  = Number(inv.bookingTotal || 0);
+                  const prevPaid   = Number(inv.previouslyPaid || 0);
+                  // outstanding amount paid = totalBill - prevPaid (what was settled via outstanding)
+                  const outstandingPaid = Number(inv.amountPaid || 0) - prevPaid;
 
                   return (
                     <tr key={receipt._id}>
@@ -189,27 +212,55 @@ const Receipts = () => {
                             {booking.userId.email}
                           </div>
                         )}
-                        {(booking.userId?.phone || booking.phone) && (
+                        {booking.userId?.phone && (
                           <div style={{ color: '#64748b', fontSize: '0.8rem' }}>
-                            {booking.userId?.phone || booking.phone}
+                            {booking.userId?.phone}
                           </div>
                         )}
                       </td>
                       <td>{formatDate(booking.checkIn)}</td>
-                      <td style={{ fontWeight: 700, color: '#b45309' }}>
-                        {formatCurrency(amountDue)}
+                      <td style={{ fontWeight: 700, color: paid ? '#15803d' : '#b45309' }}>
+                        {paid ? formatCurrency(outstandingPaid) : formatCurrency(amountDue)}
                       </td>
                       <td>{formatDate(receipt.createdAt)}</td>
                       <td>
-                        <span className="badge pending">Outstanding</span>
+                        <span className={`badge ${paid ? 'approved' : 'pending'}`}>
+                          {paid ? 'Paid' : 'Outstanding'}
+                        </span>
                       </td>
                       <td>
-                        <button
-                          className="btn-action view"
-                          onClick={() => setSelectedReceipt(receipt)}
-                        >
-                          Receive Payment
-                        </button>
+                        {paid ? (
+                          <button
+                            className="tb-invoice-btn"
+                            title="View invoice"
+                            style={{ width: 32, height: 32, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', border: 'none', borderRadius: 6, background: '#f0fdf4', color: '#16a34a', cursor: 'pointer' }}
+                            onClick={() => {
+                              const inv = receipt.invoiceData;
+                              if (!inv) { toast.error('No invoice available.'); return; }
+                              const receiptData = {
+                                ...inv,
+                                amountPaid: outstandingPaid,
+                                previouslyPaid: prevPaid,
+                                bookingTotal: totalBill,
+                              };
+                              if (!printOutstandingReceipt(booking, receiptData))
+                                toast.error('Pop-up blocked. Please allow pop-ups for this site.');
+                            }}
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <polyline points="6 9 6 2 18 2 18 9" />
+                              <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+                              <rect width="12" height="8" x="6" y="14" />
+                            </svg>
+                          </button>
+                        ) : (
+                          <button
+                            className="btn-action view"
+                            onClick={() => setSelectedReceipt(receipt)}
+                          >
+                            Receive Payment
+                          </button>
+                        )}
                       </td>
                     </tr>
                   );

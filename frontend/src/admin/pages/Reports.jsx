@@ -63,7 +63,7 @@ const Reports = () => {
   // Fetch Guest Houses for filters
   useEffect(() => {
     api
-      .get('/api/guesthouses')
+      .post('/api/guesthouses/list')
       .then((res) => {
         const list = Array.isArray(res.data) ? res.data : res.data?.guestHouses || [];
 
@@ -87,7 +87,7 @@ const Reports = () => {
   useEffect(() => {
     if (isSuperAdmin && activeTab === 'permissions') {
       api
-        .get('/api/admin/users?limit=1000')
+        .post('/api/admin/users/list', { limit: 1000 })
         .then((res) => {
           const list = res.data?.users || [];
           const adminOnly = list.filter((u) => String(u.role).toUpperCase() === 'ADMIN');

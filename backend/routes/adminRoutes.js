@@ -14,9 +14,9 @@ import { uploadESignature, processAndUploadESignature } from '../middlewares/ima
 
 const router = express.Router();
 
-router.get('/summary', authenticate, getAdminSummary);
-router.get('/me', authenticate, getMe);
-router.get('/users', authenticate, listUsers);
+router.post('/summary', authenticate, getAdminSummary);
+router.post('/me', authenticate, getMe);
+router.post('/users/list', authenticate, listUsers);
 router.post(
   '/users',
   authenticate,
@@ -27,7 +27,7 @@ router.post(
 );
 router.patch('/users/:id/assign-guesthouse', authenticate, authorize('SUPER_ADMIN'), assignGuestHouse);
 router.patch('/users/:id/widgets', authenticate, authorize('SUPER_ADMIN'), updateUserWidgets);
-router.get('/metrics/bookings-per-day', authenticate, getBookingsPerDay);
-router.get('/metrics/top-guest-houses', authenticate, getTopGuestHouses);
+router.post('/metrics/bookings-per-day', authenticate, getBookingsPerDay);
+router.post('/metrics/top-guest-houses', authenticate, getTopGuestHouses);
 
 export default router;

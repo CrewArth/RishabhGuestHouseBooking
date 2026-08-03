@@ -45,7 +45,7 @@ const Bookings = () => {
         ...(filters.endDate           && { endDate:    filters.endDate }),
       };
 
-      const res = await api.get("/api/bookings", { params });
+      const res = await api.post("/api/bookings/list", params);
       setBookings(Array.isArray(res.data.bookings) ? res.data.bookings : []);
       setTotalPages(res.data.totalPages  || 1);
       setCurrentPage(res.data.currentPage || page);
@@ -89,10 +89,7 @@ const Bookings = () => {
   const handleExport = async () => {
     try {
       setIsExporting(true);
-      const res = await api.get("/api/bookings/export/daily", {
-        params: { date: exportDate },
-        responseType: "blob",
-      });
+      const res = await api.post("/api/bookings/export/daily", { date: exportDate }, { responseType: "blob" });
       const url  = window.URL.createObjectURL(new Blob([res.data], { type: "text/csv;charset=utf-8;" }));
       const link = document.createElement("a");
       link.href  = url;
@@ -213,7 +210,7 @@ const Bookings = () => {
                     <td className="center">{index}</td>
                     <td>{b.guestHouseId?.guestHouseName || "—"}</td>
                     <td>
-                      {b.userId?.firstName || b.fullName || "—"}
+                      {b.userId?.firstName || "—"}
                       {b.userId?.lastName ? ` ${b.userId.lastName}` : ""}
                       {b.userId?.email && (
                         <><br /><span style={{ color: "#64748b", fontSize: "0.78rem" }}>{b.userId.email}</span></>
