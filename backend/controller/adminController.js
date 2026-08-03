@@ -39,24 +39,60 @@ export const getAdminSummary = async (req, res) => {
   try {
     const bookingQuery = await getGuestHouseFilter(req.user);
 
-    const totalUsers = await User.countDocuments();
-    const totalGuestHouses = await GuestHouse.countDocuments();
-
-    const totalBookings = await Booking.countDocuments(bookingQuery);
-    const approvedBookings = await Booking.countDocuments({ ...bookingQuery, status: "approved" });
-    const pendingBookings = await Booking.countDocuments({ ...bookingQuery, status: "pending" });
-    const cancelledBookings = await Booking.countDocuments({ ...bookingQuery, status: "cancelled" });
-    const rejectedBookings = await Booking.countDocuments({ ...bookingQuery, status: "rejected" });
-
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const todaysBookings = await Booking.countDocuments({
-      ...bookingQuery,
-      $or: [
-        { createdAt: { $gte: today } },
-        { checkIn: { $lte: new Date() }, checkOut: { $gte: today } }
-      ]
-    });
+    const now = new Date();
+
+    // Single aggregation query for all booking counts + todaysBookings
+    const isTodayBooking = {
+      $cond: {
+        if: {
+          $or: [
+            { $gte: ["$createdAt", today] },
+            {
+              $and: [
+                { $lte: ["$checkIn", now] },
+                { $gte: ["$checkOut", today] }
+              ]
+            }
+          ]
+        },
+        then: 1,
+        else: 0
+      }
+    };
+
+    const pipeline = [
+      { $match: bookingQuery },
+      {
+        $group: {
+          _id: null,
+          totalBookings: { $sum: 1 },
+          approvedBookings: { $sum: { $cond: [{ $eq: ["$status", "approved"] }, 1, 0] } },
+          pendingBookings: { $sum: { $cond: [{ $eq: ["$status", "pending"] }, 1, 0] } },
+          cancelledBookings: { $sum: { $cond: [{ $eq: ["$status", "cancelled"] }, 1, 0] } },
+          rejectedBookings: { $sum: { $cond: [{ $eq: ["$status", "rejected"] }, 1, 0] } },
+          todaysBookings: { $sum: isTodayBooking }
+        }
+      }
+    ];
+
+    const [totalUsers, totalGuestHouses, bookingResult] = await Promise.all([
+      User.countDocuments(),
+      GuestHouse.countDocuments(),
+      Booking.aggregate(pipeline).exec()
+    ]);
+
+    const counts = bookingResult[0] || {
+      totalBookings: 0,
+      approvedBookings: 0,
+      pendingBookings: 0,
+      cancelledBookings: 0,
+      rejectedBookings: 0,
+      todaysBookings: 0
+    };
+
+    const { totalBookings, approvedBookings, pendingBookings, cancelledBookings, rejectedBookings, todaysBookings } = counts;
 
     const occupancyRate =
       totalBookings > 0 ? ((approvedBookings / totalBookings) * 100).toFixed(2) : 0;
