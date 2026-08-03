@@ -1,4 +1,4 @@
-import { Home, Building2, DoorOpen, BookOpen, Bed, FileText, PersonStanding, Settings, FileBarChart, PlusCircle, List } from 'lucide-react';
+import { Home, Building2, DoorOpen, BookOpen, Bed, FileText, PersonStanding, Settings, FileBarChart, PlusCircle, List, Receipt } from 'lucide-react';
 
 export const superAdminSidebarData = [
   {
@@ -84,9 +84,15 @@ export const adminSidebarData = [
   },
   {
     id: 'MC_RECEIPTS',
-    name: 'Receipts',
+    name: 'Outstanding Payments',
     icon: FileText,
     navigate: '/admin/receipts',
+  },
+  {
+    id: 'MC_INVOICE_LIST',
+    name: 'Invoice List',
+    icon: Receipt,
+    navigate: '/admin/invoice-list',
   },
   {
     id: 'MC_REPORTS',

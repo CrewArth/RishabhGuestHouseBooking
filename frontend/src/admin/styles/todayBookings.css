@@ -169,6 +169,7 @@
 
 /* ── Action buttons in the bookings table ── */
 .tb-action-btn,
+.tb-invoice-btn,
 .tb-cancel-btn {
   display: inline-flex;
   align-items: center;
@@ -178,13 +179,38 @@
   padding: 0;
   border: none;
   border-radius: 6px;
-  background: #fef2f2;
-  color: #dc2626;
   cursor: pointer;
   transition: background 0.15s ease, color 0.15s ease;
 }
 
-.tb-action-btn:hover:not(:disabled),
+/* Edit button — blue */
+.tb-action-btn {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.tb-action-btn:hover:not(:disabled) {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+/* Invoice button — green */
+.tb-invoice-btn {
+  background: #f0fdf4;
+  color: #16a34a;
+}
+
+.tb-invoice-btn:hover:not(:disabled) {
+  background: #16a34a;
+  color: #ffffff;
+}
+
+/* Cancel button — red */
+.tb-cancel-btn {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
 .tb-cancel-btn:hover:not(:disabled) {
   background: #dc2626;
   color: #ffffff;
@@ -217,7 +243,8 @@
   transform: none;
 }
 
-.tb-action-btn:disabled {
+.tb-action-btn:disabled,
+.tb-invoice-btn:disabled {
   opacity: 0.55;
   cursor: not-allowed;
 }

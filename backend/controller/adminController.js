@@ -11,15 +11,24 @@ import { normalizeUser } from '../utils/roles.js';
 /**
  * Returns a MongoDB filter object scoped to the user's assigned guest house.
  * SUPER_ADMIN → no filter (empty object, sees everything).
- * ADMIN with assignedGuestHouseId → { guestHouseId: <id> }.
+ * ADMIN with assignedGuestHouseId → { guestHouseId: <ObjectId> }.
  * ADMIN without assignment → no restriction (same as SUPER_ADMIN).
  */
-const getGuestHouseFilter = (user) => {
+const getGuestHouseFilter = async (user) => {
   if (user?.role === 'ADMIN' && user.assignedGuestHouseId) {
     const ghId = typeof user.assignedGuestHouseId === 'object'
       ? user.assignedGuestHouseId.guestHouseId
       : user.assignedGuestHouseId;
-    if (ghId) return { guestHouseId: ghId };
+    if (ghId) {
+      const isObjectId = mongoose.Types.ObjectId.isValid(ghId);
+      const gh = await GuestHouse.findOne({
+        $or: [
+          { guestHouseId: ghId },
+          ...(isObjectId ? [{ _id: ghId }] : []),
+        ],
+      }).lean();
+      if (gh) return { guestHouseId: gh._id };
+    }
   }
   return {};
 };
@@ -27,7 +36,7 @@ const getGuestHouseFilter = (user) => {
 // Fetch Dashboard Summary (LIVE STATS)
 export const getAdminSummary = async (req, res) => {
   try {
-    const bookingQuery = getGuestHouseFilter(req.user);
+    const bookingQuery = await getGuestHouseFilter(req.user);
 
     const totalUsers = await User.countDocuments();
     const totalGuestHouses = await GuestHouse.countDocuments();
@@ -102,7 +111,7 @@ export const getBookingsPerDay = async (req, res) => {
     );
 
     const matchStage = {
-      ...getGuestHouseFilter(req.user),
+      ...await getGuestHouseFilter(req.user),
       createdAt: { $gte: startDate, $lte: endDate },
     };
 
@@ -151,7 +160,7 @@ export const getTopGuestHouses = async (req, res) => {
     const limit = Math.min(parseInt(req.query.limit, 10) || 5, 20);
 
     const matchStage = {
-      ...getGuestHouseFilter(req.user),
+      ...await getGuestHouseFilter(req.user),
       createdAt: { $gte: startDate, $lte: endDate },
     };
 
@@ -173,7 +182,7 @@ export const getTopGuestHouses = async (req, res) => {
         $lookup: {
           from: "guesthouses",
           localField: "_id",
-          foreignField: "guestHouseId",
+          foreignField: "_id",
           as: "guestHouse",
         },
       },

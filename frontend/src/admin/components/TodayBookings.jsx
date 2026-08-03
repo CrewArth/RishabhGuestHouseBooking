@@ -54,9 +54,9 @@ export default function TodayBookings() {
   const today = getLocalDate();
   const oneWeekAgo = getOneWeekAgo();
   const navigate = useNavigate();
-  const [fromDate, setFromDate] = useState(oneWeekAgo);
+  const [fromDate, setFromDate] = useState(today);
   const [toDate, setToDate] = useState(today);
-  const [appliedFilter, setAppliedFilter] = useState({ startDate: oneWeekAgo, endDate: today });
+  const [appliedFilter, setAppliedFilter] = useState({ startDate: today, endDate: today });
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -173,13 +173,9 @@ export default function TodayBookings() {
       {cancelTarget && (
         <div className="tb-modal-backdrop" onClick={() => setCancelTarget(null)}>
           <div className="tb-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="tb-modal-icon">🗑️</div>
             <h3 className="tb-modal-title">Cancel Booking?</h3>
             <p className="tb-modal-body">
-              Are you sure you want to cancel the booking for&nbsp;
-              <strong>
-                {`${cancelTarget.userId?.firstName || ''} ${cancelTarget.userId?.lastName || ''}`.trim() || cancelTarget.fullName || 'this guest'}
-              </strong>?
+              Are you sure you want to cancel the booking?
               <br />This action cannot be undone.
             </p>
             <div className="tb-modal-actions">
@@ -188,14 +184,14 @@ export default function TodayBookings() {
                 onClick={() => setCancelTarget(null)}
                 disabled={cancelling}
               >
-                No, Keep It
+                No
               </button>
               <button
                 className="tb-modal-btn tb-modal-btn--confirm"
                 onClick={handleCancelConfirm}
                 disabled={cancelling}
               >
-                {cancelling ? 'Cancelling…' : 'Yes, Cancel'}
+                {cancelling ? 'Cancelling…' : 'Yes'}
               </button>
             </div>
           </div>
@@ -293,7 +289,7 @@ export default function TodayBookings() {
 
                           {booking.isCheckedOut && (
                             <button
-                              className="tb-action-btn"
+                              className="tb-invoice-btn"
                               onClick={() => handleViewInvoice(booking)}
                               title="View invoice"
                             >

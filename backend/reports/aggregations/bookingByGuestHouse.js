@@ -26,11 +26,9 @@ export const getBookingByGuestHouseData = async ({ guestHouseId, fromDate, toDat
     throw new Error("Selected guest house not found");
   }
 
-  const targetGuestHouseId = guestHouse.guestHouseId;
-
-  // Build match criteria
+  // Build match criteria — use ObjectId
   const matchStage = {
-    guestHouseId: targetGuestHouseId,
+    guestHouseId: guestHouse._id,
   };
 
   if (fromDate || toDate) {

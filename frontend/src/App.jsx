@@ -25,6 +25,7 @@ const PaymentPage = lazyLoad(() => import('./admin/pages/PaymentPage'));
 const InvoicePage = lazyLoad(() => import('./admin/pages/InvoicePage'));
 const TaxesManagement = lazyLoad(() => import('./admin/pages/TaxesManagement'));
 const Receipts = lazyLoad(() => import('./admin/pages/Receipts'));
+const InvoiceList = lazyLoad(() => import('./admin/pages/InvoiceList'));
 const ForgotPassword = lazyLoad(() => import('./users/pages/ForgotPassword'));
 const ResetPassword = lazyLoad(() => import('./users/pages/ResetPassword'));
 const AboutUs = lazyLoad(() => import('./commonPages/AboutUs'));
@@ -113,6 +114,7 @@ function App() {
           <Route path="/admin/payment" element={<PaymentPage />} />
           <Route path="/admin/invoice" element={<InvoicePage />} />
           <Route path="/admin/receipts" element={<Receipts />} />
+          <Route path="/admin/invoice-list" element={<InvoiceList />} />
           <Route path="/admin/reports" element={<Reports />} />
 
           {/* Super Admin routes */}

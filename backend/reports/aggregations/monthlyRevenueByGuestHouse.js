@@ -60,11 +60,9 @@ export const getMonthlyRevenueByGuestHouseData = async ({ guestHouseId, month, y
 
   if (!guestHouse) throw new Error('Selected guest house not found');
 
-  const targetGuestHouseId = guestHouse.guestHouseId;
-
-  // Match approved bookings overlapping the window
+  // Match approved bookings overlapping the window — use ObjectId
   const matchStage = {
-    guestHouseId: targetGuestHouseId,
+    guestHouseId: guestHouse._id,
     status: 'approved',
     checkIn:  { $lt: periodEnd   },
     checkOut: { $gt: periodStart },

@@ -80,6 +80,30 @@
   color: #000000;
 }
 
+/* Sidebar burger button (admin pages only, mobile) */
+.sidebar-burger-nav {
+  display: none;
+  background: transparent;
+  border: none;
+  padding: 6px;
+  cursor: pointer;
+  color: #1e293b;
+  border-radius: 6px;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+}
+
+.sidebar-burger-nav:hover {
+  background: #f1f5f9;
+}
+
+@media (max-width: 768px) {
+  .sidebar-burger-nav {
+    display: flex;
+  }
+}
+
 /* Mobile Menu Icon */
 .mobile-menu-icon {
   display: none;

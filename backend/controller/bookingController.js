@@ -167,8 +167,15 @@ export const createAdminBooking = async (req, res) => {
       ...(familyMemberImageUrls[i] ? { verificationImage: familyMemberImageUrls[i] } : {}),
     }));
 
+    // Resolve GuestHouse by string guestHouseId OR ObjectId
+    const isObjectId = mongoose.Types.ObjectId.isValid(guestHouseId);
     const [guestHouse, rooms, bed, overlapResult] = await Promise.all([
-      GuestHouse.findOne({ guestHouseId }),
+      GuestHouse.findOne({
+        $or: [
+          { guestHouseId },
+          ...(isObjectId ? [{ _id: guestHouseId }] : []),
+        ],
+      }),
       Room.find({ _id: { $in: roomIds } }),
       selectedBedId ? Bed.findById(selectedBedId) : Promise.resolve(null),
       checkRoomAvailability({ roomIds, bedId: selectedBedId, checkInDate, checkOutDate }),
@@ -200,7 +207,7 @@ export const createAdminBooking = async (req, res) => {
     }
 
     const booking = await Booking.create({
-      guestHouseId,
+      guestHouseId: guestHouse._id,   // ← store ObjectId
       roomId: primaryRoomId,
       roomIds,
       bedId: selectedBedId,
@@ -230,7 +237,7 @@ export const createAdminBooking = async (req, res) => {
       entityType: "Booking",
       entityId: booking._id,
       performedBy: req.user?.email || "Admin",
-      details: { guestHouseId, roomIds, bedId: selectedBedId, checkIn, checkOut },
+      details: { guestHouseId: guestHouse._id, roomIds, bedId: selectedBedId, checkIn, checkOut },
     }).catch((error) => console.error("Audit log error:", error));
 
     // Fire-and-forget: upsert guest into NormalUser collection
@@ -288,10 +295,16 @@ export const createBooking = async (req, res) => {
       return res.status(400).json({ message: "Bed selection is only available when booking a single room" });
     }
 
-    // Parallelize database queries for better performance
+    // Resolve GuestHouse by string guestHouseId OR ObjectId
+    const isObjectIdGH = mongoose.Types.ObjectId.isValid(guestHouseId);
     const [user, guestHouse, overlap] = await Promise.all([
       User.findById(userId),
-      GuestHouse.findOne({ guestHouseId }),
+      GuestHouse.findOne({
+        $or: [
+          { guestHouseId },
+          ...(isObjectIdGH ? [{ _id: guestHouseId }] : []),
+        ],
+      }),
       Booking.findOne({
         bedId: selectedBedId,
         status: "approved",
@@ -315,7 +328,7 @@ export const createBooking = async (req, res) => {
 
     const newBooking = new Booking({
       userId,
-      guestHouseId,
+      guestHouseId: guestHouse._id,   // ← store ObjectId
       roomId: primaryRoomId,
       roomIds,
       bedId: selectedBedId,
@@ -393,11 +406,9 @@ export const getAllBookings = async (req, res) => {
         ]
       }).lean();
 
-      const targetId = gh ? gh.guestHouseId : guestHouseId;
-      query.$or = [
-        { guestHouseId: targetId },
-        { guestHouseId: guestHouseId }
-      ];
+      // Query by _id (ObjectId) since Booking.guestHouseId is now ObjectId
+      const targetId = gh ? gh._id : (isObjectId ? new mongoose.Types.ObjectId(guestHouseId) : null);
+      if (targetId) query.guestHouseId = targetId;
     }
 
     // Status filter
@@ -428,10 +439,11 @@ export const getAllBookings = async (req, res) => {
     }
 
     // Run count and paginated fetch in parallel
-    const [totalCount, bookingsRaw] = await Promise.all([
+    const [totalCount, bookings] = await Promise.all([
       Booking.countDocuments(query),
       Booking.find(query)
         .populate("userId", "email firstName lastName phone")
+        .populate("guestHouseId", "guestHouseId guestHouseName location")
         .populate("roomId", "roomNumber")
         .populate("roomIds", "roomNumber roomType")
         .populate("bedId", "bedNumber bedType")
@@ -440,17 +452,6 @@ export const getAllBookings = async (req, res) => {
         .limit(limit)
         .lean(),
     ]);
-
-    // Manually fetch guest houses and attach to bookings
-    const guestHouseIds = [...new Set(bookingsRaw.map(b => b.guestHouseId).filter(Boolean))];
-    const guestHouses = await GuestHouse.find({ guestHouseId: { $in: guestHouseIds } }).lean();
-    const guestHouseMap = {};
-    guestHouses.forEach(gh => { guestHouseMap[gh.guestHouseId] = gh; });
-
-    const bookings = bookingsRaw.map(b => ({
-      ...b,
-      guestHouseId: guestHouseMap[b.guestHouseId] || b.guestHouseId
-    }));
 
     const totalPages = Math.ceil(totalCount / limit);
 
@@ -473,27 +474,17 @@ export const exportDailyBookings = async (req, res) => {
     const startOfDay = new Date(`${date}T00:00:00.000Z`);
     const endOfDay = new Date(`${date}T23:59:59.999Z`);
 
-    // Fetch bookings with populate for userId, roomId, bedId (but not guestHouseId)
-    let bookings = await Booking.find({
+    // Fetch bookings with populate for all refs including guestHouseId
+    const bookings = await Booking.find({
       createdAt: { $gte: startOfDay, $lte: endOfDay }
     })
       .populate("userId", "firstName lastName email phone")
+      .populate("guestHouseId", "guestHouseId guestHouseName location")
       .populate("roomId", "roomNumber")
       .populate("roomIds", "roomNumber roomType")
       .populate("bedId", "bedNumber bedType")
       .sort({ createdAt: -1 })
       .lean();
-
-    // Manually fetch guest houses and attach to bookings
-    const guestHouseIds = [...new Set(bookings.map(b => b.guestHouseId).filter(Boolean))];
-    const guestHouses = await GuestHouse.find({ guestHouseId: { $in: guestHouseIds } }).lean();
-    const guestHouseMap = {};
-    guestHouses.forEach(gh => { guestHouseMap[gh.guestHouseId] = gh; });
-
-    bookings = bookings.map(b => ({
-      ...b,
-      guestHouseId: guestHouseMap[b.guestHouseId] || b.guestHouseId
-    }));
 
     const headers = [
       "Applied On",
@@ -558,24 +549,13 @@ export const exportDailyBookings = async (req, res) => {
 export const getMyBookings = async (req, res) => {
   try {
     const userId = req.user?._id || req.query.userId;
-    // Fetch bookings with populate for roomId, bedId (but not guestHouseId)
-    let bookings = await Booking.find({ userId })
+    const bookings = await Booking.find({ userId })
+      .populate("guestHouseId", "guestHouseId guestHouseName location")
       .populate("roomId", "roomNumber")
       .populate("roomIds", "roomNumber roomType")
       .populate("bedId", "bedNumber bedType")
       .sort({ createdAt: -1 })
       .lean();
-
-    // Manually fetch guest houses and attach to bookings
-    const guestHouseIds = [...new Set(bookings.map(b => b.guestHouseId).filter(Boolean))];
-    const guestHouses = await GuestHouse.find({ guestHouseId: { $in: guestHouseIds } }).lean();
-    const guestHouseMap = {};
-    guestHouses.forEach(gh => { guestHouseMap[gh.guestHouseId] = gh; });
-
-    bookings = bookings.map(b => ({
-      ...b,
-      guestHouseId: guestHouseMap[b.guestHouseId] || b.guestHouseId
-    }));
 
     res.json({ bookings });
   } catch (error) {
@@ -596,7 +576,7 @@ export const approveBooking = async (req, res) => {
     // 2️⃣ Parallelize: Fetch user and guest house simultaneously
     const [user, guestHouse] = await Promise.all([
       User.findById(booking.userId),
-      GuestHouse.findOne({ guestHouseId: booking.guestHouseId })
+      GuestHouse.findById(booking.guestHouseId)
     ]);
 
     if (!user || !guestHouse) {
@@ -658,7 +638,7 @@ export const rejectBooking = async (req, res) => {
     // 2️⃣ Parallelize: Fetch user and guest house simultaneously
     const [user, guestHouse] = await Promise.all([
       User.findById(booking.userId),
-      GuestHouse.findOne({ guestHouseId: booking.guestHouseId })
+      GuestHouse.findById(booking.guestHouseId)
     ]);
 
     if (!user || !guestHouse) {
@@ -713,23 +693,28 @@ export const rejectBooking = async (req, res) => {
 // Check Room & Bed Availability for selected Guest House and Date Range
 export const checkAvailability = async (req, res) => {
   try {
-    const { guestHouseId, checkIn, checkOut } = req.query;
+    const { guestHouseId, checkIn, checkOut, excludeBookingId } = req.query;
 
     if (!guestHouseId || !checkIn || !checkOut) {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
-    // Find the GuestHouse using guestHouseId (String like GH001)
-    const guestHouse = await GuestHouse.findOne({ guestHouseId });
+    // Resolve GuestHouse by string guestHouseId OR ObjectId
+    const isObjectId = mongoose.Types.ObjectId.isValid(guestHouseId);
+    const guestHouse = await GuestHouse.findOne({
+      $or: [
+        { guestHouseId },
+        ...(isObjectId ? [{ _id: guestHouseId }] : []),
+      ],
+    });
 
     if (!guestHouse) {
       return res.status(404).json({ message: "Guest house not found" });
     }
 
-    // Find all APPROVED bookings overlapping the requested date range
-    // Use guestHouse.guestHouseId (String) since Booking.guestHouseId is String now
-    const overlappingBookings = await Booking.find({
-      guestHouseId: guestHouse.guestHouseId,
+    // Query by ObjectId — Booking.guestHouseId is now ObjectId
+    const bookingQuery = {
+      guestHouseId: guestHouse._id,
       status: "approved",
       $or: [
         {
@@ -737,29 +722,30 @@ export const checkAvailability = async (req, res) => {
           checkOut: { $gte: new Date(checkIn) },
         },
       ],
-    })
+    };
+
+    if (excludeBookingId && mongoose.Types.ObjectId.isValid(excludeBookingId)) {
+      bookingQuery._id = { $ne: new mongoose.Types.ObjectId(excludeBookingId) };
+    }
+
+    const overlappingBookings = await Booking.find(bookingQuery)
       .populate("roomId", "roomNumber")
       .populate("roomIds", "roomNumber roomType")
       .populate("bedId", "bedNumber bedType");
 
-    // Extract unavailable bed IDs (beds that are booked)
     const unavailableBeds = [
       ...new Set(overlappingBookings.map(b => b.bedId?._id.toString())),
     ];
 
-    // Get all rooms for this guest house (using guestHouseId as String)
-    const rooms = await Room.find({ 
-      guestHouseId: guestHouse.guestHouseId, 
-      isActive: true 
+    // Room.guestHouseId is still a String — keep using string comparison here
+    const rooms = await Room.find({
+      guestHouseId: guestHouse.guestHouseId,
+      isActive: true,
     });
 
-    // For each room, check if it is unavailable:
-    // - it has a room-level booking (no bedId) overlapping the range, OR
-    // - ALL its beds are booked for the range
     const unavailableRooms = [];
-    
+
     for (const room of rooms) {
-      // A room-level booking (bedId is null) blocks the whole room
       const hasRoomLevelBooking = overlappingBookings.some(
         (b) => !b.bedId && getBookingRoomIdStrings(b).includes(room._id.toString())
       );
@@ -769,36 +755,23 @@ export const checkAvailability = async (req, res) => {
         continue;
       }
 
-      // Get all active beds for this room
-      const totalBeds = await Bed.countDocuments({ 
-        roomId: room._id, 
-        isActive: true 
-      });
+      const totalBeds = await Bed.countDocuments({ roomId: room._id, isActive: true });
+      if (totalBeds === 0) continue;
 
-      if (totalBeds === 0) {
-        // No beds in room, skip it
-        continue;
-      }
-
-      // Count how many beds in this room are booked for the date range
       const bookedBedsInRoom = overlappingBookings.filter(
         (booking) => booking.bedId && getBookingRoomIdStrings(booking).includes(room._id.toString())
       );
 
-      // Get unique booked bed IDs for this room
       const bookedBedIds = new Set(
         bookedBedsInRoom.map(b => b.bedId?._id.toString()).filter(Boolean)
       );
 
-      // Room is unavailable if ALL beds are booked
       if (bookedBedIds.size >= totalBeds) {
         unavailableRooms.push(room._id.toString());
       }
     }
 
-    const result = { unavailableRooms, unavailableBeds };
-
-    res.json(result);
+    res.json({ unavailableRooms, unavailableBeds });
   } catch (error) {
     console.error("Error checking availability:", error);
     res.status(500).json({ message: "Server error while checking availability" });
@@ -819,7 +792,7 @@ export const cancelBooking = async (req, res) => {
 
     const [user, guestHouse] = await Promise.all([
       User.findById(booking.userId),
-      GuestHouse.findOne({ guestHouseId: booking.guestHouseId }),
+      GuestHouse.findById(booking.guestHouseId),
     ]);
 
     const updatedBooking = await Booking.findByIdAndUpdate(
@@ -866,33 +839,31 @@ export const cancelBooking = async (req, res) => {
 };
 export const getApprovedBookingsForCalendar = async (req, res) => {
   try {
-    // Scope to assigned guest house for ADMIN role
     const query = { status: { $in: ["approved", "cancelled"] } };
     const user = req.user;
+
+    // Scope to assigned guest house for ADMIN — resolve string → ObjectId
     if (user?.role === 'ADMIN' && user.assignedGuestHouseId) {
       const ghId = typeof user.assignedGuestHouseId === 'object'
         ? user.assignedGuestHouseId.guestHouseId
         : user.assignedGuestHouseId;
-      if (ghId) query.guestHouseId = ghId;
+      if (ghId) {
+        const isObjId = mongoose.Types.ObjectId.isValid(ghId);
+        const gh = await GuestHouse.findOne({
+          $or: [{ guestHouseId: ghId }, ...(isObjId ? [{ _id: ghId }] : [])],
+        }).lean();
+        if (gh) query.guestHouseId = gh._id;
+      }
     }
-    let bookings = await Booking.find(query)
+
+    const bookings = await Booking.find(query)
       .populate("userId", "firstName lastName email")
+      .populate("guestHouseId", "guestHouseId guestHouseName location")
       .populate("roomId", "roomNumber")
       .populate("roomIds", "roomNumber roomType")
       .populate("bedId", "bedNumber bedType")
       .sort({ checkIn: 1 })
       .lean();
-
-    // Manually fetch guest houses and attach to bookings
-    const guestHouseIds = [...new Set(bookings.map(b => b.guestHouseId).filter(Boolean))];
-    const guestHouses = await GuestHouse.find({ guestHouseId: { $in: guestHouseIds } }).lean();
-    const guestHouseMap = {};
-    guestHouses.forEach(gh => { guestHouseMap[gh.guestHouseId] = gh; });
-
-    bookings = bookings.map(b => ({
-      ...b,
-      guestHouseId: guestHouseMap[b.guestHouseId] || b.guestHouseId
-    }));
 
     res.json({ bookings });
   } catch (error) {
@@ -904,18 +875,14 @@ export const getApprovedBookingsForCalendar = async (req, res) => {
 // Get a single booking by ID (admin)
 export const getBookingById = async (req, res) => {
   try {
-    // Fetch booking with populate for roomId, bedId (but not guestHouseId)
-    let booking = await Booking.findById(req.params.id)
+    const booking = await Booking.findById(req.params.id)
+      .populate("guestHouseId", "guestHouseId guestHouseName location")
       .populate("roomId", "roomNumber roomType _id")
       .populate("roomIds", "roomNumber roomType _id")
       .populate("bedId", "bedNumber bedType _id")
       .lean();
 
     if (!booking) return res.status(404).json({ message: "Booking not found" });
-
-    // Manually fetch guest house and attach to booking
-    const guestHouse = await GuestHouse.findOne({ guestHouseId: booking.guestHouseId }).lean();
-    booking.guestHouseId = guestHouse || booking.guestHouseId;
 
     res.json({ booking });
   } catch (error) {
@@ -954,8 +921,14 @@ export const updateAdminBooking = async (req, res) => {
       return res.status(400).json({ message: "Check-out must be after check-in" });
     }
 
+    const isObjectIdGH2 = mongoose.Types.ObjectId.isValid(guestHouseId);
     const [guestHouse, rooms, bed, overlapResult] = await Promise.all([
-      GuestHouse.findOne({ guestHouseId }),
+      GuestHouse.findOne({
+        $or: [
+          { guestHouseId },
+          ...(isObjectIdGH2 ? [{ _id: guestHouseId }] : []),
+        ],
+      }),
       Room.find({ _id: { $in: roomIds } }),
       bedId ? Bed.findById(bedId) : Promise.resolve(null),
       checkRoomAvailability({ roomIds, bedId, checkInDate, checkOutDate, excludeId: id }),
@@ -996,7 +969,7 @@ export const updateAdminBooking = async (req, res) => {
     const primaryRoomId = roomIds[0];
 
     const updateData = {
-      guestHouseId,
+      guestHouseId: guestHouse._id,   // ← store ObjectId
       roomId: primaryRoomId,
       roomIds,
       bedId: bedId || undefined,

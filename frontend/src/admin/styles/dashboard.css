@@ -38,6 +38,14 @@
   box-sizing: border-box;
 }
 
+@media (max-width: 768px) {
+  .main-content {
+    padding: 1rem 1rem 2rem;
+    /* The sidebar is fixed/off-screen on mobile — content takes full width */
+    width: 100%;
+  }
+}
+
 /* =====================================================
    CANONICAL PAGE WRAPPER
    Every outlet page wraps its content in .page-root

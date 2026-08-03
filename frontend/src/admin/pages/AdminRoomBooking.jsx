@@ -145,9 +145,25 @@ export default function AdminRoomBooking() {
       setUnavailableRooms([]); setUnavailableBeds([]); return;
     }
     api.get('/api/bookings/availability', {
-      params: { guestHouseId: selectedGuestHouse.guestHouseId || selectedGuestHouse._id, checkIn: form.checkIn, checkOut: form.checkOut },
+      params: {
+        guestHouseId: selectedGuestHouse.guestHouseId || selectedGuestHouse._id,
+        checkIn: form.checkIn,
+        checkOut: form.checkOut,
+        ...(isEditMode && editBookingId ? { excludeBookingId: editBookingId } : {}),
+      },
     })
-      .then((res) => { setUnavailableRooms(res.data.unavailableRooms || []); setUnavailableBeds(res.data.unavailableBeds || []); })
+      .then((res) => {
+        const newUnavailableRooms = res.data.unavailableRooms || [];
+        const newUnavailableBeds  = res.data.unavailableBeds  || [];
+        setUnavailableRooms(newUnavailableRooms);
+        setUnavailableBeds(newUnavailableBeds);
+        // Drop any selected rooms that are now booked
+        setForm((f) => ({
+          ...f,
+          roomIds: f.roomIds.filter((id) => !newUnavailableRooms.includes(id)),
+          bedId: newUnavailableBeds.includes(f.bedId) ? '' : f.bedId,
+        }));
+      })
       .catch(() => toast.error('Unable to check availability.'));
   }, [form.checkIn, form.checkOut, selectedGuestHouse]);
 
@@ -291,15 +307,18 @@ export default function AdminRoomBooking() {
                 Rooms <span>*</span>
                 <Multiselect
                   className="room-multiselect"
-                  options={rooms.map((room) => ({
-                    _id: room._id,
-                    name: `Room ${room.roomNumber} · ${room.roomType}${unavailableRooms.includes(room._id) ? ' (Booked)' : ''}`,
-                    disabled: unavailableRooms.includes(room._id),
-                  }))}
-                  selectedValues={form.roomIds.map((roomId) => {
-                    const room = rooms.find((item) => item._id === roomId);
-                    return room ? { _id: room._id, name: `Room ${room.roomNumber} · ${room.roomType}` } : { _id: roomId, name: roomId };
-                  })}
+                  options={rooms
+                    .filter((room) => !unavailableRooms.includes(room._id))
+                    .map((room) => ({
+                      _id: room._id,
+                      name: `Room ${room.roomNumber} · ${room.roomType}`,
+                    }))}
+                  selectedValues={form.roomIds
+                    .filter((roomId) => !unavailableRooms.includes(roomId))
+                    .map((roomId) => {
+                      const room = rooms.find((item) => item._id === roomId);
+                      return room ? { _id: room._id, name: `Room ${room.roomNumber} · ${room.roomType}` } : { _id: roomId, name: roomId };
+                    })}
                   onSelect={handleRoomSelection}
                   onRemove={handleRoomSelection}
                   displayValue="name"
@@ -310,6 +329,11 @@ export default function AdminRoomBooking() {
                   avoidHighlightFirstOption
                 />
                 <small>{form.roomIds.length ? `${form.roomIds.length} room(s) selected` : 'Select at least one room'}</small>
+                {unavailableRooms.length > 0 && (
+                  <small style={{ color: '#94a3b8', display: 'block', marginTop: '4px' }}>
+                    {unavailableRooms.length} room(s) not shown (already booked for selected dates)
+                  </small>
+                )}
               </label>
               <label>
                 Bed
