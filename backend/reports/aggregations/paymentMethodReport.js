@@ -1,20 +1,29 @@
 import Invoice from '../../models/Invoice.js';
+import GuestHouse from '../../models/GuestHouse.js';
+import { isObjectId } from '../../utils/isObjectId.js';
 
 /**
  * Aggregation for "Payment Method Wise Report".
- *
- * Fetches all invoice transactions filtered by one or more payment methods
- * and an optional date range. Joins Booking → User → Room → GuestHouse.
  *
  * @param {Object} filters
  * @param {string[]} filters.paymentMethods  - e.g. ['Cash', 'UPI']
  * @param {string}   [filters.fromDate]      - YYYY-MM-DD
  * @param {string}   [filters.toDate]        - YYYY-MM-DD
- * @returns {Promise<{ rows: Object[], totals: Object }>}
+ * @param {string}   [filters.guestHouseId]  - scoped for ADMIN role (injected by service)
  */
-export const getPaymentMethodReportData = async ({ paymentMethods, fromDate, toDate }) => {
+export const getPaymentMethodReportData = async ({ paymentMethods, fromDate, toDate, guestHouseId }) => {
   if (!Array.isArray(paymentMethods) || paymentMethods.length === 0) {
     throw new Error('At least one payment method is required');
+  }
+
+  // Resolve guestHouseId string → ObjectId if provided
+  let scopedGuestHouseObjectId = null;
+  if (guestHouseId) {
+    const isObjId = isObjectId(guestHouseId);
+    const gh = await GuestHouse.findOne({
+      $or: [{ guestHouseId }, ...(isObjId ? [{ _id: guestHouseId }] : [])],
+    }).lean();
+    if (gh) scopedGuestHouseObjectId = gh._id;
   }
 
   // ── Stage 1: match invoices by payment method and optional date range ───
@@ -32,19 +41,27 @@ export const getPaymentMethodReportData = async ({ paymentMethods, fromDate, toD
     { $match: matchStage },
     { $sort: { createdAt: -1 } },
 
-    // Join Booking
+    // Join Booking — also enforce guest house scope if set
     {
       $lookup: {
         from: 'bookings',
         let: { bookingId: '$bookingId' },
         pipeline: [
-          { $match: { $expr: { $eq: ['$_id', '$$bookingId'] } } },
+          {
+            $match: {
+              $expr: { $eq: ['$_id', '$$bookingId'] },
+              ...(scopedGuestHouseObjectId ? { guestHouseId: scopedGuestHouseObjectId } : {}),
+            },
+          },
           { $project: { userId: 1, guestHouseId: 1, roomId: 1, checkIn: 1, checkOut: 1, status: 1 } },
         ],
         as: 'booking',
       },
     },
     { $addFields: { booking: { $arrayElemAt: ['$booking', 0] } } },
+
+    // Drop invoices whose booking didn't match (wrong guest house or not found)
+    { $match: { booking: { $ne: null } } },
 
     // Join User (guest)
     {

@@ -52,15 +52,15 @@ export const generatePaymentMethodReportPdf = async (data, filters, meta) => {
 
   // ── Header ────────────────────────────────────────────────────────────────
   const LOGO_SIZE = 40;
-  drawLogo(doc, logoUrl, L, y, LOGO_SIZE);
+  drawLogo(doc, logoUrl, L, y-10, LOGO_SIZE);
 
   doc.fontSize(16).font('Helvetica-Bold').fillColor('#0f172a')
     .text('Payment Method Wise Report', L, y, { align: 'center', width: W });
   y += 20;
 
-  doc.fontSize(9).font('Helvetica').fillColor('#475569')
-    .text(`Methods: ${paymentMethods.join(', ')}`, L, y, { align: 'center', width: W });
-  y += 14;
+  // doc.fontSize(9).font('Helvetica').fillColor('#475569')
+  //   .text(``, L, y, { align: 'center', width: W });
+  // y += 14;
 
   const dateLabel = fromDate || toDate
     ? `${fromDate ? fmtDate(fromDate) : 'Start'} – ${toDate ? fmtDate(toDate) : 'Today'}`
