@@ -18,6 +18,13 @@ export const REPORTS = [
     supportedFilters: ["month", "year", "guestHouseId"],
   },
   {
+    id: "paymentMethodReport",
+    name: "Payment Method Wise Report",
+    description: "Transactions grouped by payment method (Cash, UPI, Card, etc.) with totals and guest details.",
+    defaultEnabled: true,
+    supportedFilters: ["paymentMethods", "fromDate", "toDate"],
+  },
+  {
     id: "invoice",
     name: "Invoice",
     description: "PDF invoice generated after payment completion.",

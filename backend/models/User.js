@@ -116,6 +116,12 @@ const userSchema = new mongoose.Schema({
         trim: true,
         default: null,
     },
+    // Guest house where the user first registered/booked (set only once on create)
+    registeredGuestHouseId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "GuestHouse",
+        default: null,
+    },
     // References to all bookings made by this guest
     bookingIds: [
         {

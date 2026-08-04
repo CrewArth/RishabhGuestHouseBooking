@@ -199,8 +199,8 @@ const Receipts = () => {
                   const inv        = receipt.invoiceData || {};
                   const totalBill  = Number(inv.bookingTotal || 0);
                   const prevPaid   = Number(inv.previouslyPaid || 0);
-                  // outstanding amount paid = totalBill - prevPaid (what was settled via outstanding)
-                  const outstandingPaid = Number(inv.amountPaid || 0) - prevPaid;
+                  // For PAID mode: inv.amountPaid is already this transaction only (set by backend's $project)
+                  const amountPaidThisTransaction = Number(inv.amountPaid || 0);
 
                   return (
                     <tr key={receipt._id}>
@@ -220,7 +220,7 @@ const Receipts = () => {
                       </td>
                       <td>{formatDate(booking.checkIn)}</td>
                       <td style={{ fontWeight: 700, color: paid ? '#15803d' : '#b45309' }}>
-                        {paid ? formatCurrency(outstandingPaid) : formatCurrency(amountDue)}
+                        {paid ? formatCurrency(amountPaidThisTransaction) : formatCurrency(amountDue)}
                       </td>
                       <td>{formatDate(receipt.createdAt)}</td>
                       <td>
@@ -235,13 +235,14 @@ const Receipts = () => {
                             title="View invoice"
                             style={{ width: 32, height: 32, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', border: 'none', borderRadius: 6, background: '#f0fdf4', color: '#16a34a', cursor: 'pointer' }}
                             onClick={() => {
-                              const inv = receipt.invoiceData;
-                              if (!inv) { toast.error('No invoice available.'); return; }
+                              const invData = receipt.invoiceData;
+                              if (!invData) { toast.error('No invoice available.'); return; }
                               const receiptData = {
-                                ...inv,
-                                amountPaid: outstandingPaid,
+                                ...invData,
+                                amountPaid: amountPaidThisTransaction,
                                 previouslyPaid: prevPaid,
                                 bookingTotal: totalBill,
+                                outstandingBalance: amountDue,
                               };
                               if (!printOutstandingReceipt(booking, receiptData))
                                 toast.error('Pop-up blocked. Please allow pop-ups for this site.');

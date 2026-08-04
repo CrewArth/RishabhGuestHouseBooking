@@ -214,6 +214,7 @@ export const createAdminBooking = async (req, res) => {
       gender: gender || null,
       nationality, identityType, identityNumber,
       emergencyContactName, emergencyContactPhone,
+      guestHouseId: guestHouse._id, // register which hotel the user first booked
       bookingId: null, // will update after booking created
     });
 
@@ -240,6 +241,7 @@ export const createAdminBooking = async (req, res) => {
       gender: gender || null,
       nationality, identityType, identityNumber,
       emergencyContactName, emergencyContactPhone,
+      guestHouseId: guestHouse._id, // only used on CREATE, safe to pass every time
       bookingId: booking._id,
     }).catch((error) => console.error("NormalUser upsert error:", error));
 

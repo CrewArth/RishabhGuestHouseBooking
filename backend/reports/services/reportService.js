@@ -3,6 +3,7 @@ import { fetchReportData } from '../repositories/reportRepository.js';
 import { generateBookingByGuestHousePdf } from '../pdf/templates/bookingByGuestHousePdf.js';
 import { generateMonthlyRevenueByGuestHousePdf } from '../pdf/templates/monthlyRevenueByGuestHousePdf.js';
 import { generateInvoicePdf } from '../pdf/templates/invoicePdf.js';
+import { generatePaymentMethodReportPdf } from '../pdf/templates/paymentMethodReportPdf.js';
 import User from '../../models/User.js';
 import GuestHouse from '../../models/GuestHouse.js';
 import { logAction } from '../../utils/auditLogger.js';
@@ -85,6 +86,13 @@ export const generateReportPdf = async (reportId, filters, user) => {
       break;
     case 'monthlyRevenueByGuestHouse':
       pdfBuffer = await generateMonthlyRevenueByGuestHousePdf(data, reportFilters, {
+        createdBy: performerName,
+        logoUrl: logoUrl || null,
+        eSignatureUrl: user.eSignatureUrl || null,
+      });
+      break;
+    case 'paymentMethodReport':
+      pdfBuffer = await generatePaymentMethodReportPdf(data, reportFilters, {
         createdBy: performerName,
         logoUrl: logoUrl || null,
         eSignatureUrl: user.eSignatureUrl || null,

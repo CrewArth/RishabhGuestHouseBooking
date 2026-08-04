@@ -13,7 +13,7 @@ const fmtDate = (value) => {
   return Number.isNaN(d.getTime()) ? '—' : d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
 };
 
-const PAYMENT_METHODS = ['Cash', 'Debit Card', 'Credit Card', 'UPI', 'Bank Transfer', 'Other'];
+import { PAYMENT_METHODS, DEFAULT_PAYMENT_METHOD } from '../../common/paymentMethods.js';
 
 export default function ReceiptPaymentModal({ receipt, onClose, onSuccess }) {
   const { bookingId, outstandingBalance, booking: receiptBooking } = receipt || {};
@@ -21,7 +21,7 @@ export default function ReceiptPaymentModal({ receipt, onClose, onSuccess }) {
   const [booking, setBooking] = useState(receiptBooking || null);
   const [invoice, setInvoice] = useState(null);
   const [loadingBooking, setLoadingBooking] = useState(!receiptBooking);
-  const [paymentMethod, setPaymentMethod] = useState('Cash');
+  const [paymentMethod, setPaymentMethod] = useState(DEFAULT_PAYMENT_METHOD);
   const [paymentAmount, setPaymentAmount] = useState(String(outstandingBalance || ''));
   const [note, setNote] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -104,7 +104,6 @@ export default function ReceiptPaymentModal({ receipt, onClose, onSuccess }) {
         outstandingBalance: afterPayment,
       };
       setLastInvoice(receiptInvoice);
-      toast.success('Payment recorded successfully.');
       if (onSuccess) onSuccess();
     } catch (err) {
       console.error('ReceiptPaymentModal submit error:', err);

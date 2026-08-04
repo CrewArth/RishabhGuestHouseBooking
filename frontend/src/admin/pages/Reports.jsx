@@ -4,6 +4,7 @@ import { toast } from 'react-toastify';
 import api from '../../utils/api';
 import { REPORTS, isReportAllowed } from '../../common/reportsConfig';
 import { MONTHS } from '../../common/months';
+import { PAYMENT_METHODS } from '../../common/paymentMethods';
 import { FileText, Download, CheckCircle, Lock } from 'lucide-react';
 import '../styles/reports.css';
 
@@ -46,6 +47,9 @@ const Reports = () => {
   const [guestHouseId, setGuestHouseId] = useState('');
   const [guestHouses, setGuestHouses] = useState([]);
   const [generating, setGenerating] = useState(false);
+
+  // Payment methods filter (for paymentMethodReport)
+  const [selectedPaymentMethods, setSelectedPaymentMethods] = useState([...PAYMENT_METHODS]);
 
   // Month / Year filters (for monthlyRevenueByGuestHouse)
   const currentDate = new Date();
@@ -141,6 +145,11 @@ const Reports = () => {
       return;
     }
 
+    if (selectedReportId === 'paymentMethodReport' && selectedPaymentMethods.length === 0) {
+      toast.error('Please select at least one payment method');
+      return;
+    }
+
     try {
       setGenerating(true);
 
@@ -159,6 +168,10 @@ const Reports = () => {
           filterPayload.month = selectedMonth;
           filterPayload.year  = selectedYear;
         }
+      } else if (selectedReportId === 'paymentMethodReport') {
+        filterPayload.paymentMethods = selectedPaymentMethods;
+        if (fromDate) filterPayload.fromDate = fromDate;
+        if (toDate)   filterPayload.toDate   = toDate;
       } else {
         if (currentReportConfig?.supportedFilters.includes('fromDate')) filterPayload.fromDate = fromDate;
         if (currentReportConfig?.supportedFilters.includes('toDate'))   filterPayload.toDate   = toDate;
@@ -305,6 +318,54 @@ const Reports = () => {
 
               <form onSubmit={handleGeneratePdf} className="reports-filter-form">
                 <div className="reports-filter-grid">
+                  {currentReportConfig.supportedFilters.includes('paymentMethods') && (
+                    <div className="reports-filter-field" style={{ gridColumn: '1 / -1' }}>
+                      <label className="reports-filter-label">
+                        Payment Methods <span style={{ color: '#dc2626' }}>*</span>
+                      </label>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 4 }}>
+                        {PAYMENT_METHODS.map((method) => {
+                          const checked = selectedPaymentMethods.includes(method);
+                          return (
+                            <label
+                              key={method}
+                              style={{
+                                display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer',
+                                padding: '5px 12px', borderRadius: 6, border: `1px solid ${checked ? '#2563eb' : '#e2e8f0'}`,
+                                background: checked ? '#eff6ff' : '#f8fafc', fontSize: '0.85rem',
+                                color: checked ? '#2563eb' : '#475569', fontWeight: checked ? 600 : 400,
+                                userSelect: 'none',
+                              }}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={checked}
+                                onChange={() =>
+                                  setSelectedPaymentMethods((prev) =>
+                                    prev.includes(method) ? prev.filter((m) => m !== method) : [...prev, method]
+                                  )
+                                }
+                                style={{ display: 'none' }}
+                              />
+                              {method}
+                            </label>
+                          );
+                        })}
+                      </div>
+                      <div style={{ marginTop: 6, display: 'flex', gap: 8 }}>
+                        <button type="button" style={{ fontSize: '0.78rem', color: '#2563eb', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                          onClick={() => setSelectedPaymentMethods([...PAYMENT_METHODS])}>
+                          Select All
+                        </button>
+                        <span style={{ color: '#cbd5e1' }}>|</span>
+                        <button type="button" style={{ fontSize: '0.78rem', color: '#64748b', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                          onClick={() => setSelectedPaymentMethods([])}>
+                          Clear
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
                   {currentReportConfig.supportedFilters.includes('fromDate') && (
                     <div className="reports-filter-field">
                       <label className="reports-filter-label">From Date</label>

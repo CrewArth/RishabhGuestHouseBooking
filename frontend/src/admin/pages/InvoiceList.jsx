@@ -327,9 +327,15 @@ const InvoiceList = () => {
                 ) : (
                   bookings.map((b, i) => {
                     const idx = (currentPage - 1) * LIMIT + i + 1;
-                    const inv = b.invoice?.invoiceData || null;
-                    const amountPaid = inv != null ? Number(inv.amountPaid || 0) : null;
-                    const balance = inv != null ? Number(inv.outstandingBalance || 0) : null;
+                    const inv = b.invoice || null;
+                    const invData = inv?.invoiceData || {};
+                    // Prefer normalized top-level fields from backend (new schema), fallback to invoiceData (old schema)
+                    const amountPaid = inv != null
+                      ? Number(inv.normPaidAmount ?? inv.paidAmount ?? inv.amountPaid ?? invData.amountPaid ?? 0)
+                      : null;
+                    const balance = inv != null
+                      ? Number(inv.normOutstandingAmount ?? inv.outstandingAmount ?? invData.outstandingBalance ?? 0)
+                      : null;
                     const hasInvoice = !!b.invoice;
 
                     return (

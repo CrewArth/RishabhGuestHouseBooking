@@ -5,7 +5,7 @@ import { toast } from 'react-toastify';
 import api from '../../utils/api';
 
 const steps = ['Booking Summary', 'Extras / Charges', 'Payment'];
-const paymentMethods = ['Cash', 'Debit Card', 'Credit Card', 'UPI', 'Bank Transfer', 'Other'];
+import { PAYMENT_METHODS as paymentMethods, DEFAULT_PAYMENT_METHOD } from '../../common/paymentMethods.js';
 
 const formatDate = (value) => {
   if (!value) return '—';
@@ -42,7 +42,7 @@ const PaymentPage = ({ isOpen = false, onClose, bookingId: bookingIdProp, onInvo
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [extras, setExtras] = useState([{ name: '', quantity: '1', unitPrice: '0', total: 0 }]);
-  const [paymentMethod, setPaymentMethod] = useState('Cash');
+  const [paymentMethod, setPaymentMethod] = useState(DEFAULT_PAYMENT_METHOD);
   const [paymentAmount, setPaymentAmount] = useState(initialPaymentAmount ? String(initialPaymentAmount) : '');
   const [taxes, setTaxes] = useState([]);
   const logoUrl = useSelector((state) => state.siteSettings.logoUrl);

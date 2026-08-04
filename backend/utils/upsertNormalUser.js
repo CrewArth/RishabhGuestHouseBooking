@@ -24,6 +24,7 @@ import User from "../models/User.js";
  * @param {string}   [params.identityNumber]
  * @param {string}   [params.emergencyContactName]
  * @param {string}   [params.emergencyContactPhone]
+ * @param {ObjectId} [params.guestHouseId]   // GuestHouse ObjectId where user first booked
  * @param {ObjectId} params.bookingId
  *
  * @returns {Promise<User>} The upserted document
@@ -40,6 +41,7 @@ export const upsertNormalUser = async ({
   identityNumber,
   emergencyContactName,
   emergencyContactPhone,
+  guestHouseId,
   bookingId,
 }) => {
   const normalizedEmail = email?.trim().toLowerCase() || null;
@@ -92,13 +94,14 @@ export const upsertNormalUser = async ({
     return existingUser;
   }
 
-  // New guest — no password needed
+  // New guest — no password needed. Set registeredGuestHouseId only on create.
   const newUser = await User.create({
     ...profileUpdate,
-    role:          "USER",
-    password:      null,
-    bookingIds:    bookingId ? [bookingId] : [],
-    totalBookings: bookingId ? 1 : 0,
+    role:                   "USER",
+    password:               null,
+    bookingIds:             bookingId ? [bookingId] : [],
+    totalBookings:          bookingId ? 1 : 0,
+    registeredGuestHouseId: guestHouseId || null,
   });
 
   console.log(`👤 NormalUser created: ${newUser.email || newUser.phone}`);

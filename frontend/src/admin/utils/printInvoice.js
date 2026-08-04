@@ -60,26 +60,88 @@ const PAGE_STYLES = `
 `;
 
 /**
+ * Normalize invoice data: accepts new top-level fields OR legacy invoiceData fields.
+ * Guarantees: bookingTotal, taxesTotal, taxBreakdown, extrasTotal,
+ *             amountPaid, outstandingBalance, paymentMethod, createdAt, discount
+ * are all present as top-level keys.
+ */
+const normalizeInvoice = (invoiceData = {}) => {
+  const id = invoiceData.id
+    || invoiceData._id
+    || (invoiceData.invoiceId && String(invoiceData.invoiceId))
+    || '';
+  return {
+    id,
+    bookingTotal: Number(
+      invoiceData.bookingTotal
+        ?? invoiceData.totalAmount
+        ?? invoiceData.invoiceData?.bookingTotal
+        ?? 0
+    ),
+    taxesTotal: Number(
+      invoiceData.taxesTotal
+        ?? invoiceData.normTaxAmount
+        ?? invoiceData.taxAmount
+        ?? invoiceData.invoiceData?.taxesTotal
+        ?? 0
+    ),
+    taxBreakdown: Array.isArray(invoiceData.taxBreakdown) && invoiceData.taxBreakdown.length
+      ? invoiceData.taxBreakdown
+      : Array.isArray(invoiceData.invoiceData?.taxBreakdown)
+        ? invoiceData.invoiceData.taxBreakdown
+        : [],
+    extrasTotal: Number(
+      invoiceData.extrasTotal
+        ?? invoiceData.normExtrasTotal
+        ?? invoiceData.invoiceData?.extrasTotal
+        ?? 0
+    ),
+    amountPaid: Number(
+      invoiceData.amountPaid
+        ?? invoiceData.normPaidAmount
+        ?? invoiceData.paidAmount
+        ?? invoiceData.invoiceData?.amountPaid
+        ?? 0
+    ),
+    outstandingBalance: Number(
+      invoiceData.outstandingBalance
+        ?? invoiceData.normOutstandingAmount
+        ?? invoiceData.outstandingAmount
+        ?? invoiceData.invoiceData?.outstandingBalance
+        ?? 0
+    ),
+    discount: Number(invoiceData.discount ?? invoiceData.discountAmount ?? invoiceData.invoiceData?.discount ?? 0),
+    paymentMethod: invoiceData.paymentMethod
+      ?? invoiceData.normPaymentMethod
+      ?? invoiceData.invoiceData?.paymentMethod
+      ?? '',
+    note: invoiceData.note ?? invoiceData.notes ?? invoiceData.invoiceData?.note ?? '',
+    createdAt: invoiceData.createdAt ?? invoiceData.invoiceData?.createdAt,
+  };
+};
+
+/**
  * Print a checkout invoice.
  */
 export const printInvoice = (booking, invoiceData) => {
   const printWindow = window.open('', '_blank');
   if (!printWindow) return false;
 
+  const inv = normalizeInvoice(invoiceData);
   const g = guestInfo(booking);
-  const bookingCharges = (invoiceData.bookingTotal || 0) - (invoiceData.extrasTotal || 0) - (invoiceData.taxesTotal || 0);
+  const bookingCharges = inv.bookingTotal - inv.extrasTotal - inv.taxesTotal;
 
-  const taxRows = Array.isArray(invoiceData.taxBreakdown) && invoiceData.taxBreakdown.length > 0
-    ? invoiceData.taxBreakdown.map((t) =>
+  const taxRows = Array.isArray(inv.taxBreakdown) && inv.taxBreakdown.length > 0
+    ? inv.taxBreakdown.map((t) =>
         `<tr><td>${t.name || 'Tax'}${t.percentage != null ? ` (${t.percentage}%)` : ''}</td><td style="text-align:right">${currency(t.amount)}</td></tr>`
       ).join('')
-    : invoiceData.taxesTotal
-      ? `<tr><td>Taxes</td><td style="text-align:right">${currency(invoiceData.taxesTotal)}</td></tr>`
+    : inv.taxesTotal
+      ? `<tr><td>Taxes</td><td style="text-align:right">${currency(inv.taxesTotal)}</td></tr>`
       : '';
 
   printWindow.document.write(`<!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8"/>
-<title>Invoice - ${invoiceData.id || booking._id}</title>
+<title>Invoice - ${inv.id || booking._id}</title>
 <style>${PAGE_STYLES}</style></head>
 <body>
   <div class="header">
@@ -88,8 +150,8 @@ export const printInvoice = (booking, invoiceData) => {
       <p class="company">${g.guestHouseName}${g.guestHouseLocation ? ' · ' + g.guestHouseLocation : ''}</p>
     </div>
     <div class="header-right">
-      <div>Invoice #: <strong>${invoiceData.id || '—'}</strong></div>
-      <div>Date: <strong>${fmt(invoiceData.createdAt)}</strong></div>
+      <div>Invoice #: <strong>${inv.id || '—'}</strong></div>
+      <div>Date: <strong>${fmt(inv.createdAt)}</strong></div>
       <div>Booking ID: <strong>${String(booking._id).slice(-8).toUpperCase()}</strong></div>
     </div>
   </div>
@@ -105,8 +167,8 @@ export const printInvoice = (booking, invoiceData) => {
     </div>
     <div class="box">
       <div class="box-title">Payment Details</div>
-      <p>Method: <strong>${invoiceData.paymentMethod || '—'}</strong></p>
-      <p>Paid On: <strong>${fmt(invoiceData.createdAt)}</strong></p>
+      <p>Method: <strong>${inv.paymentMethod || '—'}</strong></p>
+      <p>Paid On: <strong>${fmt(inv.createdAt)}</strong></p>
       <p>Guest House: ${g.guestHouseName}</p>
     </div>
   </div>
@@ -114,15 +176,15 @@ export const printInvoice = (booking, invoiceData) => {
     <thead><tr><th style="width:40px">#</th><th>Description</th><th class="right" style="width:140px">Amount</th></tr></thead>
     <tbody>
       <tr><td>1</td><td>Booking Charges</td><td class="right">${currency(bookingCharges)}</td></tr>
-      <tr><td>2</td><td>Extras / Add-ons</td><td class="right">${currency(invoiceData.extrasTotal)}</td></tr>
+      <tr><td>2</td><td>Extras / Add-ons</td><td class="right">${currency(inv.extrasTotal)}</td></tr>
       ${taxRows}
     </tbody>
   </table>
   <div class="summary">
     <table class="summary-table">
-      <tr><td>Subtotal</td><td class="right">${currency(invoiceData.bookingTotal)}</td></tr>
-      <tr><td>Amount Paid</td><td class="right">${currency(invoiceData.amountPaid)}</td></tr>
-      <tr class="grand-total"><td>Balance Due</td><td class="right">${currency(invoiceData.outstandingBalance)}</td></tr>
+      <tr><td>Subtotal</td><td class="right">${currency(inv.bookingTotal)}</td></tr>
+      <tr><td>Amount Paid</td><td class="right">${currency(inv.amountPaid)}</td></tr>
+      <tr class="grand-total"><td>Balance Due</td><td class="right">${currency(inv.outstandingBalance)}</td></tr>
     </table>
   </div>
   <div class="footer">
@@ -157,10 +219,12 @@ export const printOutstandingReceipt = (booking, receiptData) => {
     return label || '—';
   })();
 
-  const totalBill      = Number(receiptData.bookingTotal      || 0);
-  const alreadyPaid    = Number(receiptData.previouslyPaid    || 0);
-  const paidNow        = Number(receiptData.amountPaid        || 0);
-  const balanceRemain  = Number(receiptData.outstandingBalance || 0);
+  const inv = normalizeInvoice(receiptData);
+  // For outstanding receipt, receiptData.amountPaid is ONLY this transaction
+  const totalBill      = Number(receiptData.bookingTotal || inv.bookingTotal || 0);
+  const alreadyPaid    = Number(receiptData.previouslyPaid || 0);
+  const paidNow        = Number(receiptData.amountPaid || 0);
+  const balanceRemain  = Number(receiptData.outstandingBalance ?? inv.outstandingBalance ?? 0);
 
   printWindow.document.write(`<!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8"/>
@@ -216,11 +280,11 @@ export const printOutstandingReceipt = (booking, receiptData) => {
       <span>${currency(alreadyPaid)}</span>
     </div>
     <div class="row">
-      <span>Outstanding Amount Paid</span>
+      <span>Amount Paid</span>
       <span>${currency(paidNow)}</span>
     </div>
     <div class="row total">
-      <span>Balance Remaining</span>
+      <span>Outstanding Balance</span>
       <span>${currency(balanceRemain)}</span>
     </div>
   </div>

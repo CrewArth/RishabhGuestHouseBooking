@@ -73,7 +73,7 @@ export default function Settings() {
       <header className="settings-header">
         <h1 className="settings-title">Site Settings</h1>
         <p className="settings-subtitle">
-          Customise the navbar logo and site name. Changes apply instantly.
+          Customise the navbar logo and site name.
         </p>
       </header>
 

@@ -17,6 +17,13 @@ export const REPORTS = [
     defaultEnabled: true,
     supportedFilters: ["month", "year", "guestHouseId"],
   },
+  {
+    id: "paymentMethodReport",
+    name: "Payment Method Wise Report",
+    description: "",
+    defaultEnabled: true,
+    supportedFilters: ["paymentMethods", "fromDate", "toDate"],
+  },
 ];
 
 export const getAllReportIds = () => REPORTS.map((r) => r.id);
